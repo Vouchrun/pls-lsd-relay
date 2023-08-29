@@ -1,0 +1,10 @@
+eth1Endpoint = ""
+eth2Endpoint = ""
+logFilePath = ""
+Account = "0xE6F2A8d12595fBe5D410f6CA0Be13695E61C6c35"
+gasLimit = "3000000"
+keystorePath = "./keys"
+maxGasPrice = "60000000000"                            #wei
+
+[contracts]
+lsdTokenAddress = "0x3a9f01091C446bdE031E39ea8354647AFef091E7"
