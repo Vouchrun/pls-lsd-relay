@@ -77,15 +77,11 @@ func (s *Service) updateValidatorsFromNetwork() error {
 
 	// 1. update validator status on network
 	for _, val := range s.validators {
-		if val.Status > utils.ValidatorStatusOffBoardWithdrawed {
+		if val.Status > utils.ValidatorStatusWithdrawUnmatch {
 			continue
 		}
 
 		if val.Status == utils.ValidatorStatusStaked {
-			continue
-		}
-
-		if val.NodeType == utils.NodeTypeLight && val.Status == utils.ValidatorStatusOffBoardWithdrawed {
 			continue
 		}
 

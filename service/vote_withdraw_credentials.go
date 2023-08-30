@@ -26,6 +26,10 @@ func (s *Service) voteWithdrawCredentials() error {
 	validatorPubkeys := make([][]byte, 0)
 	validatorMatchs := make([]bool, 0)
 	for _, validator := range validatorListNeedVote {
+		// skip if not sync to deposit block
+		if validator.DepositBlock > s.dealedEth1Block {
+			continue
+		}
 
 		govCredentials := s.govDeposits[hex.EncodeToString(validator.Pubkey)]
 
@@ -80,9 +84,14 @@ func (s *Service) voteWithdrawCredentials() error {
 			"match":  match,
 		}).Debug("match info")
 
-		// todo check voted
-		validatorPubkeys = append(validatorPubkeys, validatorPubkey[:])
-		validatorMatchs = append(validatorMatchs, match)
+		hasVoted, err := s.networkProposalContract.HasVoted(nil, utils.VoteWithdrawCredentialsProposalId(validator.Pubkey), s.keyPair.CommonAddress())
+		if err != nil {
+			return err
+		}
+		if !hasVoted {
+			validatorPubkeys = append(validatorPubkeys, validator.Pubkey)
+			validatorMatchs = append(validatorMatchs, match)
+		}
 	}
 
 	return s.voteWithdrawCredentialsTx(validatorPubkeys, validatorMatchs)

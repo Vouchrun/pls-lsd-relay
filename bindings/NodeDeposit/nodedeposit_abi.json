@@ -324,32 +324,6 @@
         "inputs": [
             {
                 "internalType": "bytes",
-                "name": "_validatorPubkey",
-                "type": "bytes"
-            }
-        ],
-        "name": "offBoard",
-        "outputs": [],
-        "stateMutability": "nonpayable",
-        "type": "function"
-    },
-    {
-        "inputs": [
-            {
-                "internalType": "bytes",
-                "name": "_validatorPubkey",
-                "type": "bytes"
-            }
-        ],
-        "name": "provideNodeDepositToken",
-        "outputs": [],
-        "stateMutability": "payable",
-        "type": "function"
-    },
-    {
-        "inputs": [
-            {
-                "internalType": "bytes",
                 "name": "",
                 "type": "bytes"
             }
@@ -604,19 +578,6 @@
             }
         ],
         "stateMutability": "view",
-        "type": "function"
-    },
-    {
-        "inputs": [
-            {
-                "internalType": "bytes",
-                "name": "_validatorPubkey",
-                "type": "bytes"
-            }
-        ],
-        "name": "withdrawNodeDepositToken",
-        "outputs": [],
-        "stateMutability": "nonpayable",
         "type": "function"
     }
 ]

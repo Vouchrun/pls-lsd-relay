@@ -29,20 +29,15 @@ const (
 	ValidatorStatusStaked          = uint8(3)
 	ValidatorStatusWithdrawUnmatch = uint8(4)
 
-	// lightnode related
-	ValidatorStatusOffBoard            = uint8(5)
-	ValidatorStatusOffBoardCanWithdraw = uint8(6)
-	ValidatorStatusOffBoardWithdrawed  = uint8(7)
-
 	// status on beacon chain
-	ValidatorStatusWaiting      = uint8(8)
-	ValidatorStatusActive       = uint8(9)
-	ValidatorStatusExited       = uint8(10)
-	ValidatorStatusWithdrawable = uint8(11)
-	ValidatorStatusWithdrawDone = uint8(12)
+	ValidatorStatusWaiting      = uint8(5)
+	ValidatorStatusActive       = uint8(6)
+	ValidatorStatusExited       = uint8(7)
+	ValidatorStatusWithdrawable = uint8(8)
+	ValidatorStatusWithdrawDone = uint8(9)
 
 	// after distribute reward
-	ValidatorStatusDistributed = uint8(13) // distribute full withdrawal
+	ValidatorStatusDistributed = uint8(10) // distribute full withdrawal
 
 	// after slash
 	ValidatorStatusActiveSlash       = uint8(51)
@@ -60,37 +55,6 @@ const (
 )
 
 const (
-	ValidatorEverSlashedFalse = uint8(0)
-	ValidatorEverSlashedTrue  = uint8(1)
-)
-
-const (
-	FeePool          = uint8(1)
-	SuperNodeFeePool = uint8(2)
-)
-
-const (
-	MetaTypeEth1BlockSyncer            = uint8(1) // dealed block height
-	MetaTypeEth2ValidatorInfoSyncer    = uint8(2) // dealed epoch
-	MetaTypeEth2ValidatorBalanceSyncer = uint8(3) // dealed epoch
-	MetaTypeV1ValidatorSyncer          = uint8(4) // dealed block height
-	MetaTypeEth2BlockSyncer            = uint8(5) // dealed epoch
-	MetaTypeEth2NodeBalanceCollector   = uint8(6) // dealed epoch
-)
-const (
-	SlashTypeFeeRecipient  = uint8(1)
-	SlashTypeProposerSlash = uint8(2)
-	SlashTypeAttesterSlash = uint8(3)
-
-	SlashTypeNotExitSlash = uint8(7)
-
-	// not show in front end
-	SlashTypeSyncMiss     = uint8(4)
-	SlashTypeAttesterMiss = uint8(5)
-	SlashTypeProposerMiss = uint8(6)
-)
-
-const (
 	StandardEffectiveBalance            = uint64(32e9) //gwei
 	StandardSuperNodeFakeDepositBalance = uint64(1e9)  //gwei
 	OfficialSlashAmount                 = uint64(1e9)  //gwei
@@ -103,12 +67,6 @@ const (
 	NodeDepositAmount12 = uint64(12e9) //gwei solo 12
 )
 
-//	enum ClaimType {
-//	    None,
-//	    CLAIMREWARD,
-//	    CLAIMDEPOSIT,
-//	    CLAIMTOTAL
-//	}
 const (
 	NodeClaimTypeNone         = uint8(0)
 	NodeClaimTypeClaimReward  = uint8(1)
@@ -252,45 +210,22 @@ type ResGasPriceFromBeacon struct {
 	} `json:"data"`
 }
 
-// keccak256(abi.encodePacked("contract.address", _contractName))
-func ContractStorageKey(name string) [32]byte {
-	return crypto.Keccak256Hash([]byte("contract.address"), []byte(name))
+func SubmitBalancesProposalId(_block *big.Int, _totalEth *big.Int, _rethSupply *big.Int) [32]byte {
+	return crypto.Keccak256Hash([]byte("submitBalances"), common.LeftPadBytes(_block.Bytes(), 32),
+		common.LeftPadBytes(_totalEth.Bytes(), 32), common.LeftPadBytes(_rethSupply.Bytes(), 32))
 }
 
-func NodeSubmissionKey(sender common.Address, _block *big.Int, _totalEth *big.Int, _stakingEth *big.Int, _rethSupply *big.Int) [32]byte {
-	// keccak256(abi.encodePacked("network.balances.submitted.node", sender, _block, _totalEth, _stakingEth, _rethSupply))
-	return crypto.Keccak256Hash([]byte("network.balances.submitted.node"), sender.Bytes(), common.LeftPadBytes(_block.Bytes(), 32),
-		common.LeftPadBytes(_totalEth.Bytes(), 32), common.LeftPadBytes(_stakingEth.Bytes(), 32), common.LeftPadBytes(_rethSupply.Bytes(), 32))
+func VoteWithdrawCredentialsProposalId(pubkey []byte) [32]byte {
+	return crypto.Keccak256Hash([]byte("voteWithdrawCredentials"), pubkey)
 }
 
-func StafiWithdrawProposalNodeKey(sender common.Address, proposalId [32]byte) [32]byte {
-	return crypto.Keccak256Hash([]byte("stafiWithdraw.proposal.node.key"), proposalId[:], sender.Bytes())
-}
+func DistributeProposalId(_distributeType, _dealedHeight, _userAmount, _nodeAmount, _platformAmount,
+	_maxClaimableWithdrawIndex *big.Int) [32]byte {
+	return crypto.Keccak256Hash([]byte("distribute"), common.LeftPadBytes(_distributeType.Bytes(), 32),
+		common.LeftPadBytes(_dealedHeight.Bytes(), 32), common.LeftPadBytes(_userAmount.Bytes(), 32),
+		common.LeftPadBytes(_nodeAmount.Bytes(), 32), common.LeftPadBytes(_platformAmount.Bytes(), 32),
+		common.LeftPadBytes(_maxClaimableWithdrawIndex.Bytes(), 32))
 
-func DistributeWithdrawalsProposalNodeKey(sender common.Address, _dealedHeight, _userAmount, _nodeAmount, _platformAmount, _maxClaimableWithdrawIndex *big.Int) [32]byte {
-	proposalId := crypto.Keccak256Hash([]byte("distributeWithdrawals"), common.LeftPadBytes(_dealedHeight.Bytes(), 32), common.LeftPadBytes(_userAmount.Bytes(), 32),
-		common.LeftPadBytes(_nodeAmount.Bytes(), 32), common.LeftPadBytes(_platformAmount.Bytes(), 32), common.LeftPadBytes(_maxClaimableWithdrawIndex.Bytes(), 32))
-	return StafiWithdrawProposalNodeKey(sender, proposalId)
-}
-
-func StafiDistributorProposalNodeKey(sender common.Address, proposalId [32]byte) [32]byte {
-	return crypto.Keccak256Hash([]byte("stafiDistributor.proposal.node.key"), proposalId[:], sender.Bytes())
-}
-
-func ReserveEthForWithdrawProposalId(cycle *big.Int) [32]byte {
-	return crypto.Keccak256Hash([]byte("reserveEthForWithdraw"), common.LeftPadBytes(cycle.Bytes(), 32))
-}
-
-func DistributeFeeProposalNodeKey(sender common.Address, _dealedHeight, _userAmount, _nodeAmount, _platformAmount *big.Int) [32]byte {
-	proposalId := crypto.Keccak256Hash([]byte("distributeFee"), common.LeftPadBytes(_dealedHeight.Bytes(), 32), common.LeftPadBytes(_userAmount.Bytes(), 32),
-		common.LeftPadBytes(_nodeAmount.Bytes(), 32), common.LeftPadBytes(_platformAmount.Bytes(), 32))
-	return StafiDistributorProposalNodeKey(sender, proposalId)
-}
-
-func DistributeSuperNodeFeeProposalNodeKey(sender common.Address, _dealedHeight, _userAmount, _nodeAmount, _platformAmount *big.Int) [32]byte {
-	proposalId := crypto.Keccak256Hash([]byte("distributeSuperNodeFee"), common.LeftPadBytes(_dealedHeight.Bytes(), 32), common.LeftPadBytes(_userAmount.Bytes(), 32),
-		common.LeftPadBytes(_nodeAmount.Bytes(), 32), common.LeftPadBytes(_platformAmount.Bytes(), 32))
-	return StafiDistributorProposalNodeKey(sender, proposalId)
 }
 
 func WaitTxOkCommon(client *ethclient.Client, txHash common.Hash) (blockNumber uint64, err error) {

@@ -18,8 +18,9 @@ import (
 	"github.com/shopspring/decimal"
 	"github.com/sirupsen/logrus"
 	"github.com/stafiprotocol/chainbridge/utils/crypto/secp256k1"
-	deposit_contract "github.com/stafiprotocol/eth-lsd-relay/bindings/DepositContract"
+	"github.com/stafiprotocol/eth-lsd-relay/bindings/DepositContract"
 	"github.com/stafiprotocol/eth-lsd-relay/bindings/LsdNetworkFactory"
+	"github.com/stafiprotocol/eth-lsd-relay/bindings/NetworkProposal"
 	"github.com/stafiprotocol/eth-lsd-relay/bindings/NetworkWithdraw"
 	"github.com/stafiprotocol/eth-lsd-relay/bindings/NodeDeposit"
 	"github.com/stafiprotocol/eth-lsd-relay/pkg/config"
@@ -58,6 +59,7 @@ type Service struct {
 	nodeDepositContract       *node_deposit.NodeDeposit
 	networkWithdrawContract   *network_withdraw.NetworkWithdraw
 	depositContract           *deposit_contract.DepositContract
+	networkProposalContract   *network_proposal.NetworkProposal
 
 	quenedHandlers []Handler
 
@@ -164,7 +166,6 @@ func (s *Service) Start() error {
 		if !bytes.Equal(s.eth2Config.GenesisForkVersion, params.MainnetConfig().GenesisForkVersion) {
 			return fmt.Errorf("endpoint network not match")
 		}
-		s.dealedEth1Block = 17705353
 		s.lsdNetworkFactoryAdress = lsdNetworkFactoryAddressMainnet
 
 		domain, err := signing.ComputeDomain(
@@ -182,7 +183,6 @@ func (s *Service) Start() error {
 		if !bytes.Equal(s.eth2Config.GenesisForkVersion, params.SepoliaConfig().GenesisForkVersion) {
 			return fmt.Errorf("endpoint network not match")
 		}
-		s.dealedEth1Block = 9354882
 		s.lsdNetworkFactoryAdress = lsdNetworkFactoryAddressTestnet
 
 		domain, err := signing.ComputeDomain(
@@ -199,7 +199,6 @@ func (s *Service) Start() error {
 		if !bytes.Equal(s.eth2Config.GenesisForkVersion, params.PraterConfig().GenesisForkVersion) {
 			return fmt.Errorf("endpoint network not match")
 		}
-		s.dealedEth1Block = 9403883
 		s.lsdNetworkFactoryAdress = lsdNetworkFactoryAddressTestnet
 		domain, err := signing.ComputeDomain(
 			params.PraterConfig().DomainDeposit,
@@ -264,6 +263,11 @@ func (s *Service) initContract() error {
 		return err
 	}
 	s.networkWithdrawContract, err = network_withdraw.NewNetworkWithdraw(networkContracts.NodeDeposit, s.eth1Client)
+	if err != nil {
+		return err
+	}
+
+	s.networkProposalContract, err = network_proposal.NewNetworkProposal(networkContracts.NetworkProposal, s.eth1Client)
 	if err != nil {
 		return err
 	}
