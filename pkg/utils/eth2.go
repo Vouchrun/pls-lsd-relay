@@ -24,7 +24,7 @@ const (
 	ValidatorStatusUnInitial = uint8(0)
 	ValidatorStatusDeposited = uint8(1)
 
-	// lightnode + super node related
+	// lightnode + trust node related
 	ValidatorStatusWithdrawMatch   = uint8(2)
 	ValidatorStatusStaked          = uint8(3)
 	ValidatorStatusWithdrawUnmatch = uint8(4)
@@ -55,10 +55,8 @@ const (
 
 // 1 common node 2 trust node 3 light node 4 super node
 const (
-	NodeTypeCommon = uint8(1)
-	NodeTypeTrust  = uint8(2)
-	NodeTypeLight  = uint8(3)
-	NodeTypeSuper  = uint8(4)
+	NodeTypeLight = uint8(1)
+	NodeTypeTrust = uint8(2)
 )
 
 const (
@@ -93,18 +91,6 @@ const (
 )
 
 const (
-	TheMergeEpoch       = uint64(148000)
-	TheMergeSlot        = uint64(4736000)
-	TheMergeBlockNumber = uint64(15572967)
-
-	RewardV1EndEpoch    = uint64(195975) //todo mainnet
-	RewardEpochInterval = uint64(75)
-	SlashStartEpoch     = uint64(180000)
-	//dev
-	DevTheMergeEpoch       = uint64(4400)
-	DevTheMergeBlockNumber = uint64(133654)
-	DevRewardV1EndEpoch    = uint64(75)
-
 	StandardEffectiveBalance            = uint64(32e9) //gwei
 	StandardSuperNodeFakeDepositBalance = uint64(1e9)  //gwei
 	OfficialSlashAmount                 = uint64(1e9)  //gwei

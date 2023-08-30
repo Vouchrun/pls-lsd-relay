@@ -26,6 +26,10 @@ install:
 abi:
 	@echo " > \033[32mGenabi...\033[0m "
 	abigen --abi ./bindings/Erc20/erc20_abi.json --pkg erc20 --type Erc20 --out ./bindings/Erc20/Erc20.go
+	abigen --abi ./bindings/DepositContract/depositcontract_abi.json --pkg deposit_contract --type DepositContract --out ./bindings/DepositContract/DepositContract.go
+	abigen --abi ./bindings/LsdNetworkFactory/lsdnetworkfactory_abi.json --pkg lsd_network_factory --type LsdNetworkFactory --out ./bindings/LsdNetworkFactory/LsdNetworkFactory.go
+	abigen --abi ./bindings/NetworkWithdraw/networkwithdraw_abi.json --pkg network_withdraw --type NetworkWithdraw --out ./bindings/NetworkWithdraw/NetworkWithdraw.go
+	abigen --abi ./bindings/NodeDeposit/nodedeposit_abi.json --pkg node_deposit --type NodeDeposit --out ./bindings/NodeDeposit/NodeDeposit.go
 
 
 clean:

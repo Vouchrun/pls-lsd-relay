@@ -13,7 +13,7 @@ import (
 	"github.com/stafiprotocol/eth-lsd-relay/pkg/config"
 	"github.com/stafiprotocol/eth-lsd-relay/pkg/log"
 	"github.com/stafiprotocol/eth-lsd-relay/pkg/utils"
-	"github.com/stafiprotocol/eth-lsd-relay/task"
+	"github.com/stafiprotocol/eth-lsd-relay/service"
 )
 
 func startRelayCmd() *cobra.Command {
@@ -69,11 +69,11 @@ func startRelayCmd() *cobra.Command {
 				return fmt.Errorf(" keypair err")
 			}
 
-			t, err := task.NewTask(cfg, kp)
+			t, err := service.NewService(cfg, kp)
 			if err != nil {
 				return err
 			}
-			logrus.Info("starting services...")
+
 			err = t.Start()
 			if err != nil {
 				logrus.Errorf("start err: %s", err)
