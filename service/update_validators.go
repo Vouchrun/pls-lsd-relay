@@ -7,6 +7,7 @@ import (
 	"math/big"
 
 	"github.com/pkg/errors"
+	"github.com/shopspring/decimal"
 	"github.com/sirupsen/logrus"
 
 	ethpb "github.com/prysmaticlabs/prysm/v3/proto/eth/v1"
@@ -57,7 +58,7 @@ func (s *Service) updateValidatorsFromNetwork() error {
 				Pubkey:            pubkey,
 				NodeAddress:       pubkeyInfo.Owner,
 				DepositSignature:  pubkeyInfo.DepositSignature,
-				NodeDepositAmount: pubkeyInfo.NodeDepositAmount,
+				NodeDepositAmount: decimal.NewFromBigInt(pubkeyInfo.NodeDepositAmount, 0),
 				DepositBlock:      pubkeyInfo.DepositBlock.Uint64(),
 				ActiveEpoch:       0,
 				EligibleEpoch:     0,

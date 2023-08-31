@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
-	"math/big"
 
 	"github.com/prysmaticlabs/prysm/v3/contracts/deposit"
 	ethpb "github.com/prysmaticlabs/prysm/v3/proto/prysm/v1alpha1"
@@ -60,7 +59,7 @@ func (s *Service) voteWithdrawCredentials() error {
 
 		govDepositAmount := uint64(1e9)
 		if validator.NodeType == utils.NodeTypeLight {
-			govDepositAmount = new(big.Int).Div(validator.NodeDepositAmount, big.NewInt(1e9)).Uint64()
+			govDepositAmount = validator.NodeDepositAmount.Div(utils.GweiDeci).BigInt().Uint64()
 		}
 
 		dp := ethpb.Deposit_Data{

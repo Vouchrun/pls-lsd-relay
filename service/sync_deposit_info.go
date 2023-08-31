@@ -54,7 +54,7 @@ func (s *Service) syncDepositInfo() error {
 }
 
 func (s *Service) fetchDepositContractEvents(start, end uint64) error {
-	iterDeposited, err := s.depositContract.FilterDepositEvent(&bind.FilterOpts{
+	iterDeposited, err := s.govDepositContract.FilterDepositEvent(&bind.FilterOpts{
 		Start:   start,
 		End:     &end,
 		Context: context.Background(),

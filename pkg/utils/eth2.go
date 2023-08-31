@@ -55,19 +55,6 @@ const (
 )
 
 const (
-	StandardEffectiveBalance            = uint64(32e9) //gwei
-	StandardSuperNodeFakeDepositBalance = uint64(1e9)  //gwei
-	OfficialSlashAmount                 = uint64(1e9)  //gwei
-	MaxPartialWithdrawalAmount          = uint64(8e9)  //gwei
-
-	// node deposit amount(gwei)
-	NodeDepositAmount0  = uint64(0)    //gwei super
-	NodeDepositAmount4  = uint64(4e9)  //gwei solo 4
-	NodeDepositAmount8  = uint64(8e9)  //gwei solo 8
-	NodeDepositAmount12 = uint64(12e9) //gwei solo 12
-)
-
-const (
 	NodeClaimTypeNone         = uint8(0)
 	NodeClaimTypeClaimReward  = uint8(1)
 	NodeClaimTypeClaimDeposit = uint8(2)
@@ -75,9 +62,6 @@ const (
 )
 
 var (
-	// dev use
-	OldRethSupply, _ = new(big.Int).SetString("25642334000000000000", 10)
-
 	GweiDeci = decimal.NewFromInt(1e9)
 
 	PlatformFeeV1Deci = decimal.NewFromFloat(0.1)
@@ -85,6 +69,10 @@ var (
 
 	Percent5Deci  = decimal.NewFromFloat(0.05)
 	Percent90Deci = decimal.NewFromFloat(0.9)
+
+	StandardEffectiveBalance            = decimal.NewFromBigInt(big.NewInt(32), 18)
+	StandardTrustNodeFakeDepositBalance = decimal.NewFromInt(1e18)
+	MaxPartialWithdrawalAmount          = decimal.NewFromInt(8e18)
 )
 
 const (
@@ -115,19 +103,6 @@ func StartSlotOfEpoch(config beacon.Eth2Config, epoch uint64) uint64 {
 }
 func EndSlotOfEpoch(config beacon.Eth2Config, epoch uint64) uint64 {
 	return config.SlotsPerEpoch*(epoch+1) - 1
-}
-
-func GetNodeManagedEth(nodeDeposit, balance uint64, status uint8) uint64 {
-	switch status {
-	case ValidatorStatusDeposited, ValidatorStatusWithdrawMatch, ValidatorStatusWithdrawUnmatch:
-		return nodeDeposit
-
-	case ValidatorStatusStaked, ValidatorStatusWaiting:
-		return StandardEffectiveBalance
-
-	default:
-		return balance
-	}
 }
 
 func GetGaspriceFromEthgasstation() (base, priority uint64, err error) {
@@ -299,4 +274,28 @@ func WaitTxOkCommon(client *ethclient.Client, txHash common.Hash) (blockNumber u
 	}).Info("tx send ok")
 
 	return blockNumber, nil
+}
+
+// user = 90%*(1-nodedeposit/32)
+// node = 5% + (90% * nodedeposit/32)
+// platform = 5%
+// rewardDeci decimals maybe 9 or 18, also the returns
+// return (user reward, node reward, paltform fee)
+func GetUserNodePlatformReward(nodeDepositAmount, rewardDeci decimal.Decimal) (decimal.Decimal, decimal.Decimal, decimal.Decimal) {
+	if !rewardDeci.IsPositive() || nodeDepositAmount.GreaterThan(StandardEffectiveBalance) {
+		return decimal.Zero, decimal.Zero, decimal.Zero
+	}
+	nodeDepositAmountDeci := nodeDepositAmount
+	standEffectiveBalanceDeci := StandardEffectiveBalance
+
+	// platform Fee
+	platformFeeDeci := rewardDeci.Mul(Percent5Deci)
+	nodeRewardDeci := platformFeeDeci.Add(rewardDeci.Mul(Percent90Deci).Mul(nodeDepositAmountDeci).Div(standEffectiveBalanceDeci))
+
+	userRewardDeci := rewardDeci.Sub(platformFeeDeci).Sub(nodeRewardDeci)
+	if userRewardDeci.IsNegative() {
+		userRewardDeci = decimal.Zero
+	}
+
+	return userRewardDeci, nodeRewardDeci, platformFeeDeci
 }

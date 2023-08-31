@@ -8,7 +8,6 @@ import (
 	"reflect"
 	"runtime"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -19,10 +18,13 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/stafiprotocol/chainbridge/utils/crypto/secp256k1"
 	"github.com/stafiprotocol/eth-lsd-relay/bindings/DepositContract"
+	"github.com/stafiprotocol/eth-lsd-relay/bindings/Erc20"
 	"github.com/stafiprotocol/eth-lsd-relay/bindings/LsdNetworkFactory"
+	"github.com/stafiprotocol/eth-lsd-relay/bindings/NetworkBalances"
 	"github.com/stafiprotocol/eth-lsd-relay/bindings/NetworkProposal"
 	"github.com/stafiprotocol/eth-lsd-relay/bindings/NetworkWithdraw"
 	"github.com/stafiprotocol/eth-lsd-relay/bindings/NodeDeposit"
+	"github.com/stafiprotocol/eth-lsd-relay/bindings/UserDeposit"
 	"github.com/stafiprotocol/eth-lsd-relay/pkg/config"
 	"github.com/stafiprotocol/eth-lsd-relay/pkg/connection"
 	"github.com/stafiprotocol/eth-lsd-relay/pkg/connection/beacon"
@@ -32,15 +34,19 @@ import (
 var (
 	lsdNetworkFactoryAddressMainnet = common.HexToAddress("")
 	lsdNetworkFactoryAddressTestnet = common.HexToAddress("")
+
+	govDepositContractAddressMainnet = common.HexToAddress("")
+	govDepositContractAddressTestnet = common.HexToAddress("")
 )
 
 type Service struct {
-	stop         chan struct{}
-	eth1Endpoint string
-	eth2Endpoint string
-	keyPair      *secp256k1.Keypair
-	gasLimit     *big.Int
-	maxGasPrice  *big.Int
+	stop                 chan struct{}
+	eth1Endpoint         string
+	eth2Endpoint         string
+	keyPair              *secp256k1.Keypair
+	gasLimit             *big.Int
+	maxGasPrice          *big.Int
+	submitBalancesEpochs uint64
 
 	// --- need init on start
 	dev             bool
@@ -52,27 +58,29 @@ type Service struct {
 	withdrawCredentials []byte
 	domain              []byte // for eth2 sigs
 
-	lsdNetworkFactoryAdress common.Address
-	lsdTokenAdress          common.Address
+	govDepositContractAddress common.Address
+	lsdNetworkFactoryAddress  common.Address
+	lsdTokenAddress           common.Address
 
 	lsdNetworkFactoryContract *lsd_network_factory.LsdNetworkFactory
 	nodeDepositContract       *node_deposit.NodeDeposit
 	networkWithdrawContract   *network_withdraw.NetworkWithdraw
-	depositContract           *deposit_contract.DepositContract
+	govDepositContract        *deposit_contract.DepositContract
 	networkProposalContract   *network_proposal.NetworkProposal
+	networkBalancesContract   *network_balances.NetworkBalances
+	lsdTokenContract          *erc20.Erc20
+	userDeposit               *user_deposit.UserDeposit
 
 	quenedHandlers []Handler
 
-	dealedEth1Block uint64
+	dealedEth1Block    uint64
+	networkCreateBlock uint64
 
-	govDeposits      map[string][][]byte // pubkey -> withdrawalCredentials
-	govDepositsMutex sync.RWMutex
+	govDeposits map[string][][]byte // pubkey -> withdrawalCredentials
 
-	validators      map[string]*Validator // pubkey -> validator
-	validatorsMutex sync.RWMutex
+	validators map[string]*Validator // pubkey -> validator
 
-	nodes      map[common.Address]*Node // nodeAddress -> node
-	nodesMutex sync.RWMutex
+	nodes map[common.Address]*Node // nodeAddress -> node
 }
 
 type Node struct {
@@ -84,7 +92,7 @@ type Validator struct {
 
 	NodeAddress       common.Address
 	DepositSignature  []byte
-	NodeDepositAmount *big.Int
+	NodeDepositAmount decimal.Decimal
 	DepositBlock      uint64
 	ActiveEpoch       uint64
 	EligibleEpoch     uint64
@@ -129,14 +137,15 @@ func NewService(cfg *config.Config, keyPair *secp256k1.Keypair) (*Service, error
 		return nil, err
 	}
 	s := &Service{
-		stop:           make(chan struct{}),
-		eth1Endpoint:   cfg.Eth1Endpoint,
-		eth2Endpoint:   cfg.Eth2Endpoint,
-		eth1Client:     eth1client,
-		lsdTokenAdress: common.HexToAddress(cfg.Contracts.LsdTokenAddress),
-		keyPair:        keyPair,
-		gasLimit:       gasLimitDeci.BigInt(),
-		maxGasPrice:    maxGasPriceDeci.BigInt(),
+		stop:                 make(chan struct{}),
+		eth1Endpoint:         cfg.Eth1Endpoint,
+		eth2Endpoint:         cfg.Eth2Endpoint,
+		eth1Client:           eth1client,
+		lsdTokenAddress:      common.HexToAddress(cfg.Contracts.LsdTokenAddress),
+		keyPair:              keyPair,
+		gasLimit:             gasLimitDeci.BigInt(),
+		maxGasPrice:          maxGasPriceDeci.BigInt(),
+		submitBalancesEpochs: 225, // 1 day
 	}
 
 	return s, nil
@@ -166,7 +175,8 @@ func (s *Service) Start() error {
 		if !bytes.Equal(s.eth2Config.GenesisForkVersion, params.MainnetConfig().GenesisForkVersion) {
 			return fmt.Errorf("endpoint network not match")
 		}
-		s.lsdNetworkFactoryAdress = lsdNetworkFactoryAddressMainnet
+		s.lsdNetworkFactoryAddress = lsdNetworkFactoryAddressMainnet
+		s.govDepositContractAddress = govDepositContractAddressMainnet
 
 		domain, err := signing.ComputeDomain(
 			params.MainnetConfig().DomainDeposit,
@@ -183,7 +193,8 @@ func (s *Service) Start() error {
 		if !bytes.Equal(s.eth2Config.GenesisForkVersion, params.SepoliaConfig().GenesisForkVersion) {
 			return fmt.Errorf("endpoint network not match")
 		}
-		s.lsdNetworkFactoryAdress = lsdNetworkFactoryAddressTestnet
+		s.lsdNetworkFactoryAddress = lsdNetworkFactoryAddressTestnet
+		s.govDepositContractAddress = govDepositContractAddressTestnet
 
 		domain, err := signing.ComputeDomain(
 			params.SepoliaConfig().DomainDeposit,
@@ -199,7 +210,9 @@ func (s *Service) Start() error {
 		if !bytes.Equal(s.eth2Config.GenesisForkVersion, params.PraterConfig().GenesisForkVersion) {
 			return fmt.Errorf("endpoint network not match")
 		}
-		s.lsdNetworkFactoryAdress = lsdNetworkFactoryAddressTestnet
+		s.lsdNetworkFactoryAddress = lsdNetworkFactoryAddressTestnet
+		s.govDepositContractAddress = govDepositContractAddressTestnet
+
 		domain, err := signing.ComputeDomain(
 			params.PraterConfig().DomainDeposit,
 			params.PraterConfig().GenesisForkVersion,
@@ -233,7 +246,7 @@ func (s *Service) Start() error {
 
 	logrus.Info("start services...")
 	s.appendHandlers(s.syncDepositInfo, s.updateValidatorsFromNetwork, s.updateValidatorsFromBeacon,
-		s.voteWithdrawCredentials)
+		s.voteWithdrawCredentials, s.submitBalances)
 
 	utils.SafeGo(s.voteService)
 
@@ -246,12 +259,17 @@ func (s *Service) Stop() {
 
 func (s *Service) initContract() error {
 	var err error
-	s.lsdNetworkFactoryContract, err = lsd_network_factory.NewLsdNetworkFactory(s.lsdNetworkFactoryAdress, s.eth1Client)
+	s.govDepositContract, err = deposit_contract.NewDepositContract(s.govDepositContractAddress, s.eth1Client)
 	if err != nil {
 		return err
 	}
 
-	networkContracts, err := s.lsdNetworkFactoryContract.NetworkContractsOf(nil, s.lsdTokenAdress)
+	s.lsdNetworkFactoryContract, err = lsd_network_factory.NewLsdNetworkFactory(s.lsdNetworkFactoryAddress, s.eth1Client)
+	if err != nil {
+		return err
+	}
+
+	networkContracts, err := s.lsdNetworkFactoryContract.NetworkContractsOf(nil, s.lsdTokenAddress)
 	if err != nil {
 		return err
 	}
@@ -271,6 +289,17 @@ func (s *Service) initContract() error {
 	if err != nil {
 		return err
 	}
+
+	s.networkBalancesContract, err = network_balances.NewNetworkBalances(networkContracts.NetworkBalances, s.eth1Client)
+	if err != nil {
+		return err
+	}
+	s.lsdTokenContract, err = erc20.NewErc20(networkContracts.LsdToken, s.eth1Client)
+	if err != nil {
+		return err
+	}
+
+	s.networkCreateBlock = networkContracts.Block.Uint64()
 
 	return nil
 }
@@ -334,4 +363,14 @@ func (s *Service) waitTxOk(txHash common.Hash) error {
 		return err
 	}
 	return nil
+}
+
+func (s *Service) GetValidatorDepositedListBefore(block uint64) []*Validator {
+	selectedValidator := make([]*Validator, 0)
+	for _, v := range s.validators {
+		if v.DepositBlock <= block {
+			selectedValidator = append(selectedValidator, v)
+		}
+	}
+	return selectedValidator
 }
