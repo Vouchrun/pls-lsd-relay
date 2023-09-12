@@ -17,7 +17,7 @@ func (s *Service) submitBalances() error {
 	if err != nil {
 		return err
 	}
-	targetEpoch := (beaconHead.FinalizedEpoch / s.submitBalancesEpochs) * s.submitBalancesEpochs
+	targetEpoch := (beaconHead.FinalizedEpoch / s.submitBalancesDuEpochs) * s.submitBalancesDuEpochs
 
 	balancesBlockOnChain, err := s.networkBalancesContract.BalancesBlock(nil)
 	if err != nil {
@@ -48,6 +48,7 @@ func (s *Service) submitBalances() error {
 	}
 	lsdTokenTotalSupplyDeci := decimal.NewFromBigInt(lsdTokenTotalSupply, 0)
 
+	// deposit pool balance
 	userDepositPoolBalance, err := s.userDeposit.GetBalance(targetCallOpts)
 	if err != nil {
 		return err
@@ -59,6 +60,7 @@ func (s *Service) submitBalances() error {
 		"validatorDepositedList len": len(targetValidators),
 	}).Debug("validatorDepositedList")
 
+	// user eth from validators
 	totalUserEthFromValidatorDeci := decimal.Zero
 	for _, validator := range targetValidators {
 		userAllEth, err := s.getUserEthInfoFromValidatorBalance(validator, targetEpoch)
@@ -68,12 +70,14 @@ func (s *Service) submitBalances() error {
 		totalUserEthFromValidatorDeci = totalUserEthFromValidatorDeci.Add(userAllEth)
 	}
 
+	// total missing amount for withdraw
 	totalMissingAmount, err := s.networkWithdrawContract.TotalMissingAmountForWithdraw(targetCallOpts)
 	if err != nil {
 		return err
 	}
 	totalMissingAmountDeci := decimal.NewFromBigInt(totalMissingAmount, 0)
 
+	// user eth from undistributed withdrawals
 	latestDistributeWithdrawalsHeight, err := s.networkWithdrawContract.LatestDistributeWithdrawalsHeight(targetCallOpts)
 	if err != nil {
 		return err
@@ -81,9 +85,12 @@ func (s *Service) submitBalances() error {
 	if latestDistributeWithdrawalsHeight.Cmp(big.NewInt(0)) == 0 {
 		latestDistributeWithdrawalsHeight = big.NewInt(int64(s.networkCreateBlock))
 	}
-	if latestDistributeWithdrawalsHeight.Cmp(big.NewInt(0)) == 0 {
-		latestDistributeWithdrawalsHeight = big.NewInt(int64(s.networkCreateBlock))
+	userEthFromWithdrawDeci, _, _, _, err := s.getUserNodePlatformFromWithdrawals(latestDistributeWithdrawalsHeight.Uint64(), targetBlock)
+	if err != nil {
+		return err
 	}
+
+	// user eth from undistributed priorityfee
 	latestDistributePriorityFeeHeight, err := s.networkWithdrawContract.LatestDistributePriorityFeeHeight(targetCallOpts)
 	if err != nil {
 		return err
@@ -91,19 +98,13 @@ func (s *Service) submitBalances() error {
 	if latestDistributePriorityFeeHeight.Cmp(big.NewInt(0)) == 0 {
 		latestDistributePriorityFeeHeight = big.NewInt(int64(s.networkCreateBlock))
 	}
-
-	userEthFromWithdrawDeci, _, _, _, err := s.getUserNodePlatformFromWithdrawals(latestDistributeWithdrawalsHeight.Uint64(), targetBlock)
-	if err != nil {
-		return err
-	}
-
 	userEthFromPriorityFeeDeci, _, _, _, err := s.getUserNodePlatformFromPriorityFee(latestDistributePriorityFeeHeight.Uint64(), targetBlock)
 	if err != nil {
 		return err
 	}
 
-	// ----final: total user eth = total user eth from validator + deposit pool balance + user undistributedWithdrawals + totalUndistributed slash amount
-	// 								+ user undistributed fee + user undistributed super node fee - totalMissingAmountForWithdraw
+	// ----final: total user eth = total user eth from validator + deposit pool balance + user undistributedWithdrawals +
+	// 								+ user undistributed priority fee  - totalMissingAmountForWithdraw
 	totalUserEthDeci := totalUserEthFromValidatorDeci.Add(userDepositPoolBalanceDeci).Add(userEthFromWithdrawDeci).
 		Add(userEthFromPriorityFeeDeci).Sub(totalMissingAmountDeci)
 

@@ -40,13 +40,15 @@ var (
 )
 
 type Service struct {
-	stop                 chan struct{}
-	eth1Endpoint         string
-	eth2Endpoint         string
-	keyPair              *secp256k1.Keypair
-	gasLimit             *big.Int
-	maxGasPrice          *big.Int
-	submitBalancesEpochs uint64
+	stop                          chan struct{}
+	eth1Endpoint                  string
+	eth2Endpoint                  string
+	keyPair                       *secp256k1.Keypair
+	gasLimit                      *big.Int
+	maxGasPrice                   *big.Int
+	submitBalancesDuEpochs        uint64
+	distributeWithdrawalsDuEpochs uint64
+	distributePriorityFeeDuEpochs uint64
 
 	// --- need init on start
 	dev             bool
@@ -78,9 +80,11 @@ type Service struct {
 
 	govDeposits map[string][][]byte // pubkey -> withdrawalCredentials
 
-	validators map[string]*Validator // pubkey -> validator
+	validators map[string]*Validator // pubkey(hex.encodeToString) -> validator
 
 	nodes map[common.Address]*Node // nodeAddress -> node
+
+	stakerWithdrawals map[uint64]*StakerWithdrawal // withraw index => stakerWithdrawal
 }
 
 type Node struct {
@@ -101,9 +105,19 @@ type Validator struct {
 	NodeType          uint8  // 1 light node 2 trust node
 	ValidatorIndex    uint64 // Notice!!!!!!: validator index is zero before status waiting
 
-	Balance          uint64 `gorm:"type:bigint(20) unsigned not null;default:0;column:balance"`           // realtime balance
-	EffectiveBalance uint64 `gorm:"type:bigint(20) unsigned not null;default:0;column:effective_balance"` // realtime effectiveBalance
+	Balance          uint64 // realtime balance
+	EffectiveBalance uint64 // realtime effectiveBalance
 	Status           uint8  // status details defined in pkg/utils/eth2.go
+}
+
+type StakerWithdrawal struct {
+	WithdrawIndex uint64
+
+	Address            string //hex with 0x prefix
+	EthAmount          string
+	BlockNumber        uint64
+	ClaimedBlockNumber uint64
+	Timestamp          uint64 // unstake tx timestamp
 }
 
 type Handler struct {
@@ -137,15 +151,17 @@ func NewService(cfg *config.Config, keyPair *secp256k1.Keypair) (*Service, error
 		return nil, err
 	}
 	s := &Service{
-		stop:                 make(chan struct{}),
-		eth1Endpoint:         cfg.Eth1Endpoint,
-		eth2Endpoint:         cfg.Eth2Endpoint,
-		eth1Client:           eth1client,
-		lsdTokenAddress:      common.HexToAddress(cfg.Contracts.LsdTokenAddress),
-		keyPair:              keyPair,
-		gasLimit:             gasLimitDeci.BigInt(),
-		maxGasPrice:          maxGasPriceDeci.BigInt(),
-		submitBalancesEpochs: 225, // 1 day
+		stop:                          make(chan struct{}),
+		eth1Endpoint:                  cfg.Eth1Endpoint,
+		eth2Endpoint:                  cfg.Eth2Endpoint,
+		eth1Client:                    eth1client,
+		lsdTokenAddress:               common.HexToAddress(cfg.Contracts.LsdTokenAddress),
+		keyPair:                       keyPair,
+		gasLimit:                      gasLimitDeci.BigInt(),
+		maxGasPrice:                   maxGasPriceDeci.BigInt(),
+		submitBalancesDuEpochs:        225, // 1 day
+		distributeWithdrawalsDuEpochs: 225,
+		distributePriorityFeeDuEpochs: 225,
 	}
 
 	return s, nil
@@ -246,7 +262,7 @@ func (s *Service) Start() error {
 
 	logrus.Info("start services...")
 	s.appendHandlers(s.syncDepositInfo, s.updateValidatorsFromNetwork, s.updateValidatorsFromBeacon,
-		s.voteWithdrawCredentials, s.submitBalances)
+		s.voteWithdrawCredentials, s.submitBalances, s.distributeWithdrawals, s.distributePriorityFee)
 
 	utils.SafeGo(s.voteService)
 

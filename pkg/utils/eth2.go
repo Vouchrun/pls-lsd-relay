@@ -59,6 +59,10 @@ const (
 	NodeClaimTypeClaimReward  = uint8(1)
 	NodeClaimTypeClaimDeposit = uint8(2)
 	NodeClaimTypeClaimTotal   = uint8(3)
+
+	DistributeTypeNone        = uint8(0)
+	DistributeTypeWithdrawals = uint8(1)
+	DistributeTypePriorityFee = uint8(2)
 )
 
 var (
@@ -194,9 +198,9 @@ func VoteWithdrawCredentialsProposalId(pubkey []byte) [32]byte {
 	return crypto.Keccak256Hash([]byte("voteWithdrawCredentials"), pubkey)
 }
 
-func DistributeProposalId(_distributeType, _dealedHeight, _userAmount, _nodeAmount, _platformAmount,
+func DistributeProposalId(_distributeType uint8, _dealedHeight, _userAmount, _nodeAmount, _platformAmount,
 	_maxClaimableWithdrawIndex *big.Int) [32]byte {
-	return crypto.Keccak256Hash([]byte("distribute"), common.LeftPadBytes(_distributeType.Bytes(), 32),
+	return crypto.Keccak256Hash([]byte("distribute"), common.LeftPadBytes(big.NewInt(int64(_distributeType)).Bytes(), 32),
 		common.LeftPadBytes(_dealedHeight.Bytes(), 32), common.LeftPadBytes(_userAmount.Bytes(), 32),
 		common.LeftPadBytes(_nodeAmount.Bytes(), 32), common.LeftPadBytes(_platformAmount.Bytes(), 32),
 		common.LeftPadBytes(_maxClaimableWithdrawIndex.Bytes(), 32))

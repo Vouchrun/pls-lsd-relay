@@ -79,31 +79,31 @@
             {
                 "indexed": false,
                 "internalType": "uint256",
-                "name": "index",
+                "name": "_index",
                 "type": "uint256"
             },
             {
                 "indexed": false,
                 "internalType": "address",
-                "name": "account",
+                "name": "_account",
                 "type": "address"
             },
             {
                 "indexed": false,
                 "internalType": "uint256",
-                "name": "claimableReward",
+                "name": "_claimableReward",
                 "type": "uint256"
             },
             {
                 "indexed": false,
                 "internalType": "uint256",
-                "name": "claimableDeposit",
+                "name": "_claimableDeposit",
                 "type": "uint256"
             },
             {
                 "indexed": false,
                 "internalType": "enum INetworkWithdraw.ClaimType",
-                "name": "claimType",
+                "name": "_claimType",
                 "type": "uint8"
             }
         ],
@@ -141,14 +141,20 @@
             {
                 "indexed": false,
                 "internalType": "uint256",
-                "name": "dealedEpoch",
+                "name": "_dealedEpoch",
                 "type": "uint256"
             },
             {
                 "indexed": false,
                 "internalType": "bytes32",
-                "name": "merkleRoot",
+                "name": "_merkleRoot",
                 "type": "bytes32"
+            },
+            {
+                "indexed": false,
+                "internalType": "string",
+                "name": "_merkleTreeCid",
+                "type": "string"
             }
         ],
         "name": "SetMerkleRoot",
@@ -265,6 +271,13 @@
     {
         "inputs": [],
         "name": "depositEth",
+        "outputs": [],
+        "stateMutability": "payable",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "depositEthAndUpdateTotalMissingAmount",
         "outputs": [],
         "stateMutability": "payable",
         "type": "function"
@@ -547,6 +560,19 @@
     },
     {
         "inputs": [],
+        "name": "merkleTreeCid",
+        "outputs": [
+            {
+                "internalType": "string",
+                "name": "",
+                "type": "string"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
         "name": "networkBalancesAddress",
         "outputs": [
             {
@@ -682,6 +708,11 @@
                 "internalType": "bytes32",
                 "name": "_merkleRoot",
                 "type": "bytes32"
+            },
+            {
+                "internalType": "string",
+                "name": "_merkleTreeCid",
+                "type": "string"
             }
         ],
         "name": "setMerkleRoot",
