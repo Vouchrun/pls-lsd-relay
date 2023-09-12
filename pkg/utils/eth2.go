@@ -198,6 +198,11 @@ func VoteWithdrawCredentialsProposalId(pubkey []byte) [32]byte {
 	return crypto.Keccak256Hash([]byte("voteWithdrawCredentials"), pubkey)
 }
 
+// abi.encodePacked("setMerkleRoot", _dealedEpoch, _merkleRoot, _nodeRewardsFileCid)
+func VoteMerkleRootProposalId(dealedEpoch *big.Int, merkleRoot []byte, cid string) [32]byte {
+	return crypto.Keccak256Hash([]byte("setMerkleRoot"), common.LeftPadBytes(dealedEpoch.Bytes(), 32), merkleRoot, []byte(cid))
+}
+
 func DistributeProposalId(_distributeType uint8, _dealedHeight, _userAmount, _nodeAmount, _platformAmount,
 	_maxClaimableWithdrawIndex *big.Int) [32]byte {
 	return crypto.Keccak256Hash([]byte("distribute"), common.LeftPadBytes(big.NewInt(int64(_distributeType)).Bytes(), 32),

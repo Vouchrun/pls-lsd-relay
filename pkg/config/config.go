@@ -11,13 +11,14 @@ import (
 )
 
 type Config struct {
-	Eth1Endpoint string // url for eth1 rpc endpoint
-	Eth2Endpoint string // url for eth2 rpc endpoint
-	LogFilePath  string
-	Account      string
-	KeystorePath string
-	GasLimit     string
-	MaxGasPrice  string
+	Eth1Endpoint        string // url for eth1 rpc endpoint
+	Eth2Endpoint        string // url for eth2 rpc endpoint
+	Web3StorageApiToken string // url for eth2 rpc endpoint
+	LogFilePath         string
+	Account             string
+	KeystorePath        string
+	GasLimit            string
+	MaxGasPrice         string
 
 	Contracts Contracts
 }

@@ -286,3 +286,14 @@ func EventTopics(a abi.ABI, names ...string) ([]common.Hash, error) {
 	}
 	return topics, nil
 }
+
+// isDirectory determines if a file represented
+// by `path` is a directory or not
+func IsDir(path string) (bool, error) {
+	fileInfo, err := os.Stat(path)
+	if err != nil {
+		return false, err
+	}
+
+	return fileInfo.IsDir(), err
+}

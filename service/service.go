@@ -29,6 +29,7 @@ import (
 	"github.com/stafiprotocol/eth-lsd-relay/pkg/connection"
 	"github.com/stafiprotocol/eth-lsd-relay/pkg/connection/beacon"
 	"github.com/stafiprotocol/eth-lsd-relay/pkg/utils"
+	"github.com/web3-storage/go-w3s-client"
 )
 
 var (
@@ -37,18 +38,22 @@ var (
 
 	govDepositContractAddressMainnet = common.HexToAddress("")
 	govDepositContractAddressTestnet = common.HexToAddress("")
+
+	epochsOfOneDay = uint64(225)
 )
 
 type Service struct {
 	stop                          chan struct{}
 	eth1Endpoint                  string
 	eth2Endpoint                  string
+	nodeRewardsFilePath           string
 	keyPair                       *secp256k1.Keypair
 	gasLimit                      *big.Int
 	maxGasPrice                   *big.Int
 	submitBalancesDuEpochs        uint64
 	distributeWithdrawalsDuEpochs uint64
 	distributePriorityFeeDuEpochs uint64
+	merkleRootDuEpochs            uint64
 
 	// --- need init on start
 	dev             bool
@@ -56,6 +61,7 @@ type Service struct {
 
 	connection          *connection.Connection
 	eth1Client          *ethclient.Client
+	web3Client          w3s.Client
 	eth2Config          beacon.Eth2Config
 	withdrawCredentials []byte
 	domain              []byte // for eth2 sigs
@@ -150,18 +156,32 @@ func NewService(cfg *config.Config, keyPair *secp256k1.Keypair) (*Service, error
 	if err != nil {
 		return nil, err
 	}
+	if isDir, err := utils.IsDir(cfg.LogFilePath); err != nil {
+		return nil, err
+	} else if !isDir {
+		return nil, fmt.Errorf("logFilePath %s is not dir", cfg.LogFilePath)
+	}
+
+	w3sClient, err := w3s.NewClient(w3s.WithToken(cfg.Web3StorageApiToken))
+	if err != nil {
+		return nil, fmt.Errorf("error creating new Web3.Storage client: %w", err)
+	}
+
 	s := &Service{
 		stop:                          make(chan struct{}),
 		eth1Endpoint:                  cfg.Eth1Endpoint,
 		eth2Endpoint:                  cfg.Eth2Endpoint,
+		nodeRewardsFilePath:           cfg.LogFilePath,
 		eth1Client:                    eth1client,
+		web3Client:                    w3sClient,
 		lsdTokenAddress:               common.HexToAddress(cfg.Contracts.LsdTokenAddress),
 		keyPair:                       keyPair,
 		gasLimit:                      gasLimitDeci.BigInt(),
 		maxGasPrice:                   maxGasPriceDeci.BigInt(),
-		submitBalancesDuEpochs:        225, // 1 day
-		distributeWithdrawalsDuEpochs: 225,
-		distributePriorityFeeDuEpochs: 225,
+		submitBalancesDuEpochs:        epochsOfOneDay, // 1 day
+		distributeWithdrawalsDuEpochs: epochsOfOneDay,
+		distributePriorityFeeDuEpochs: epochsOfOneDay,
+		merkleRootDuEpochs:            epochsOfOneDay,
 	}
 
 	return s, nil
@@ -262,7 +282,8 @@ func (s *Service) Start() error {
 
 	logrus.Info("start services...")
 	s.appendHandlers(s.syncDepositInfo, s.updateValidatorsFromNetwork, s.updateValidatorsFromBeacon,
-		s.voteWithdrawCredentials, s.submitBalances, s.distributeWithdrawals, s.distributePriorityFee)
+		s.voteWithdrawCredentials, s.submitBalances, s.distributeWithdrawals, s.distributePriorityFee,
+		s.voteMerkleRoot)
 
 	utils.SafeGo(s.voteService)
 

@@ -8,6 +8,10 @@ import (
 	"github.com/stafiprotocol/eth-lsd-relay/pkg/utils"
 )
 
+func init() {
+	decimal.MarshalJSONWithoutQuotes = true
+}
+
 func (s *Service) getEpochStartBlocknumber(epoch uint64) (uint64, error) {
 	eth2ValidatorBalanceSyncerStartSlot := utils.StartSlotOfEpoch(s.eth2Config, epoch)
 	logrus.Debugf("getEpochStartBlocknumber: %d, epoch: %d ", eth2ValidatorBalanceSyncerStartSlot, epoch)
@@ -43,4 +47,8 @@ func (s *Service) getUserNodePlatformFromWithdrawals(latestDistributeHeight, tar
 // return (user reward, node reward, platform fee, totalWithdrawAmount) decimals 18
 func (s *Service) getUserNodePlatformFromPriorityFee(latestDistributeHeight, targetEth1BlockHeight uint64) (decimal.Decimal, decimal.Decimal, decimal.Decimal, decimal.Decimal, error) {
 	return decimal.Zero, decimal.Zero, decimal.Zero, decimal.Zero, nil
+}
+
+func (s *Service) getNodeNewRewardsBetween(latestDistributeHeight, targetEth1BlockHeight uint64) (map[string]*NodeNewReward, error) {
+	return nil, nil
 }
