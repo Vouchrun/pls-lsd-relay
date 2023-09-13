@@ -77,7 +77,7 @@ type Service struct {
 	networkProposalContract   *network_proposal.NetworkProposal
 	networkBalancesContract   *network_balances.NetworkBalances
 	lsdTokenContract          *erc20.Erc20
-	userDeposit               *user_deposit.UserDeposit
+	userDepositContract       *user_deposit.UserDeposit
 
 	quenedHandlers []Handler
 
@@ -283,7 +283,7 @@ func (s *Service) Start() error {
 	logrus.Info("start services...")
 	s.appendHandlers(s.syncDepositInfo, s.updateValidatorsFromNetwork, s.updateValidatorsFromBeacon,
 		s.voteWithdrawCredentials, s.submitBalances, s.distributeWithdrawals, s.distributePriorityFee,
-		s.voteMerkleRoot)
+		s.voteMerkleRoot, s.notifyValidatorExit)
 
 	utils.SafeGo(s.voteService)
 

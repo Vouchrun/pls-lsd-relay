@@ -139,34 +139,37 @@ func (s *Service) voteMerkleRoot() error {
 		node.Index = uint32(i)
 	}
 
-	// build merkle tree
-	tree, err := buildMerkleTree(finalNodeRewardsList)
-	if err != nil {
-		return err
-	}
-	rootHash, err := tree.GetRootHash()
-	if err != nil {
-		return err
-	}
-
-	// calc proof
-	for _, nodeReward := range finalNodeRewardsList {
-		nodeHash := utils.GetNodeHash(big.NewInt(int64(nodeReward.Index)), common.HexToAddress(nodeReward.Address),
-			nodeReward.TotalRewardAmount.BigInt(), nodeReward.TotalExitDepositAmount.BigInt())
-		proofList, err := tree.GetProof(nodeHash)
+	rootHash := utils.NodeHash{}
+	if len(finalNodeRewardsList) > 0 {
+		// build merkle tree
+		tree, err := buildMerkleTree(finalNodeRewardsList)
 		if err != nil {
-			return errors.Wrap(err, "tree.GetProof failed")
+			return err
 		}
-		if len(proofList) == 0 {
-			return errors.Wrap(err, "tree.GetProof result empty")
+		rootHash, err = tree.GetRootHash()
+		if err != nil {
+			return err
 		}
 
-		proofStrList := make([]string, len(proofList))
-		for i, p := range proofList {
-			proofStrList[i] = p.String()
+		// calc proof
+		for _, nodeReward := range finalNodeRewardsList {
+			nodeHash := utils.GetNodeHash(big.NewInt(int64(nodeReward.Index)), common.HexToAddress(nodeReward.Address),
+				nodeReward.TotalRewardAmount.BigInt(), nodeReward.TotalExitDepositAmount.BigInt())
+			proofList, err := tree.GetProof(nodeHash)
+			if err != nil {
+				return errors.Wrap(err, "tree.GetProof failed")
+			}
+			if len(proofList) == 0 {
+				return errors.Wrap(err, "tree.GetProof result empty")
+			}
+
+			proofStrList := make([]string, len(proofList))
+			for i, p := range proofList {
+				proofStrList[i] = p.String()
+			}
+			// set proof
+			nodeReward.Proof = strings.Join(proofStrList, ":")
 		}
-		// set proof
-		nodeReward.Proof = strings.Join(proofStrList, ":")
 	}
 
 	// upload file

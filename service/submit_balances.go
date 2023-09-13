@@ -49,7 +49,7 @@ func (s *Service) submitBalances() error {
 	lsdTokenTotalSupplyDeci := decimal.NewFromBigInt(lsdTokenTotalSupply, 0)
 
 	// deposit pool balance
-	userDepositPoolBalance, err := s.userDeposit.GetBalance(targetCallOpts)
+	userDepositPoolBalance, err := s.userDepositContract.GetBalance(targetCallOpts)
 	if err != nil {
 		return err
 	}

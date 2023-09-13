@@ -12,6 +12,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/ipfs/go-cid"
+	"github.com/shopspring/decimal"
 	"github.com/stafiprotocol/eth-lsd-relay/pkg/utils"
 	"github.com/web3-storage/go-w3s-client"
 )
@@ -213,4 +214,21 @@ func TestGetFileFromWeb3Storage(t *testing.T) {
 	}
 	t.Logf("%+v", s)
 
+}
+
+type NodeReward struct {
+	Address                string          `json:"address"` // hex with 0x
+	Index                  uint32          `json:"index"`
+	TotalRewardAmount      decimal.Decimal `json:"totalRewardAmount"`
+	TotalExitDepositAmount decimal.Decimal `json:"totalExitDepositAmount"`
+	Proof                  string          `json:"proof"`
+}
+
+func TestMarshal(t *testing.T) {
+	nodes := make([]*NodeReward, 0)
+	bts, err := json.Marshal(nodes)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Log(string(bts))
 }

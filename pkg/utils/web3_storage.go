@@ -17,7 +17,6 @@ func NodeRewardsFileNameAtEpoch(epoch uint64) string {
 	return fmt.Sprintf(nodeRewardsFileNameRaw, epoch)
 }
 
-
 func DownloadWeb3File(cid, fileName string) ([]byte, error) {
 	url := fmt.Sprintf(nodeRewardsFileUrlRaw, cid, fileName)
 	rsp, err := http.Get(url)
