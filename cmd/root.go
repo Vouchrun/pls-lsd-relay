@@ -8,7 +8,7 @@ import (
 )
 
 var (
-	appName = "ssv-client"
+	appName = "lsd-relay"
 )
 
 const (

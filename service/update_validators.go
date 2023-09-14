@@ -29,7 +29,7 @@ func (s *Service) updateValidatorsFromNetwork() error {
 	// 0. fetch new validators
 	pubkeysLen, err := s.nodeDepositContract.GetPubkeysLength(call)
 	if err != nil {
-		return err
+		return fmt.Errorf("nodeDepositContract.GetPubkeysLength failed: %w", err)
 	}
 	if len(s.validators) < int(pubkeysLen.Uint64()) {
 		pubkeys, err := s.nodeDepositContract.GetPubkeys(call, big.NewInt(int64(len(s.validators))), pubkeysLen)

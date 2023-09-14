@@ -59,7 +59,10 @@ func UploadFileToWeb3Storage(client w3s.Client, wrapperBytes []byte, compressedP
 	}
 
 	// Rewind it to the start
-	compressedFile.Seek(0, 0)
+	_, err = compressedFile.Seek(0, 0)
+	if err != nil {
+		return "", fmt.Errorf("seek failed: %w", err)
+	}
 
 	// Upload it
 	cid, err := client.Put(context.Background(), compressedFile)

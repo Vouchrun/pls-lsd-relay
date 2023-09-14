@@ -2,7 +2,10 @@ package service
 
 import (
 	"fmt"
+	"time"
 
+	"github.com/sirupsen/logrus"
+	"github.com/stafiprotocol/eth-lsd-relay/pkg/connection/beacon"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -22,23 +25,30 @@ func (s *Service) syncBlocks() error {
 	end := beaconHead.FinalizedSlot
 
 	g := new(errgroup.Group)
-	groupLimit := 16
-	g.SetLimit(groupLimit)
+	g.SetLimit(int(s.BatchRequestBlocksNumber))
 
-	for i := start; i <= end; i++ {
+	for i := start; i <= end; i += s.BatchRequestBlocksNumber {
 		subStart := i
-		subEnd := i + uint64(groupLimit) - 1
-		if end < i+uint64(groupLimit) {
+		subEnd := i + s.BatchRequestBlocksNumber - 1
+		if end < i+s.BatchRequestBlocksNumber {
 			subEnd = end
 		}
 		preLatestSyncBlock := s.latestBlockOfSyncBlock
+		batchRequestStartTime := time.Now().Unix()
 
+		blockReciever := make([]*beacon.BeaconBlock, s.BatchRequestBlocksNumber)
 		for j := subStart; j <= subEnd; j++ {
+			// notice this
+			slot := j
 			g.Go(func() error {
-				beaconBlock, exist, err := s.connection.GetBeaconBlock(j)
+				startTime := time.Now().Unix()
+				beaconBlock, exist, err := s.connection.GetBeaconBlock(slot)
 				if err != nil {
 					return err
 				}
+				endTime := time.Now().Unix()
+
+				// maybe not exist this slot
 				if !exist {
 					return nil
 				}
@@ -55,14 +65,10 @@ func (s *Service) syncBlocks() error {
 					beaconBlock.PriorityFee = fee
 				}
 
-				s.cachedBeaconBlockMutex.Lock()
-				s.cachedBeaconBlock[beaconBlock.ExecutionBlockNumber] = &beaconBlock
-				s.cachedBeaconBlockMutex.Unlock()
+				blockReciever[slot-subStart] = &beaconBlock
 
-				if beaconBlock.ExecutionBlockNumber > s.latestBlockOfSyncBlock {
-					s.latestBlockOfSyncBlock = beaconBlock.ExecutionBlockNumber
-				}
-
+				saveTime := time.Now().Unix()
+				logrus.Tracef("request block %d,start at %d, end at %d, save at: %d ", beaconBlock.ExecutionBlockNumber, startTime, endTime, saveTime)
 				return nil
 			})
 		}
@@ -70,15 +76,34 @@ func (s *Service) syncBlocks() error {
 		err = g.Wait()
 		if err != nil {
 			s.latestBlockOfSyncBlock = preLatestSyncBlock
-
 			if err == ErrExceedsValidatorUpdateBlock {
 				return nil
 			}
+
+			logrus.Warnf("sync block err: %s, will retry", err.Error())
 			return err
 		}
 
+		batchRequestWaitTime := time.Now().Unix()
+
+		s.cachedBeaconBlockMutex.Lock()
+		for _, beaconBlock := range blockReciever {
+			if beaconBlock == nil {
+				continue
+			}
+			logrus.Tracef("save block: %d", beaconBlock.ExecutionBlockNumber)
+
+			s.cachedBeaconBlock[beaconBlock.ExecutionBlockNumber] = beaconBlock
+			if beaconBlock.ExecutionBlockNumber > s.latestBlockOfSyncBlock {
+				s.latestBlockOfSyncBlock = beaconBlock.ExecutionBlockNumber
+			}
+		}
+		s.cachedBeaconBlockMutex.Unlock()
+
 		s.latestSlotOfSyncBlock = subEnd
 
+		batchRequestEndTime := time.Now().Unix()
+		logrus.Tracef("batch request block, start at: %d, wait at %d, end at %d", batchRequestStartTime, batchRequestWaitTime, batchRequestEndTime)
 	}
 
 	return nil

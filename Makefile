@@ -14,14 +14,10 @@ get:
 
 build:
 	@echo " > \033[32mBuilding relay...\033[0m "
-	go build -mod readonly $(BUILD_FLAGS) -o build/relay main.go
+	go build -mod readonly $(BUILD_FLAGS) -o build/lsd-relay main.go
 
 build-linux:
-	@GOOS=linux GOARCH=amd64 go build --mod readonly $(BUILD_FLAGS) -o ./build/relay main.go
-
-install:
-	@echo " > \033[32mInstalling relay...\033[0m "
-	go install -mod readonly $(BUILD_FLAGS) ./...
+	@GOOS=linux GOARCH=amd64 go build --mod readonly $(BUILD_FLAGS) -o ./build/lsd-relay main.go
 
 abi:
 	@echo " > \033[32mGenabi...\033[0m "

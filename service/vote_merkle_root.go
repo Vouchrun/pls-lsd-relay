@@ -54,6 +54,15 @@ func (s *Service) voteMerkleRoot() error {
 	if err != nil {
 		return err
 	}
+	// init case
+	if targetEth1BlockHeight < s.networkCreateBlock {
+		targetEth1BlockHeight = s.networkCreateBlock + 1
+	}
+
+	// wait sync block
+	if targetEth1BlockHeight > s.latestBlockOfSyncBlock {
+		return nil
+	}
 
 	var dealedEth1BlockHeight uint64
 	preNodeRewardList := make(NodeRewardsList, 0)
@@ -187,7 +196,7 @@ func (s *Service) voteMerkleRoot() error {
 	if err != nil {
 		return err
 	}
-
+	logrus.Infof("cid: %s", cid)
 	// check voted
 	hasVoted, err := s.networkProposalContract.HasVoted(nil, utils.VoteMerkleRootProposalId(big.NewInt(int64(targetEpoch)),
 		rootHash, cid), s.keyPair.CommonAddress())

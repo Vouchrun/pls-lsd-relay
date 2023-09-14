@@ -11,20 +11,22 @@ import (
 )
 
 type Config struct {
-	Eth1Endpoint        string // url for eth1 rpc endpoint
-	Eth2Endpoint        string // url for eth2 rpc endpoint
-	Web3StorageApiToken string //
-	LogFilePath         string
-	Account             string
-	KeystorePath        string
-	GasLimit            string
-	MaxGasPrice         string
+	Eth1Endpoint             string // url for eth1 rpc endpoint
+	Eth2Endpoint             string // url for eth2 rpc endpoint
+	Web3StorageApiToken      string //
+	LogFilePath              string
+	Account                  string
+	KeystorePath             string
+	GasLimit                 string
+	MaxGasPrice              string
+	BatchRequestBlocksNumber uint64
 
 	Contracts Contracts
 }
 
 type Contracts struct {
-	LsdTokenAddress string
+	LsdTokenAddress   string
+	LsdFactoryAddress string
 }
 
 func Load(configFilePath string) (*Config, error) {

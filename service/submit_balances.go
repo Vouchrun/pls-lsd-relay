@@ -28,17 +28,25 @@ func (s *Service) submitBalances() error {
 	if err != nil {
 		return err
 	}
+	if targetBlock < s.networkCreateBlock {
+		targetBlock = s.networkCreateBlock + 1
+	}
+
+	// already update on this block, no need vote
+	if targetBlock <= balancesBlockOnChain.Uint64() {
+		return nil
+	}
+
+	// wait sync block
+	if targetBlock > s.latestBlockOfSyncBlock {
+		return nil
+	}
 
 	logrus.WithFields(logrus.Fields{
 		"targetEpoch":          targetEpoch,
 		"targetBlock":          targetBlock,
 		"balancesBlockOnChain": balancesBlockOnChain.String(),
 	}).Debug("epocheInfo")
-
-	// already update on this block, no need vote
-	if targetBlock <= balancesBlockOnChain.Uint64() {
-		return nil
-	}
 
 	targetCallOpts := s.connection.CallOpts(big.NewInt(int64(targetBlock)))
 
@@ -114,17 +122,22 @@ func (s *Service) submitBalances() error {
 		return fmt.Errorf("rethContract.GetExchangeRate err: %s", err)
 	}
 	oldExchangeRateDeci := decimal.NewFromBigInt(oldExchangeRate, 0)
-	newExchangeRateDeci := totalUserEthDeci.Mul(decimal.NewFromInt(1e18)).Div(lsdTokenTotalSupplyDeci)
-	if newExchangeRateDeci.LessThanOrEqual(oldExchangeRateDeci) {
-		logrus.WithFields(logrus.Fields{
-			"newExchangeRate": newExchangeRateDeci.StringFixed(0),
-			"oldExchangeRate": oldExchangeRate.String(),
-		}).Warn("new exchangeRate less than old")
-		return nil
-	}
-	var maxRateChangeDeci = decimal.NewFromInt(11e14) //0.0011
-	if newExchangeRateDeci.GreaterThan(oldExchangeRateDeci.Add(maxRateChangeDeci)) {
-		return fmt.Errorf("newExchangeRate %s too big than oldExchangeRate %s", newExchangeRateDeci.String(), oldExchangeRateDeci.String())
+	var newExchangeRateDeci decimal.Decimal
+	if !lsdTokenTotalSupplyDeci.IsZero() {
+		newExchangeRateDeci = totalUserEthDeci.Mul(decimal.NewFromInt(1e18)).Div(lsdTokenTotalSupplyDeci)
+		rateChangeLimit, err := s.networkBalancesContract.RateChangeLimit(nil)
+		if err != nil {
+			return err
+		}
+
+		rateChange := newExchangeRateDeci.Sub(oldExchangeRateDeci).Abs().Div(oldExchangeRateDeci)
+
+		if rateChange.GreaterThan(decimal.NewFromBigInt(rateChangeLimit, 0)) {
+			return fmt.Errorf("exceed rate change limit %s, newExchangeRate %s, oldExchangeRate %s", rateChangeLimit.String(), newExchangeRateDeci.String(), oldExchangeRateDeci.String())
+		}
+	} else {
+		//init case
+		newExchangeRateDeci = oldExchangeRateDeci
 	}
 
 	hasVoted, err := s.networkProposalContract.HasVoted(nil, utils.SubmitBalancesProposalId(big.NewInt(int64(targetBlock)),

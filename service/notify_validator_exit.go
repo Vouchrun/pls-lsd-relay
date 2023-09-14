@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math/big"
 	"sort"
-	"time"
 
 	"github.com/pkg/errors"
 	"github.com/shopspring/decimal"
@@ -12,13 +11,11 @@ import (
 	"github.com/stafiprotocol/eth-lsd-relay/pkg/utils"
 )
 
-type ExitElection struct {
-	WithdrawCycle      uint64
-	ValidatorIndexList []uint64
-}
-
 func (s *Service) notifyValidatorExit() error {
-	currentCycle, targetTimestamp := currentCycleAndStartTimestamp()
+	currentCycle, targetTimestamp, err := s.currentCycleAndStartTimestamp()
+	if err != nil {
+		return err
+	}
 	preCycle := currentCycle - 1
 
 	targetEpoch := utils.EpochAtTimestamp(s.eth2Config, uint64(targetTimestamp))
@@ -26,12 +23,18 @@ func (s *Service) notifyValidatorExit() error {
 	if err != nil {
 		return err
 	}
+	// init case
+	if targetBlockNumber < s.networkCreateBlock {
+		targetBlockNumber = s.networkCreateBlock
+	}
 
-	// ensure already synced
-	if targetBlockNumber > s.latestBlockOfSyncBlock {
+	// wait validator updated
+	if targetEpoch > s.latestEpochOfUpdateValidator {
 		return nil
 	}
-	if targetEpoch > s.latestEpochOfUpdateValidator {
+
+	// wait sync block
+	if targetBlockNumber > s.latestBlockOfSyncBlock {
 		return nil
 	}
 
@@ -147,11 +150,18 @@ func (s *Service) sendNotifyExitTx(preCycle, startCycle uint64, selectVal []*big
 	return s.waitTxOk(tx.Hash())
 }
 
-// utc 8:00
-func currentCycleAndStartTimestamp() (int64, int64) {
-	currentCycle := (time.Now().Unix()) / 86400
-	targetTimestamp := currentCycle * 86400
-	return currentCycle, targetTimestamp
+func (s *Service) currentCycleAndStartTimestamp() (int64, int64, error) {
+	currentCycle, err := s.networkWithdrawContract.CurrentWithdrawCycle(nil)
+	if err != nil {
+		return 0, 0, err
+	}
+	cycleSeconds, err := s.networkWithdrawContract.WithdrawCycleSeconds(nil)
+	if err != nil {
+		return 0, 0, err
+	}
+
+	targetTimestamp := currentCycle.Uint64() * cycleSeconds.Uint64()
+	return int64(currentCycle.Uint64()), int64(targetTimestamp), nil
 }
 
 func (s *Service) mustSelectValidatorsForExit(totalMissingAmount decimal.Decimal, targetEpoch uint64) ([]*big.Int, error) {

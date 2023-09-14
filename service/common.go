@@ -30,8 +30,6 @@ func (s *Service) waitTxOk(txHash common.Hash) error {
 
 func (s *Service) getEpochStartBlocknumber(epoch uint64) (uint64, error) {
 	eth2ValidatorBalanceSyncerStartSlot := utils.StartSlotOfEpoch(s.eth2Config, epoch)
-	logrus.Debugf("getEpochStartBlocknumber: %d, epoch: %d ", eth2ValidatorBalanceSyncerStartSlot, epoch)
-
 	retry := 0
 	for {
 		if retry > 10 {

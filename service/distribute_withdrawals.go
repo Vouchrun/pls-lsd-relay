@@ -24,11 +24,8 @@ func (s *Service) distributeWithdrawals() error {
 	logrus.WithFields(logrus.Fields{
 		"latestDistributeHeight": latestDistributeHeight,
 		"targetEth1BlockHeight":  targetEth1BlockHeight,
+		"latestBlockOfSyncBlock": s.latestBlockOfSyncBlock,
 	}).Debug("distributeWithdrawals")
-
-	if targetEth1BlockHeight > s.latestBlockOfSyncBlock {
-		return nil
-	}
 
 	// ----1 cal eth(from withdrawals) of user/node/platform
 	totalUserEthDeci, totalNodeEthDeci, totalPlatformEthDeci, _, err := s.getUserNodePlatformFromWithdrawals(latestDistributeHeight, targetEth1BlockHeight)
@@ -80,6 +77,10 @@ func (s *Service) checkStateForDistributeWithdraw() (uint64, uint64, bool, error
 	if err != nil {
 		return 0, 0, false, err
 	}
+	// init case
+	if targetEth1BlockHeight < s.networkCreateBlock {
+		targetEth1BlockHeight = s.networkCreateBlock + 1
+	}
 
 	logrus.Debugf("targetEth1Block %d", targetEth1BlockHeight)
 
@@ -93,7 +94,12 @@ func (s *Service) checkStateForDistributeWithdraw() (uint64, uint64, bool, error
 	}
 
 	if latestDistributeHeight.Uint64() >= targetEth1BlockHeight {
-		logrus.Debug("latestDistributeHeight.Uint64() >= targetEth1BlockHeight")
+		logrus.Debugf("latestDistributeHeight: %d  targetEth1BlockHeight: %d", latestDistributeHeight.Uint64(), targetEth1BlockHeight)
+		return 0, 0, false, nil
+	}
+
+	// wait sync block
+	if targetEth1BlockHeight > s.latestBlockOfSyncBlock {
 		return 0, 0, false, nil
 	}
 

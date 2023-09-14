@@ -35,12 +35,6 @@ import (
 )
 
 var (
-	lsdNetworkFactoryAddressMainnet = common.HexToAddress("")
-	lsdNetworkFactoryAddressTestnet = common.HexToAddress("")
-
-	govDepositContractAddressMainnet = common.HexToAddress("")
-	govDepositContractAddressTestnet = common.HexToAddress("")
-
 	epochsOfOneDay = uint64(225)
 )
 
@@ -56,6 +50,7 @@ type Service struct {
 	distributeWithdrawalsDuEpochs uint64
 	distributePriorityFeeDuEpochs uint64
 	merkleRootDuEpochs            uint64
+	BatchRequestBlocksNumber      uint64
 
 	// --- need init on start
 	dev             bool
@@ -68,10 +63,9 @@ type Service struct {
 	withdrawCredentials []byte
 	domain              []byte // for eth2 sigs
 
-	govDepositContractAddress common.Address
-	lsdNetworkFactoryAddress  common.Address
-	lsdTokenAddress           common.Address
-	feePoolAddress            common.Address
+	lsdNetworkFactoryAddress common.Address
+	lsdTokenAddress          common.Address
+	feePoolAddress           common.Address
 
 	lsdNetworkFactoryContract *lsd_network_factory.LsdNetworkFactory
 	nodeDepositContract       *node_deposit.NodeDeposit
@@ -143,6 +137,11 @@ type StakerWithdrawal struct {
 	Timestamp          uint64 // unstake tx timestamp
 }
 
+type ExitElection struct {
+	WithdrawCycle      uint64
+	ValidatorIndexList []uint64
+}
+
 type Handler struct {
 	method func() error
 	name   string
@@ -150,7 +149,10 @@ type Handler struct {
 
 func NewService(cfg *config.Config, keyPair *secp256k1.Keypair) (*Service, error) {
 	if !common.IsHexAddress(cfg.Contracts.LsdTokenAddress) {
-		return nil, fmt.Errorf("SsvTokenAddress contract address fmt err")
+		return nil, fmt.Errorf("LsdTokenAddress contract address fmt err")
+	}
+	if !common.IsHexAddress(cfg.Contracts.LsdFactoryAddress) {
+		return nil, fmt.Errorf("LsdFactoryAddress contract address fmt err")
 	}
 
 	gasLimitDeci, err := decimal.NewFromString(cfg.GasLimit)
@@ -185,6 +187,9 @@ func NewService(cfg *config.Config, keyPair *secp256k1.Keypair) (*Service, error
 	if err != nil {
 		return nil, fmt.Errorf("error creating new Web3.Storage client: %w", err)
 	}
+	if cfg.BatchRequestBlocksNumber == 0 {
+		return nil, fmt.Errorf("BatchRequestBlocksNumber is zero")
+	}
 
 	s := &Service{
 		stop:                          make(chan struct{}),
@@ -194,6 +199,7 @@ func NewService(cfg *config.Config, keyPair *secp256k1.Keypair) (*Service, error
 		eth1Client:                    eth1client,
 		web3Client:                    w3sClient,
 		lsdTokenAddress:               common.HexToAddress(cfg.Contracts.LsdTokenAddress),
+		lsdNetworkFactoryAddress:      common.HexToAddress(cfg.Contracts.LsdFactoryAddress),
 		keyPair:                       keyPair,
 		gasLimit:                      gasLimitDeci.BigInt(),
 		maxGasPrice:                   maxGasPriceDeci.BigInt(),
@@ -201,8 +207,15 @@ func NewService(cfg *config.Config, keyPair *secp256k1.Keypair) (*Service, error
 		distributeWithdrawalsDuEpochs: epochsOfOneDay,
 		distributePriorityFeeDuEpochs: epochsOfOneDay,
 		merkleRootDuEpochs:            epochsOfOneDay,
+		BatchRequestBlocksNumber:      cfg.BatchRequestBlocksNumber,
 
+		govDeposits:       make(map[string][][]byte),
+		validators:        make(map[string]*Validator),
+		validatorsByIndex: make(map[uint64]*Validator),
+		nodes:             make(map[common.Address]*Node),
+		stakerWithdrawals: make(map[uint64]*StakerWithdrawal),
 		cachedBeaconBlock: make(map[uint64]*beacon.BeaconBlock),
+		exitElections:     make(map[uint64]*ExitElection),
 	}
 
 	return s, nil
@@ -232,8 +245,6 @@ func (s *Service) Start() error {
 		if !bytes.Equal(s.eth2Config.GenesisForkVersion, params.MainnetConfig().GenesisForkVersion) {
 			return fmt.Errorf("endpoint network not match")
 		}
-		s.lsdNetworkFactoryAddress = lsdNetworkFactoryAddressMainnet
-		s.govDepositContractAddress = govDepositContractAddressMainnet
 
 		domain, err := signing.ComputeDomain(
 			params.MainnetConfig().DomainDeposit,
@@ -250,8 +261,6 @@ func (s *Service) Start() error {
 		if !bytes.Equal(s.eth2Config.GenesisForkVersion, params.SepoliaConfig().GenesisForkVersion) {
 			return fmt.Errorf("endpoint network not match")
 		}
-		s.lsdNetworkFactoryAddress = lsdNetworkFactoryAddressTestnet
-		s.govDepositContractAddress = govDepositContractAddressTestnet
 
 		domain, err := signing.ComputeDomain(
 			params.SepoliaConfig().DomainDeposit,
@@ -267,9 +276,6 @@ func (s *Service) Start() error {
 		if !bytes.Equal(s.eth2Config.GenesisForkVersion, params.PraterConfig().GenesisForkVersion) {
 			return fmt.Errorf("endpoint network not match")
 		}
-		s.lsdNetworkFactoryAddress = lsdNetworkFactoryAddressTestnet
-		s.govDepositContractAddress = govDepositContractAddressTestnet
-
 		domain, err := signing.ComputeDomain(
 			params.PraterConfig().DomainDeposit,
 			params.PraterConfig().GenesisForkVersion,
@@ -291,6 +297,8 @@ func (s *Service) Start() error {
 	if err != nil {
 		return err
 	}
+
+	logrus.Debug("init contracts end")
 
 	latestBlock, err := s.connection.Eth1LatestBlock()
 	if err != nil {
@@ -314,7 +322,7 @@ func (s *Service) Start() error {
 
 	latestDistributeWithdrawalsHeight, err := s.networkWithdrawContract.LatestDistributeWithdrawalsHeight(nil)
 	if err != nil {
-		return err
+		return fmt.Errorf("LatestDistributeWithdrawalsHeight %w", err)
 	}
 	checkAndUpdateLatestBlockOfSyncBlock(latestDistributeWithdrawalsHeight.Uint64())
 
@@ -323,15 +331,18 @@ func (s *Service) Start() error {
 		return err
 	}
 	checkAndUpdateLatestBlockOfSyncBlock(latestDistributePriorityFeeHeight.Uint64())
+
 	merkleRootEpoch, err := s.networkWithdrawContract.LatestMerkleRootEpoch(nil)
 	if err != nil {
 		return err
 	}
-	epochBlockNumber, err := s.getEpochStartBlocknumber(merkleRootEpoch.Uint64())
-	if err != nil {
-		return err
+	if merkleRootEpoch.Uint64() > 0 {
+		epochBlockNumber, err := s.getEpochStartBlocknumber(merkleRootEpoch.Uint64())
+		if err != nil {
+			return err
+		}
+		checkAndUpdateLatestBlockOfSyncBlock(epochBlockNumber)
 	}
-	checkAndUpdateLatestBlockOfSyncBlock(epochBlockNumber)
 
 	block, err := s.connection.Eth1Client().BlockByNumber(context.Background(), big.NewInt(int64(s.latestBlockOfSyncBlock)))
 	if err != nil {
@@ -362,10 +373,6 @@ func (s *Service) Stop() {
 
 func (s *Service) initContract() error {
 	var err error
-	s.govDepositContract, err = deposit_contract.NewDepositContract(s.govDepositContractAddress, s.eth1Client)
-	if err != nil {
-		return err
-	}
 
 	s.lsdNetworkFactoryContract, err = lsd_network_factory.NewLsdNetworkFactory(s.lsdNetworkFactoryAddress, s.eth1Client)
 	if err != nil {
@@ -376,6 +383,17 @@ func (s *Service) initContract() error {
 	if err != nil {
 		return err
 	}
+	logrus.Infof("networkContracts: %+v", networkContracts)
+
+	ethDepositAddress, err := s.lsdNetworkFactoryContract.EthDepositAddress(nil)
+	if err != nil {
+		return err
+	}
+
+	s.govDepositContract, err = deposit_contract.NewDepositContract(ethDepositAddress, s.eth1Client)
+	if err != nil {
+		return err
+	}
 
 	s.eth1StartHeight = networkContracts.Block.Uint64()
 
@@ -383,7 +401,12 @@ func (s *Service) initContract() error {
 	if err != nil {
 		return err
 	}
-	s.networkWithdrawContract, err = network_withdraw.NewNetworkWithdraw(networkContracts.NodeDeposit, s.eth1Client)
+
+	s.userDepositContract, err = user_deposit.NewUserDeposit(networkContracts.UserDeposit, s.eth1Client)
+	if err != nil {
+		return err
+	}
+	s.networkWithdrawContract, err = network_withdraw.NewNetworkWithdraw(networkContracts.NetworkWithdraw, s.eth1Client)
 	if err != nil {
 		return err
 	}
@@ -443,7 +466,7 @@ Out:
 			retry = 0
 		}
 
-		time.Sleep(48 * time.Second) // 48 blocks
+		time.Sleep(6 * time.Second)
 	}
 }
 
@@ -481,7 +504,7 @@ Out:
 			retry = 0
 		}
 
-		time.Sleep(48 * time.Second) // 48 blocks
+		time.Sleep(6 * time.Second)
 	}
 }
 

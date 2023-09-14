@@ -48,8 +48,9 @@ func startRelayCmd() *cobra.Command {
   eth1Endpoint: %s
   eth2Endpoint: %s
   account: %s
-  lsdTokenAddress: %s`,
-				cfg.LogFilePath, logLevelStr, cfg.Eth1Endpoint, cfg.Eth2Endpoint, cfg.Account, cfg.Contracts.LsdTokenAddress)
+  lsdTokenAddress: %s
+  batchRequestBlocksNumber: %d`,
+				cfg.LogFilePath, logLevelStr, cfg.Eth1Endpoint, cfg.Eth2Endpoint, cfg.Account, cfg.Contracts.LsdTokenAddress, cfg.BatchRequestBlocksNumber)
 
 			err = log.InitLogFile(cfg.LogFilePath + "/ssv")
 			if err != nil {

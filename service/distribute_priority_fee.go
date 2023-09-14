@@ -13,21 +13,18 @@ func (s *Service) distributePriorityFee() error {
 
 	latestDistributeHeight, targetEth1BlockHeight, shouldGoNext, err := s.checkStateForDistributePriorityFee()
 	if err != nil {
-		return errors.Wrap(err, "distributeWithdrawals checkSyncState failed")
+		return errors.Wrap(err, "distributePriorityFee checkSyncState failed")
 	}
 
 	if !shouldGoNext {
-		logrus.Debug("distributeWithdrawals should not go next")
+		logrus.Debug("distributePriorityFee should not go next")
 		return nil
 	}
 	logrus.WithFields(logrus.Fields{
 		"latestDistributeHeight": latestDistributeHeight,
 		"targetEth1BlockHeight":  targetEth1BlockHeight,
+		"latestBlockOfSyncBlock": s.latestBlockOfSyncBlock,
 	}).Debug("distributePriorityFee")
-
-	if targetEth1BlockHeight > s.latestBlockOfSyncBlock {
-		return nil
-	}
 
 	// ----1 cal eth(from withdrawals) of user/node/platform
 	totalUserEthDeci, totalNodeEthDeci, totalPlatformEthDeci, _, err := s.getUserNodePlatformFromPriorityFee(latestDistributeHeight, targetEth1BlockHeight)
@@ -62,7 +59,7 @@ func (s *Service) distributePriorityFee() error {
 	}).Info("Will DistributePriorityFee")
 
 	// -----3 send vote tx
-	return s.sendDistributeTx(utils.DistributeTypeWithdrawals, big.NewInt(int64(targetEth1BlockHeight)),
+	return s.sendDistributeTx(utils.DistributeTypePriorityFee, big.NewInt(int64(targetEth1BlockHeight)),
 		totalUserEthDeci.BigInt(), totalNodeEthDeci.BigInt(), totalPlatformEthDeci.BigInt(), big.NewInt(int64(newMaxClaimableWithdrawIndex)))
 }
 
@@ -80,7 +77,10 @@ func (s *Service) checkStateForDistributePriorityFee() (uint64, uint64, bool, er
 	if err != nil {
 		return 0, 0, false, err
 	}
-
+	// init case
+	if targetEth1BlockHeight < s.networkCreateBlock {
+		targetEth1BlockHeight = s.networkCreateBlock + 1
+	}
 	logrus.Debugf("targetEth1Block %d", targetEth1BlockHeight)
 
 	latestDistributeHeight, err := s.networkWithdrawContract.LatestDistributePriorityFeeHeight(nil)
@@ -93,7 +93,12 @@ func (s *Service) checkStateForDistributePriorityFee() (uint64, uint64, bool, er
 	}
 
 	if latestDistributeHeight.Uint64() >= targetEth1BlockHeight {
-		logrus.Debug("latestDistributeHeight.Uint64() >= targetEth1BlockHeight")
+		logrus.Debugf("latestDistributeHeight: %d  targetEth1BlockHeight: %d", latestDistributeHeight.Uint64(), targetEth1BlockHeight)
+		return 0, 0, false, nil
+	}
+
+	// wait sync block
+	if targetEth1BlockHeight > s.latestBlockOfSyncBlock {
 		return 0, 0, false, nil
 	}
 
