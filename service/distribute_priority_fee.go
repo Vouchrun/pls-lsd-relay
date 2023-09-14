@@ -25,14 +25,18 @@ func (s *Service) distributePriorityFee() error {
 		"targetEth1BlockHeight":  targetEth1BlockHeight,
 	}).Debug("distributePriorityFee")
 
+	if targetEth1BlockHeight > s.latestBlockOfSyncBlock {
+		return nil
+	}
+
 	// ----1 cal eth(from withdrawals) of user/node/platform
-	totalUserEthDeci, totalNodeEthDeci, totalPlatformEthDeci, totalAmountDeci, err := s.getUserNodePlatformFromPriorityFee(latestDistributeHeight, targetEth1BlockHeight)
+	totalUserEthDeci, totalNodeEthDeci, totalPlatformEthDeci, _, err := s.getUserNodePlatformFromPriorityFee(latestDistributeHeight, targetEth1BlockHeight)
 	if err != nil {
 		return errors.Wrap(err, "getUserNodePlatformFromPriorityFee failed")
 	}
 
 	// -----2 cal maxClaimableWithdrawIndex
-	// todo find distribute withdrawals height as target block to cal this
+	// find distribute withdrawals height as target block to cal this
 	newMaxClaimableWithdrawIndex, err := s.calMaxClaimableWithdrawIndex(targetEth1BlockHeight, totalUserEthDeci)
 	if err != nil {
 		return errors.Wrap(err, "calMaxClaimableWithdrawIndex failed")
@@ -40,7 +44,7 @@ func (s *Service) distributePriorityFee() error {
 
 	// check voted
 	hasVoted, err := s.networkProposalContract.HasVoted(nil, utils.DistributeProposalId(utils.DistributeTypePriorityFee, big.NewInt(int64(targetEth1BlockHeight)),
-		totalUserEthDeci.BigInt(), totalAmountDeci.BigInt(), totalPlatformEthDeci.BigInt(), big.NewInt(int64(newMaxClaimableWithdrawIndex))), s.keyPair.CommonAddress())
+		totalUserEthDeci.BigInt(), totalNodeEthDeci.BigInt(), totalPlatformEthDeci.BigInt(), big.NewInt(int64(newMaxClaimableWithdrawIndex))), s.keyPair.CommonAddress())
 	if err != nil {
 		return fmt.Errorf("networkProposalContract.HasVoted err: %s", err)
 	}

@@ -26,8 +26,12 @@ func (s *Service) distributeWithdrawals() error {
 		"targetEth1BlockHeight":  targetEth1BlockHeight,
 	}).Debug("distributeWithdrawals")
 
+	if targetEth1BlockHeight > s.latestBlockOfSyncBlock {
+		return nil
+	}
+
 	// ----1 cal eth(from withdrawals) of user/node/platform
-	totalUserEthDeci, totalNodeEthDeci, totalPlatformEthDeci, totalAmountDeci, err := s.getUserNodePlatformFromWithdrawals(latestDistributeHeight, targetEth1BlockHeight)
+	totalUserEthDeci, totalNodeEthDeci, totalPlatformEthDeci, _, err := s.getUserNodePlatformFromWithdrawals(latestDistributeHeight, targetEth1BlockHeight)
 	if err != nil {
 		return errors.Wrap(err, "getUserNodePlatformFromWithdrawals failed")
 	}
@@ -40,7 +44,7 @@ func (s *Service) distributeWithdrawals() error {
 
 	// check voted
 	hasVoted, err := s.networkProposalContract.HasVoted(nil, utils.DistributeProposalId(utils.DistributeTypeWithdrawals, big.NewInt(int64(targetEth1BlockHeight)),
-		totalUserEthDeci.BigInt(), totalAmountDeci.BigInt(), totalPlatformEthDeci.BigInt(), big.NewInt(int64(newMaxClaimableWithdrawIndex))), s.keyPair.CommonAddress())
+		totalUserEthDeci.BigInt(), totalNodeEthDeci.BigInt(), totalPlatformEthDeci.BigInt(), big.NewInt(int64(newMaxClaimableWithdrawIndex))), s.keyPair.CommonAddress())
 	if err != nil {
 		return fmt.Errorf("networkProposalContract.HasVoted err: %s", err)
 	}

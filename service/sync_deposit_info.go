@@ -24,12 +24,13 @@ func (s *Service) syncDepositInfo() error {
 		latestBlockNumber -= fetchEth1WaitBlockNumbers
 	}
 
-	logrus.Debugf("latestBlockNumber: %d, dealedBlockNumber: %d", latestBlockNumber, s.dealedEth1Block)
-	if latestBlockNumber <= uint64(s.dealedEth1Block) {
+	logrus.Debugf("latestBlockNumber: %d, latestBlockOfSyncDeposit: %d", latestBlockNumber, s.latestBlockOfSyncDeposit)
+
+	if latestBlockNumber <= uint64(s.latestBlockOfSyncDeposit) {
 		return nil
 	}
 
-	start := uint64(s.dealedEth1Block + 1)
+	start := uint64(s.latestBlockOfSyncDeposit + 1)
 	end := latestBlockNumber
 
 	for i := start; i <= end; i += fetchEventBlockLimit {
@@ -44,10 +45,13 @@ func (s *Service) syncDepositInfo() error {
 			return err
 		}
 
+		// update
+		s.latestBlockOfSyncDeposit = subEnd
+
 		logrus.WithFields(logrus.Fields{
 			"start": subStart,
 			"end":   subEnd,
-		}).Debug("already dealed blocks")
+		}).Debug("syncDepositInfo already dealed blocks")
 	}
 
 	return nil

@@ -26,7 +26,7 @@ func (s *Service) voteWithdrawCredentials() error {
 	validatorMatchs := make([]bool, 0)
 	for _, validator := range validatorListNeedVote {
 		// skip if not sync to deposit block
-		if validator.DepositBlock > s.dealedEth1Block {
+		if validator.DepositBlock > s.latestBlockOfSyncDeposit {
 			continue
 		}
 
@@ -59,7 +59,7 @@ func (s *Service) voteWithdrawCredentials() error {
 
 		govDepositAmount := uint64(1e9)
 		if validator.NodeType == utils.NodeTypeLight {
-			govDepositAmount = validator.NodeDepositAmount.Div(utils.GweiDeci).BigInt().Uint64()
+			govDepositAmount = validator.NodeDepositAmountDeci.Div(utils.GweiDeci).BigInt().Uint64()
 		}
 
 		dp := ethpb.Deposit_Data{

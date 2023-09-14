@@ -74,9 +74,13 @@ var (
 	Percent5Deci  = decimal.NewFromFloat(0.05)
 	Percent90Deci = decimal.NewFromFloat(0.9)
 
-	StandardEffectiveBalance            = decimal.NewFromBigInt(big.NewInt(32), 18)
+	StandardEffectiveBalance     = uint64(32e9)
+	StandardEffectiveBalanceDeci = decimal.NewFromBigInt(big.NewInt(32), 18)
+
 	StandardTrustNodeFakeDepositBalance = decimal.NewFromInt(1e18)
-	MaxPartialWithdrawalAmount          = decimal.NewFromInt(8e18)
+
+	MaxPartialWithdrawalAmount     = uint64(8e9)
+	MaxPartialWithdrawalAmountDeci = decimal.NewFromInt(8e18)
 )
 
 const (
@@ -91,6 +95,10 @@ const (
 // Get an eth2 epoch number by time
 func EpochAtTimestamp(config beacon.Eth2Config, time uint64) uint64 {
 	return config.GenesisEpoch + (time-config.GenesisTime)/config.SecondsPerEpoch
+}
+
+func SlotAtTimestamp(config beacon.Eth2Config, time uint64) uint64 {
+	return (time - config.GenesisTime) / config.SecondsPerSlot
 }
 
 func StartTimestampOfEpoch(config beacon.Eth2Config, epoch uint64) uint64 {
@@ -288,14 +296,15 @@ func WaitTxOkCommon(client *ethclient.Client, txHash common.Hash) (blockNumber u
 // user = 90%*(1-nodedeposit/32)
 // node = 5% + (90% * nodedeposit/32)
 // platform = 5%
-// rewardDeci decimals maybe 9 or 18, also the returns
-// return (user reward, node reward, paltform fee)
+// nodeDepositAmount decimals 18
+// rewardDeci decimals 18
+// return (user reward, node reward, paltform fee) decimals 18
 func GetUserNodePlatformReward(nodeDepositAmount, rewardDeci decimal.Decimal) (decimal.Decimal, decimal.Decimal, decimal.Decimal) {
-	if !rewardDeci.IsPositive() || nodeDepositAmount.GreaterThan(StandardEffectiveBalance) {
+	if !rewardDeci.IsPositive() || nodeDepositAmount.GreaterThan(StandardEffectiveBalanceDeci) {
 		return decimal.Zero, decimal.Zero, decimal.Zero
 	}
 	nodeDepositAmountDeci := nodeDepositAmount
-	standEffectiveBalanceDeci := StandardEffectiveBalance
+	standEffectiveBalanceDeci := StandardEffectiveBalanceDeci
 
 	// platform Fee
 	platformFeeDeci := rewardDeci.Mul(Percent5Deci)

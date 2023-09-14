@@ -17,13 +17,22 @@ import (
 )
 
 func (s *Service) updateValidatorsFromNetwork() error {
+	eth1LatestBlock, err := s.connection.Eth1LatestBlock()
+	if err != nil {
+		return err
+	}
+	if eth1LatestBlock <= s.latestBlockOfUpdateValidator {
+		return nil
+	}
+	call := s.connection.CallOpts(big.NewInt(int64(eth1LatestBlock)))
+
 	// 0. fetch new validators
-	pubkeysLen, err := s.nodeDepositContract.GetPubkeysLength(nil)
+	pubkeysLen, err := s.nodeDepositContract.GetPubkeysLength(call)
 	if err != nil {
 		return err
 	}
 	if len(s.validators) < int(pubkeysLen.Uint64()) {
-		pubkeys, err := s.nodeDepositContract.GetPubkeys(nil, big.NewInt(int64(len(s.validators))), pubkeysLen)
+		pubkeys, err := s.nodeDepositContract.GetPubkeys(call, big.NewInt(int64(len(s.validators))), pubkeysLen)
 		if err != nil {
 			return err
 		}
@@ -34,14 +43,14 @@ func (s *Service) updateValidatorsFromNetwork() error {
 				return fmt.Errorf("validator %s duplicate", key)
 			}
 
-			pubkeyInfo, err := s.nodeDepositContract.PubkeyInfoOf(nil, pubkey)
+			pubkeyInfo, err := s.nodeDepositContract.PubkeyInfoOf(call, pubkey)
 			if err != nil {
 				return err
 			}
 
 			nodeLocal, exist := s.nodes[pubkeyInfo.Owner]
 			if !exist {
-				nodeInfo, err := s.nodeDepositContract.NodeInfoOf(nil, pubkeyInfo.Owner)
+				nodeInfo, err := s.nodeDepositContract.NodeInfoOf(call, pubkeyInfo.Owner)
 				if err != nil {
 					return err
 				}
@@ -55,20 +64,21 @@ func (s *Service) updateValidatorsFromNetwork() error {
 			}
 
 			val := Validator{
-				Pubkey:            pubkey,
-				NodeAddress:       pubkeyInfo.Owner,
-				DepositSignature:  pubkeyInfo.DepositSignature,
-				NodeDepositAmount: decimal.NewFromBigInt(pubkeyInfo.NodeDepositAmount, 0),
-				DepositBlock:      pubkeyInfo.DepositBlock.Uint64(),
-				ActiveEpoch:       0,
-				EligibleEpoch:     0,
-				ExitEpoch:         0,
-				WithdrawableEpoch: 0,
-				Balance:           0,
-				EffectiveBalance:  0,
-				NodeType:          nodeLocal.NodeType,
-				Status:            pubkeyInfo.Status,
-				ValidatorIndex:    0,
+				Pubkey:                pubkey,
+				NodeAddress:           pubkeyInfo.Owner,
+				DepositSignature:      pubkeyInfo.DepositSignature,
+				NodeDepositAmountDeci: decimal.NewFromBigInt(pubkeyInfo.NodeDepositAmount, 0),
+				NodeDepositAmount:     new(big.Int).Div(pubkeyInfo.NodeDepositAmount, big.NewInt(1e9)).Uint64(),
+				DepositBlock:          pubkeyInfo.DepositBlock.Uint64(),
+				ActiveEpoch:           0,
+				EligibleEpoch:         0,
+				ExitEpoch:             0,
+				WithdrawableEpoch:     0,
+				Balance:               0,
+				EffectiveBalance:      0,
+				NodeType:              nodeLocal.NodeType,
+				Status:                pubkeyInfo.Status,
+				ValidatorIndex:        0,
 			}
 
 			s.validators[key] = &val
@@ -86,31 +96,35 @@ func (s *Service) updateValidatorsFromNetwork() error {
 			continue
 		}
 
-		pubkeyInfo, err := s.nodeDepositContract.PubkeyInfoOf(nil, val.Pubkey)
+		pubkeyInfo, err := s.nodeDepositContract.PubkeyInfoOf(call, val.Pubkey)
 		if err != nil {
 			return err
 		}
 		val.Status = pubkeyInfo.Status
 	}
 
+	s.latestBlockOfUpdateValidator = eth1LatestBlock
 	return nil
 }
 
 func (s *Service) updateValidatorsFromBeacon() error {
+	beaconHead, err := s.connection.Eth2BeaconHead()
+	if err != nil {
+		return err
+	}
+	finalEpoch := beaconHead.FinalizedEpoch
+	if finalEpoch <= s.latestEpochOfUpdateValidator {
+		return nil
+	}
+
 	pubkeys := make([]types.ValidatorPubkey, 0)
 	for _, val := range s.validators {
 		pubkeys = append(pubkeys, types.ValidatorPubkey(val.Pubkey))
 	}
 	if len(pubkeys) == 0 {
+		s.latestEpochOfUpdateValidator = finalEpoch
 		return nil
 	}
-
-	beaconHead, err := s.connection.Eth2BeaconHead()
-	if err != nil {
-		return err
-	}
-
-	finalEpoch := beaconHead.FinalizedEpoch
 
 	validatorStatusMap, err := s.connection.GetValidatorStatuses(pubkeys, &beacon.ValidatorStatusOptions{
 		Epoch: &finalEpoch,
@@ -198,6 +212,8 @@ func (s *Service) updateValidatorsFromBeacon() error {
 
 		}
 	}
+
+	s.latestEpochOfUpdateValidator = finalEpoch
 
 	return nil
 }

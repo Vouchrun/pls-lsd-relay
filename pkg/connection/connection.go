@@ -96,9 +96,14 @@ func (c *Connection) connect() error {
 
 	c.eth1Rpc = rpcClient
 
+	chainId, err := c.eth1Client.ChainID(context.Background())
+	if err != nil {
+		return err
+	}
+
 	// eth2 client
 	if len(c.eth2Endpoint) != 0 {
-		c.eth2Client, err = client.NewStandardHttpClient(c.eth2Endpoint)
+		c.eth2Client, err = client.NewStandardHttpClient(c.eth2Endpoint, chainId)
 		if err != nil {
 			return err
 		}

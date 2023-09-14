@@ -168,13 +168,13 @@ func (task *Service) getUserEthInfoFromValidatorBalance(validator *Validator, ta
 		}
 
 	case utils.ValidatorStatusStaked, utils.ValidatorStatusWaiting:
-		userDepositBalance := utils.StandardEffectiveBalance.Sub(validator.NodeDepositAmount)
+		userDepositBalance := utils.StandardEffectiveBalanceDeci.Sub(validator.NodeDepositAmountDeci)
 		return userDepositBalance, nil
 
 	case utils.ValidatorStatusActive, utils.ValidatorStatusExited, utils.ValidatorStatusWithdrawable, utils.ValidatorStatusWithdrawDone,
 		utils.ValidatorStatusActiveSlash, utils.ValidatorStatusExitedSlash, utils.ValidatorStatusWithdrawableSlash, utils.ValidatorStatusWithdrawDoneSlash:
 
-		userDepositBalance := utils.StandardEffectiveBalance.Sub(validator.NodeDepositAmount)
+		userDepositBalance := utils.StandardEffectiveBalanceDeci.Sub(validator.NodeDepositAmountDeci)
 		// case: activeEpoch 155747 > targetEpoch 155700
 		if validator.ActiveEpoch > targetEpoch {
 			return userDepositBalance, nil
@@ -187,7 +187,7 @@ func (task *Service) getUserEthInfoFromValidatorBalance(validator *Validator, ta
 			return decimal.Zero, err
 		}
 
-		userDepositPlusReward, err := task.getUserDepositPlusReward(validator.NodeDepositAmount, decimal.NewFromInt(int64(validatorStatus.Balance)).Mul(utils.GweiDeci))
+		userDepositPlusReward, err := task.getUserDepositPlusReward(validator.NodeDepositAmountDeci, decimal.NewFromInt(int64(validatorStatus.Balance)).Mul(utils.GweiDeci))
 		if err != nil {
 			return decimal.Zero, errors.Wrap(err, "getUserDepositPlusReward failed")
 		}
@@ -202,23 +202,23 @@ func (task *Service) getUserEthInfoFromValidatorBalance(validator *Validator, ta
 }
 
 func (s *Service) getUserDepositPlusReward(nodeDepositAmount, validatorBalance decimal.Decimal) (decimal.Decimal, error) {
-	userDepositAmount := utils.StandardEffectiveBalance.Sub(nodeDepositAmount)
+	userDepositAmount := utils.StandardEffectiveBalanceDeci.Sub(nodeDepositAmount)
 
 	switch {
 	case validatorBalance.IsZero(): //withdrawdone case
 		return decimal.Zero, nil
-	case validatorBalance.GreaterThan(decimal.Zero) && validatorBalance.LessThan(utils.StandardEffectiveBalance):
-		loss := utils.StandardEffectiveBalance.Sub(validatorBalance)
+	case validatorBalance.GreaterThan(decimal.Zero) && validatorBalance.LessThan(utils.StandardEffectiveBalanceDeci):
+		loss := utils.StandardEffectiveBalanceDeci.Sub(validatorBalance)
 		if loss.LessThan(nodeDepositAmount) {
 			return userDepositAmount, nil
 		} else {
 			return validatorBalance, nil
 		}
-	case validatorBalance.Equal(utils.StandardEffectiveBalance):
+	case validatorBalance.Equal(utils.StandardEffectiveBalanceDeci):
 		return userDepositAmount, nil
-	case validatorBalance.GreaterThan(utils.StandardEffectiveBalance):
+	case validatorBalance.GreaterThan(utils.StandardEffectiveBalanceDeci):
 		// total staking reward
-		validatorTotalStakingReward := validatorBalance.Sub(utils.StandardEffectiveBalance)
+		validatorTotalStakingReward := validatorBalance.Sub(utils.StandardEffectiveBalanceDeci)
 
 		userRewardOfThisValidator, _, _ := utils.GetUserNodePlatformReward(nodeDepositAmount, validatorTotalStakingReward)
 

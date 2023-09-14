@@ -18,11 +18,13 @@ import (
 	"github.com/stafiprotocol/eth-lsd-relay/pkg/utils"
 )
 
+var chainId = big.NewInt(1)
+
 func TestStatus(t *testing.T) {
 	// c, err := client.NewStandardHttpClient("https://27Y0WDKrX1dYIkBXOugsSLh9hfr:a7c3849eba862fdd67382dab42e2a23c@eth2-beacon-mainnet.infura.io")
 	// c, err := client.NewStandardHttpClient("https://beaconcha-rpc2.stafi.io")
 	// c, err := client.NewStandardHttpClient("https://beacon.zhejiang.ethpandaops.io")
-	c, err := client.NewStandardHttpClient("https://beacon-lighthouse-zhejiang.stafi.io")
+	c, err := client.NewStandardHttpClient("https://beacon-lighthouse-zhejiang.stafi.io", chainId)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -116,7 +118,7 @@ func TestBlock(t *testing.T) {
 }
 func TestBeaconBlock(t *testing.T) {
 	// c, err := client.NewStandardHttpClient("https://27Y0WDKrX1dYIkBXOugsSLh9hfr:a7c3849eba862fdd67382dab42e2a23c@eth2-beacon-mainnet.infura.io")
-	c, err := client.NewStandardHttpClient("https://beacon.zhejiang.ethpandaops.io")
+	c, err := client.NewStandardHttpClient("https://beacon.zhejiang.ethpandaops.io", chainId)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -139,7 +141,7 @@ func TestBeaconBlock(t *testing.T) {
 }
 func TestBeaconHead(t *testing.T) {
 	// c, err := client.NewStandardHttpClient("https://27Y0WDKrX1dYIkBXOugsSLh9hfr:a7c3849eba862fdd67382dab42e2a23c@eth2-beacon-mainnet.infura.io")
-	c, err := client.NewStandardHttpClient("https://beaconcha-rpc2.stafi.io")
+	c, err := client.NewStandardHttpClient("https://beaconcha-rpc2.stafi.io", chainId)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -153,7 +155,7 @@ func TestBeaconHead(t *testing.T) {
 }
 func TestConfig(t *testing.T) {
 	// c, err := client.NewStandardHttpClient("https://27Y0WDKrX1dYIkBXOugsSLh9hfr:a7c3849eba862fdd67382dab42e2a23c@eth2-beacon-mainnet.infura.io")
-	c, err := client.NewStandardHttpClient("https://beaconcha-rpc2.stafi.io")
+	c, err := client.NewStandardHttpClient("https://beaconcha-rpc2.stafi.io", chainId)
 	if err != nil {
 		t.Fatal(err)
 	}

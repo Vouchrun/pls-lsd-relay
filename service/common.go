@@ -1,15 +1,31 @@
 package service
 
 import (
+	"bytes"
 	"fmt"
+	"math"
+	"math/big"
 
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/pkg/errors"
+	ethpb "github.com/prysmaticlabs/prysm/v3/proto/eth/v1"
 	"github.com/shopspring/decimal"
 	"github.com/sirupsen/logrus"
+	"github.com/stafiprotocol/eth-lsd-relay/pkg/connection/beacon"
+	"github.com/stafiprotocol/eth-lsd-relay/pkg/connection/types"
 	"github.com/stafiprotocol/eth-lsd-relay/pkg/utils"
 )
 
 func init() {
 	decimal.MarshalJSONWithoutQuotes = true
+}
+
+func (s *Service) waitTxOk(txHash common.Hash) error {
+	_, err := utils.WaitTxOkCommon(s.eth1Client, txHash)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func (s *Service) getEpochStartBlocknumber(epoch uint64) (uint64, error) {
@@ -39,16 +55,288 @@ func (s *Service) getEpochStartBlocknumber(epoch uint64) (uint64, error) {
 	}
 }
 
-// return (user reward, node reward, platform fee, totalWithdrawAmount) decimals 18
-func (s *Service) getUserNodePlatformFromWithdrawals(latestDistributeHeight, targetEth1BlockHeight uint64) (decimal.Decimal, decimal.Decimal, decimal.Decimal, decimal.Decimal, error) {
-	return decimal.Zero, decimal.Zero, decimal.Zero, decimal.Zero, nil
+// return (user reward, node reward, platform fee) decimals 18
+func (s *Service) getUserNodePlatformFromWithdrawals(latestDistributeHeight, targetEth1BlockHeight uint64) (decimal.Decimal, decimal.Decimal, decimal.Decimal, NodeNewRewardsMap, error) {
+	totalUserEthDeci := decimal.Zero
+	totalNodeEthDeci := decimal.Zero
+	totalPlatformEthDeci := decimal.Zero
+	nodeNewRewardsMap := make(NodeNewRewardsMap)
+
+	for i := latestDistributeHeight + 1; i <= targetEth1BlockHeight; i++ {
+		block, err := s.getBeaconBlock(i)
+		if err != nil {
+			return decimal.Zero, decimal.Zero, decimal.Zero, nil, err
+		}
+
+		for _, w := range block.Withdrawals {
+			val, exist := s.getValidatorByIndex(w.ValidatorIndex)
+			if !exist {
+				continue
+			}
+
+			totalReward := uint64(0)
+			userDeposit := uint64(0)
+			nodeDeposit := uint64(0)
+
+			switch {
+
+			case w.Amount < utils.MaxPartialWithdrawalAmount: // partial withdrawal
+				totalReward = w.Amount
+
+			case w.Amount >= utils.MaxPartialWithdrawalAmount && w.Amount < utils.StandardEffectiveBalance: // slash
+				totalReward = 0
+
+				userDeposit = utils.StandardEffectiveBalance - val.NodeDepositAmount
+				if userDeposit > w.Amount {
+					userDeposit = w.Amount
+					nodeDeposit = 0
+				} else {
+					nodeDeposit = w.Amount - userDeposit
+				}
+
+			case w.Amount >= utils.StandardEffectiveBalance: // full withdrawal
+				totalReward = w.Amount - utils.StandardEffectiveBalance
+
+				userDeposit = utils.StandardEffectiveBalance - val.NodeDepositAmount
+				nodeDeposit = val.NodeDepositAmount
+
+			default:
+				return decimal.Zero, decimal.Zero, decimal.Zero, nil, fmt.Errorf("unknown withdrawal's amount %d, valIndex: %d", w.Amount, val.ValidatorIndex)
+			}
+
+			// distribute reward
+			userRewardDeci, nodeRewardDeci, platformFeeDeci := utils.GetUserNodePlatformReward(val.NodeDepositAmountDeci, decimal.NewFromInt(int64(totalReward)).Mul(utils.GweiDeci))
+			userDepositDeci := decimal.NewFromInt(int64(userDeposit)).Mul(utils.GweiDeci)
+			nodeDepositDeci := decimal.NewFromInt(int64(nodeDeposit)).Mul(utils.GweiDeci)
+
+			// cal node reward
+			nodeNewReward, exist := nodeNewRewardsMap[val.NodeAddress]
+			if exist {
+				nodeNewReward.TotalRewardAmount = nodeNewReward.TotalRewardAmount.Add(nodeRewardDeci)
+				nodeNewReward.TotalExitDepositAmount = nodeNewReward.TotalExitDepositAmount.Add(nodeDepositDeci)
+			} else {
+				n := NodeNewReward{
+					Address:                val.NodeAddress.String(),
+					TotalRewardAmount:      nodeRewardDeci,
+					TotalExitDepositAmount: nodeDepositDeci,
+				}
+				nodeNewRewardsMap[val.NodeAddress] = &n
+			}
+
+			// cal total vals
+			totalUserEthDeci = totalUserEthDeci.Add(userRewardDeci).Add(userDepositDeci)
+			totalNodeEthDeci = totalNodeEthDeci.Add(nodeRewardDeci).Add(nodeDepositDeci)
+			totalPlatformEthDeci = totalPlatformEthDeci.Add(platformFeeDeci)
+		}
+	}
+
+	return totalUserEthDeci, totalNodeEthDeci, totalPlatformEthDeci, nodeNewRewardsMap, nil
 }
 
-// return (user reward, node reward, platform fee, totalWithdrawAmount) decimals 18
-func (s *Service) getUserNodePlatformFromPriorityFee(latestDistributeHeight, targetEth1BlockHeight uint64) (decimal.Decimal, decimal.Decimal, decimal.Decimal, decimal.Decimal, error) {
-	return decimal.Zero, decimal.Zero, decimal.Zero, decimal.Zero, nil
+// return (user reward, node reward, platform fee) decimals 18
+func (s *Service) getUserNodePlatformFromPriorityFee(latestDistributeHeight, targetEth1BlockHeight uint64) (decimal.Decimal, decimal.Decimal, decimal.Decimal, NodeNewRewardsMap, error) {
+	totalUserEthDeci := decimal.Zero
+	totalNodeEthDeci := decimal.Zero
+	totalPlatformEthDeci := decimal.Zero
+	nodeNewRewardsMap := make(NodeNewRewardsMap)
+
+	for i := latestDistributeHeight + 1; i <= targetEth1BlockHeight; i++ {
+		block, err := s.getBeaconBlock(i)
+		if err != nil {
+			return decimal.Zero, decimal.Zero, decimal.Zero, nil, err
+		}
+		val, exist := s.getValidatorByIndex(block.ProposerIndex)
+		if !exist {
+			continue
+		}
+
+		feeAmountAtThisBlock := decimal.Zero
+		switch {
+		case bytes.EqualFold(block.FeeRecipient[:], s.feePoolAddress[:]):
+			feeAmountAtThisBlock = decimal.NewFromBigInt(block.PriorityFee, 0)
+		default:
+			// maybe mev
+			for _, tx := range block.Transactions {
+				if tx.Recipient != nil {
+					if bytes.EqualFold(tx.Recipient, s.feePoolAddress[:]) {
+						feeAmountAtThisBlock = decimal.NewFromBigInt(new(big.Int).SetBytes(tx.Amount), 0)
+						break
+					}
+				}
+			}
+		}
+
+		// cal rewards
+		userRewardDeci, nodeRewardDeci, platformFeeDeci := utils.GetUserNodePlatformReward(val.NodeDepositAmountDeci, feeAmountAtThisBlock)
+
+		// cal node reward
+		nodeNewReward, exist := nodeNewRewardsMap[val.NodeAddress]
+		if exist {
+			nodeNewReward.TotalRewardAmount = nodeNewReward.TotalRewardAmount.Add(nodeRewardDeci)
+		} else {
+			n := NodeNewReward{
+				Address:                val.NodeAddress.String(),
+				TotalRewardAmount:      nodeRewardDeci,
+				TotalExitDepositAmount: decimal.Zero,
+			}
+			nodeNewRewardsMap[val.NodeAddress] = &n
+		}
+
+		// cal total vals
+		totalUserEthDeci = totalUserEthDeci.Add(userRewardDeci)
+		totalNodeEthDeci = totalNodeEthDeci.Add(nodeRewardDeci)
+		totalPlatformEthDeci = totalPlatformEthDeci.Add(platformFeeDeci)
+	}
+
+	return totalUserEthDeci, totalNodeEthDeci, totalPlatformEthDeci, nodeNewRewardsMap, nil
 }
 
-func (s *Service) getNodeNewRewardsBetween(latestDistributeHeight, targetEth1BlockHeight uint64) (map[string]*NodeNewReward, error) {
-	return nil, nil
+// include withdrawals fee
+func (s *Service) getNodeNewRewardsBetween(latestDistributeHeight, targetEth1BlockHeight uint64) (NodeNewRewardsMap, error) {
+	_, _, _, nodeNewRewardsMapFromWithdrawals, err := s.getUserNodePlatformFromWithdrawals(latestDistributeHeight, targetEth1BlockHeight)
+	if err != nil {
+		return nil, err
+	}
+	_, _, _, nodeNewRewardsMapFromPriorityFee, err := s.getUserNodePlatformFromPriorityFee(latestDistributeHeight, targetEth1BlockHeight)
+	if err != nil {
+		return nil, err
+	}
+
+	finalNodeRewardsMap := make(NodeNewRewardsMap, 0)
+	for _, node := range nodeNewRewardsMapFromWithdrawals {
+		address := common.HexToAddress(node.Address)
+		f, exist := finalNodeRewardsMap[address]
+		if exist {
+			f.TotalRewardAmount = f.TotalRewardAmount.Add(node.TotalRewardAmount)
+			f.TotalExitDepositAmount = f.TotalExitDepositAmount.Add(node.TotalExitDepositAmount)
+		} else {
+			finalNodeRewardsMap[address] = &NodeNewReward{
+				Address:                node.Address,
+				TotalRewardAmount:      node.TotalRewardAmount,
+				TotalExitDepositAmount: node.TotalExitDepositAmount,
+			}
+		}
+	}
+
+	for _, node := range nodeNewRewardsMapFromPriorityFee {
+		address := common.HexToAddress(node.Address)
+		f, exist := finalNodeRewardsMap[address]
+		if exist {
+			f.TotalRewardAmount = f.TotalRewardAmount.Add(node.TotalRewardAmount)
+			f.TotalExitDepositAmount = f.TotalExitDepositAmount.Add(node.TotalExitDepositAmount)
+		} else {
+			finalNodeRewardsMap[address] = &NodeNewReward{
+				Address:                node.Address,
+				TotalRewardAmount:      node.TotalRewardAmount,
+				TotalExitDepositAmount: node.TotalExitDepositAmount,
+			}
+		}
+	}
+
+	return finalNodeRewardsMap, nil
+}
+
+func (s *Service) getValidatorsOfTargetEpoch(targetEpoch uint64) ([]*Validator, error) {
+	vals := make([]*Validator, 0)
+	pubkeys := make([]types.ValidatorPubkey, 0)
+	for _, val := range s.validators {
+		pubkeys = append(pubkeys, types.ValidatorPubkey(val.Pubkey))
+	}
+	if len(pubkeys) == 0 {
+		return nil, nil
+	}
+
+	validatorStatusMap, err := s.connection.GetValidatorStatuses(pubkeys, &beacon.ValidatorStatusOptions{
+		Epoch: &targetEpoch,
+	})
+	if err != nil {
+		return nil, errors.Wrap(err, "syncValidatorLatestInfo GetValidatorStatuses failed")
+	}
+
+	logrus.WithFields(logrus.Fields{
+		"validatorStatuses len": len(validatorStatusMap),
+	}).Debug("validator statuses")
+
+	for pubkey, status := range validatorStatusMap {
+		pubkeyStr := pubkey.String()
+		if status.Exists {
+			// must exist here
+			val, exist := s.validators[pubkeyStr]
+			if !exist {
+				return nil, fmt.Errorf("validator %s not exist", pubkeyStr)
+			}
+
+			validator := *val
+
+			updateBaseInfo := func() {
+				// validator's info may be inited at any status
+				validator.ActiveEpoch = status.ActivationEpoch
+				validator.EligibleEpoch = status.ActivationEligibilityEpoch
+				validator.ValidatorIndex = status.Index
+
+				exitEpoch := status.ExitEpoch
+				if exitEpoch == math.MaxUint64 {
+					exitEpoch = 0
+				}
+				withdrawableEpoch := status.WithdrawableEpoch
+				if withdrawableEpoch == math.MaxUint64 {
+					withdrawableEpoch = 0
+				}
+
+				validator.ExitEpoch = exitEpoch
+				validator.WithdrawableEpoch = withdrawableEpoch
+			}
+
+			updateBalance := func() {
+				validator.Balance = status.Balance
+				validator.EffectiveBalance = status.EffectiveBalance
+			}
+
+			switch status.Status {
+
+			case ethpb.ValidatorStatus_PENDING_INITIALIZED, ethpb.ValidatorStatus_PENDING_QUEUED: // pending
+				validator.Status = utils.ValidatorStatusWaiting
+				validator.ValidatorIndex = status.Index
+
+			case ethpb.ValidatorStatus_ACTIVE_ONGOING, ethpb.ValidatorStatus_ACTIVE_EXITING, ethpb.ValidatorStatus_ACTIVE_SLASHED: // active
+				validator.Status = utils.ValidatorStatusActive
+				if status.Slashed {
+					validator.Status = utils.ValidatorStatusActiveSlash
+				}
+				updateBaseInfo()
+				updateBalance()
+
+			case ethpb.ValidatorStatus_EXITED_UNSLASHED, ethpb.ValidatorStatus_EXITED_SLASHED: // exited
+				validator.Status = utils.ValidatorStatusExited
+				if status.Slashed {
+					validator.Status = utils.ValidatorStatusExitedSlash
+				}
+				updateBaseInfo()
+				updateBalance()
+			case ethpb.ValidatorStatus_WITHDRAWAL_POSSIBLE: // withdrawable
+				validator.Status = utils.ValidatorStatusWithdrawable
+				if status.Slashed {
+					validator.Status = utils.ValidatorStatusWithdrawableSlash
+				}
+				updateBaseInfo()
+				updateBalance()
+
+			case ethpb.ValidatorStatus_WITHDRAWAL_DONE: // withdrawdone
+				validator.Status = utils.ValidatorStatusWithdrawDone
+				if status.Slashed {
+					validator.Status = utils.ValidatorStatusWithdrawDoneSlash
+				}
+				updateBaseInfo()
+				updateBalance()
+			default:
+				return nil, fmt.Errorf("unsupported validator status %d", status.Status)
+			}
+
+			if validator.ActiveEpoch > targetEpoch {
+				vals = append(vals, &validator)
+			}
+		}
+	}
+
+	return vals, nil
 }

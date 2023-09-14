@@ -3,6 +3,7 @@ package service
 import (
 	"fmt"
 	"math/big"
+	"sort"
 	"time"
 
 	"github.com/pkg/errors"
@@ -11,16 +12,9 @@ import (
 	"github.com/stafiprotocol/eth-lsd-relay/pkg/utils"
 )
 
-var farfutureBlockHeight = uint64(1e11)
-
 type ExitElection struct {
-	ValidatorIndex    uint64 `gorm:"type:bigint(20) unsigned not null;default:0;column:validator_index;uniqueIndex"`
-	NotifyBlockNumber uint64 `gorm:"type:bigint(20) unsigned not null;default:0;column:notify_block_number"`
-	NotifyTimestamp   uint64 `gorm:"type:bigint(20) unsigned not null;default:0;column:notify_timestamp"`
-	WithdrawCycle     uint64 `gorm:"type:bigint(20) unsigned not null;default:0;column:withdraw_cycle"`
-
-	ExitEpoch     uint64 `gorm:"type:bigint(20) unsigned not null;default:0;column:exit_epoch"`
-	ExitTimestamp uint64 `gorm:"type:bigint(20) unsigned not null;default:0;column:exit_timestamp"`
+	WithdrawCycle      uint64
+	ValidatorIndexList []uint64
 }
 
 func (s *Service) notifyValidatorExit() error {
@@ -32,6 +26,15 @@ func (s *Service) notifyValidatorExit() error {
 	if err != nil {
 		return err
 	}
+
+	// ensure already synced
+	if targetBlockNumber > s.latestBlockOfSyncBlock {
+		return nil
+	}
+	if targetEpoch > s.latestEpochOfUpdateValidator {
+		return nil
+	}
+
 	targetCall := s.connection.CallOpts(big.NewInt(int64(targetBlockNumber)))
 
 	ejectedValidator, err := s.networkWithdrawContract.GetEjectedValidatorsAtCycle(nil, big.NewInt(preCycle))
@@ -68,8 +71,8 @@ func (s *Service) notifyValidatorExit() error {
 		"userDepositBalance": userDepositBalance,
 	}).Debug("notifyValidatorExit")
 
-	// todo calc exited but not distributed amount
-	exitButNotDistributedValidatorList := make([]*Validator, 0)
+	// calc exited but not distributed amount
+	exitButNotDistributedValidatorList := s.exitButNotDistributedValidatorList(targetEpoch)
 	if err != nil {
 		return errors.Wrap(err, "GetValidatorListWithdrawableEpochAfter failed")
 	}
@@ -77,7 +80,7 @@ func (s *Service) notifyValidatorExit() error {
 	notDistributeValidators := make(map[uint64]bool)
 	for _, v := range exitButNotDistributedValidatorList {
 		notDistributeValidators[v.ValidatorIndex] = true
-		totalExitedButNotDistributedUserAmount = totalExitedButNotDistributedUserAmount.Add(utils.StandardEffectiveBalance.Sub(v.NodeDepositAmount))
+		totalExitedButNotDistributedUserAmount = totalExitedButNotDistributedUserAmount.Add(utils.StandardEffectiveBalanceDeci.Sub(v.NodeDepositAmountDeci))
 	}
 
 	// calc partial withdrawal not distributed amount
@@ -86,7 +89,7 @@ func (s *Service) notifyValidatorExit() error {
 		return err
 	}
 	// should exclude notDistributeValidators, as we has already calc
-	userUndistributedWithdrawalsDeci, _, _, _, err := s.getUserNodePlatformFromWithdrawals(latestDistributeWithdrawalHeight.Uint64(), farfutureBlockHeight)
+	userUndistributedWithdrawalsDeci, _, _, _, err := s.getUserNodePlatformFromWithdrawals(latestDistributeWithdrawalHeight.Uint64(), targetBlockNumber)
 	if err != nil {
 		return errors.Wrap(err, "getUserNodePlatformFromWithdrawals failed")
 	}
@@ -108,12 +111,12 @@ func (s *Service) notifyValidatorExit() error {
 		return fmt.Errorf("selectValidatorsForExit select zero vals, target epoch: %d", targetEpoch)
 	}
 
-	// todo cal start cycle
-	notExitElectionList := make([]*ExitElection, 0)
+	// cal start cycle
+	startCycle := preCycle - 1
+	notExitElectionList := s.notExitElectionList(uint64(currentCycle))
 	if err != nil {
 		return errors.Wrap(err, "GetAllNotExitElectionList failed")
 	}
-	startCycle := preCycle - 1
 	if len(notExitElectionList) > 0 {
 		startCycle = int64(notExitElectionList[0].WithdrawCycle)
 	}
@@ -152,5 +155,13 @@ func currentCycleAndStartTimestamp() (int64, int64) {
 }
 
 func (s *Service) mustSelectValidatorsForExit(totalMissingAmount decimal.Decimal, targetEpoch uint64) ([]*big.Int, error) {
+	vals, err := s.getValidatorsOfTargetEpoch(targetEpoch)
+	if err != nil {
+		return nil, err
+	}
+	sort.SliceStable(vals, func(i, j int) bool {
+		return vals[i].ActiveEpoch < vals[j].ActiveEpoch
+	})
+
 	return nil, nil
 }

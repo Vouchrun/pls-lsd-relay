@@ -7,7 +7,9 @@ import (
 	"math/big"
 	"reflect"
 	"runtime"
+	"sort"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -69,6 +71,7 @@ type Service struct {
 	govDepositContractAddress common.Address
 	lsdNetworkFactoryAddress  common.Address
 	lsdTokenAddress           common.Address
+	feePoolAddress            common.Address
 
 	lsdNetworkFactoryContract *lsd_network_factory.LsdNetworkFactory
 	nodeDepositContract       *node_deposit.NodeDeposit
@@ -79,18 +82,31 @@ type Service struct {
 	lsdTokenContract          *erc20.Erc20
 	userDepositContract       *user_deposit.UserDeposit
 
-	quenedHandlers []Handler
+	quenedVoteHandlers []Handler
+	quenedSyncHandlers []Handler
 
-	dealedEth1Block    uint64
-	networkCreateBlock uint64
+	latestBlockOfSyncBlock                uint64
+	latestSlotOfSyncBlock                 uint64
+	latestBlockOfSyncDeposit              uint64
+	latestWithdrawCycleOfSyncExitElection uint64
+	latestBlockOfUpdateValidator          uint64
+	latestEpochOfUpdateValidator          uint64
+	networkCreateBlock                    uint64
 
-	govDeposits map[string][][]byte // pubkey -> withdrawalCredentials
+	govDeposits map[string][][]byte // pubkey(hex.encodeToString) -> withdrawalCredentials
 
-	validators map[string]*Validator // pubkey(hex.encodeToString) -> validator
+	validators             map[string]*Validator // pubkey(hex.encodeToString) -> validator
+	validatorsByIndex      map[uint64]*Validator // validator index -> validator
+	validatorsByIndexMutex sync.RWMutex
 
 	nodes map[common.Address]*Node // nodeAddress -> node
 
 	stakerWithdrawals map[uint64]*StakerWithdrawal // withraw index => stakerWithdrawal
+
+	cachedBeaconBlock      map[uint64]*beacon.BeaconBlock // executionBlockNumber => beaconblock
+	cachedBeaconBlockMutex sync.RWMutex
+
+	exitElections map[uint64]*ExitElection // cycle -> exitElection
 }
 
 type Node struct {
@@ -100,16 +116,17 @@ type Node struct {
 type Validator struct {
 	Pubkey []byte
 
-	NodeAddress       common.Address
-	DepositSignature  []byte
-	NodeDepositAmount decimal.Decimal
-	DepositBlock      uint64
-	ActiveEpoch       uint64
-	EligibleEpoch     uint64
-	ExitEpoch         uint64
-	WithdrawableEpoch uint64
-	NodeType          uint8  // 1 light node 2 trust node
-	ValidatorIndex    uint64 // Notice!!!!!!: validator index is zero before status waiting
+	NodeAddress           common.Address
+	DepositSignature      []byte
+	NodeDepositAmountDeci decimal.Decimal // decimals 18
+	NodeDepositAmount     uint64          //decimals 9
+	DepositBlock          uint64
+	ActiveEpoch           uint64
+	EligibleEpoch         uint64
+	ExitEpoch             uint64
+	WithdrawableEpoch     uint64
+	NodeType              uint8  // 1 light node 2 trust node
+	ValidatorIndex        uint64 // Notice!!!!!!: validator index is zero before status waiting
 
 	Balance          uint64 // realtime balance
 	EffectiveBalance uint64 // realtime effectiveBalance
@@ -161,7 +178,9 @@ func NewService(cfg *config.Config, keyPair *secp256k1.Keypair) (*Service, error
 	} else if !isDir {
 		return nil, fmt.Errorf("logFilePath %s is not dir", cfg.LogFilePath)
 	}
-
+	if len(cfg.Web3StorageApiToken) == 0 {
+		return nil, fmt.Errorf("web3StorageApiToken empty")
+	}
 	w3sClient, err := w3s.NewClient(w3s.WithToken(cfg.Web3StorageApiToken))
 	if err != nil {
 		return nil, fmt.Errorf("error creating new Web3.Storage client: %w", err)
@@ -182,6 +201,8 @@ func NewService(cfg *config.Config, keyPair *secp256k1.Keypair) (*Service, error
 		distributeWithdrawalsDuEpochs: epochsOfOneDay,
 		distributePriorityFeeDuEpochs: epochsOfOneDay,
 		merkleRootDuEpochs:            epochsOfOneDay,
+
+		cachedBeaconBlock: make(map[uint64]*beacon.BeaconBlock),
 	}
 
 	return s, nil
@@ -265,26 +286,71 @@ func (s *Service) Start() error {
 		return err
 	}
 
-	// init dealed eth1 block
-	latestBlockNumber, err := s.connection.Eth1LatestBlock()
-	if err != nil {
-		return err
-	}
-	if latestBlockNumber > depositEventPreBlocks {
-		s.dealedEth1Block = latestBlockNumber - depositEventPreBlocks
-	}
-
 	logrus.Info("init contracts...")
 	err = s.initContract()
 	if err != nil {
 		return err
 	}
 
+	latestBlock, err := s.connection.Eth1LatestBlock()
+	if err != nil {
+		return err
+	}
+
+	// init latest block
+	s.latestBlockOfSyncBlock = s.eth1StartHeight
+	s.latestBlockOfUpdateValidator = s.eth1StartHeight
+	s.latestBlockOfSyncDeposit = latestBlock - depositEventPreBlocks
+
+	checkAndUpdateLatestBlockOfSyncBlock := func(block uint64) {
+		if block == 0 {
+			s.latestBlockOfSyncBlock = s.eth1StartHeight
+		} else {
+			if block < s.latestBlockOfSyncBlock {
+				s.latestBlockOfSyncBlock = block
+			}
+		}
+	}
+
+	latestDistributeWithdrawalsHeight, err := s.networkWithdrawContract.LatestDistributeWithdrawalsHeight(nil)
+	if err != nil {
+		return err
+	}
+	checkAndUpdateLatestBlockOfSyncBlock(latestDistributeWithdrawalsHeight.Uint64())
+
+	latestDistributePriorityFeeHeight, err := s.networkWithdrawContract.LatestDistributePriorityFeeHeight(nil)
+	if err != nil {
+		return err
+	}
+	checkAndUpdateLatestBlockOfSyncBlock(latestDistributePriorityFeeHeight.Uint64())
+	merkleRootEpoch, err := s.networkWithdrawContract.LatestMerkleRootEpoch(nil)
+	if err != nil {
+		return err
+	}
+	epochBlockNumber, err := s.getEpochStartBlocknumber(merkleRootEpoch.Uint64())
+	if err != nil {
+		return err
+	}
+	checkAndUpdateLatestBlockOfSyncBlock(epochBlockNumber)
+
+	block, err := s.connection.Eth1Client().BlockByNumber(context.Background(), big.NewInt(int64(s.latestBlockOfSyncBlock)))
+	if err != nil {
+		return err
+	}
+	s.latestSlotOfSyncBlock = utils.SlotAtTimestamp(s.eth2Config, block.Time())
+
+	// start services
 	logrus.Info("start services...")
-	s.appendHandlers(s.syncDepositInfo, s.updateValidatorsFromNetwork, s.updateValidatorsFromBeacon,
-		s.voteWithdrawCredentials, s.submitBalances, s.distributeWithdrawals, s.distributePriorityFee,
+	s.appendSyncHandlers(s.syncBlocks)
+
+	s.appendVoteHandlers(
+		s.updateValidatorsFromNetwork, s.updateValidatorsFromBeacon,
+		s.syncDepositInfo, s.syncExitElection,
+		s.voteWithdrawCredentials,
+		s.submitBalances, s.distributeWithdrawals, s.distributePriorityFee,
 		s.voteMerkleRoot, s.notifyValidatorExit)
 
+	utils.SafeGo(s.syncService)
 	utils.SafeGo(s.voteService)
 
 	return nil
@@ -338,11 +404,13 @@ func (s *Service) initContract() error {
 
 	s.networkCreateBlock = networkContracts.Block.Uint64()
 
+	s.feePoolAddress = networkContracts.FeePool
+
 	return nil
 }
 
 func (s *Service) voteService() {
-	logrus.Info("start ssv service")
+	logrus.Info("start vote service")
 	retry := 0
 
 Out:
@@ -358,7 +426,7 @@ Out:
 			return
 		default:
 
-			for _, handler := range s.quenedHandlers {
+			for _, handler := range s.quenedVoteHandlers {
 				funcName := handler.name
 				logrus.Debugf("handler %s start.........", funcName)
 
@@ -379,7 +447,45 @@ Out:
 	}
 }
 
-func (s *Service) appendHandlers(handlers ...func() error) {
+func (s *Service) syncService() {
+	logrus.Info("start sync service")
+	retry := 0
+
+Out:
+	for {
+		if retry > utils.RetryLimit {
+			utils.ShutdownRequestChannel <- struct{}{}
+			return
+		}
+
+		select {
+		case <-s.stop:
+			logrus.Info("task has stopped")
+			return
+		default:
+
+			for _, handler := range s.quenedSyncHandlers {
+				funcName := handler.name
+				logrus.Debugf("handler %s start.........", funcName)
+
+				err := handler.method()
+				if err != nil {
+					logrus.Warnf("handler %s failed: %s, will retry.", funcName, err)
+					time.Sleep(utils.RetryInterval * 4)
+					retry++
+					continue Out
+				}
+				logrus.Debugf("handler %s end.........", funcName)
+			}
+
+			retry = 0
+		}
+
+		time.Sleep(48 * time.Second) // 48 blocks
+	}
+}
+
+func (s *Service) appendVoteHandlers(handlers ...func() error) {
 	for _, handler := range handlers {
 
 		funcNameRaw := runtime.FuncForPC(reflect.ValueOf(handler).Pointer()).Name()
@@ -387,19 +493,26 @@ func (s *Service) appendHandlers(handlers ...func() error) {
 		splits := strings.Split(funcNameRaw, "/")
 		funcName := splits[len(splits)-1]
 
-		s.quenedHandlers = append(s.quenedHandlers, Handler{
+		s.quenedVoteHandlers = append(s.quenedVoteHandlers, Handler{
 			method: handler,
 			name:   funcName,
 		})
 	}
 }
 
-func (s *Service) waitTxOk(txHash common.Hash) error {
-	_, err := utils.WaitTxOkCommon(s.eth1Client, txHash)
-	if err != nil {
-		return err
+func (s *Service) appendSyncHandlers(handlers ...func() error) {
+	for _, handler := range handlers {
+
+		funcNameRaw := runtime.FuncForPC(reflect.ValueOf(handler).Pointer()).Name()
+
+		splits := strings.Split(funcNameRaw, "/")
+		funcName := splits[len(splits)-1]
+
+		s.quenedSyncHandlers = append(s.quenedSyncHandlers, Handler{
+			method: handler,
+			name:   funcName,
+		})
 	}
-	return nil
 }
 
 func (s *Service) GetValidatorDepositedListBefore(block uint64) []*Validator {
@@ -410,4 +523,56 @@ func (s *Service) GetValidatorDepositedListBefore(block uint64) []*Validator {
 		}
 	}
 	return selectedValidator
+}
+
+func (s *Service) getBeaconBlock(eth1BlcokNumber uint64) (*beacon.BeaconBlock, error) {
+	s.cachedBeaconBlockMutex.RLock()
+	defer s.cachedBeaconBlockMutex.RUnlock()
+
+	block, exist := s.cachedBeaconBlock[eth1BlcokNumber]
+	if !exist {
+		return nil, fmt.Errorf("block %d not cached", eth1BlcokNumber)
+	}
+	return block, nil
+
+}
+
+func (s *Service) getValidatorByIndex(valIndex uint64) (*Validator, bool) {
+	s.validatorsByIndexMutex.RLock()
+	defer s.validatorsByIndexMutex.RUnlock()
+
+	v, exist := s.validatorsByIndex[valIndex]
+	return v, exist
+}
+
+func (s *Service) exitButNotDistributedValidatorList(epoch uint64) []*Validator {
+	vals := make([]*Validator, 0)
+	for _, v := range s.validators {
+		if v.ExitEpoch != 0 && v.ExitEpoch <= epoch && v.WithdrawableEpoch > epoch {
+			vals = append(vals, v)
+		}
+	}
+	return vals
+}
+
+func (s *Service) notExitElectionList(currentCycle uint64) []*ExitElection {
+	els := make([]*ExitElection, 0)
+	for cycle, e := range s.exitElections {
+		if cycle >= currentCycle {
+			continue
+		}
+		for _, valIndex := range e.ValidatorIndexList {
+			val, exist := s.getValidatorByIndex(valIndex)
+			if exist && val.ExitEpoch == 0 {
+				els = append(els, e)
+				break
+			}
+		}
+	}
+
+	sort.SliceStable(els, func(i, j int) bool {
+		return els[i].WithdrawCycle < els[j].WithdrawCycle
+	})
+
+	return els
 }

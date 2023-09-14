@@ -13,6 +13,7 @@ import (
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/ipfs/go-cid"
 	"github.com/shopspring/decimal"
+	"github.com/stafiprotocol/eth-lsd-relay/pkg/connection"
 	"github.com/stafiprotocol/eth-lsd-relay/pkg/utils"
 	"github.com/web3-storage/go-w3s-client"
 )
@@ -225,10 +226,27 @@ type NodeReward struct {
 }
 
 func TestMarshal(t *testing.T) {
+
 	nodes := make([]*NodeReward, 0)
 	bts, err := json.Marshal(nodes)
 	if err != nil {
 		t.Fatal(err)
 	}
 	t.Log(string(bts))
+}
+func TestConfig(t *testing.T) {
+	c, err := connection.NewConnection("https://mainnet.infura.io/v3/4d058381a4d64d31b00a4e15df3ddb94", "https://beacon-lighthouse.stafi.io", nil, nil, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	block, err := c.Eth1Client().BlockByNumber(context.Background(), big.NewInt(18124493))
+	if err != nil {
+		t.Fatal(err)
+	}
+	config, err := c.Eth2Client().GetEth2Config()
+	if err != nil {
+		t.Fatal(err)
+	}
+	slot := utils.SlotAtTimestamp(config, block.Time())
+	t.Log(slot)
 }

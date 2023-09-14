@@ -111,6 +111,19 @@ func TestBlockDetail(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	beaconBlock, _, err := c.GetBeaconBlock(7312423)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// t.Logf("%+v", beaconBlock)
+	for _, tx := range beaconBlock.Transactions {
+		t.Logf("%s", hex.EncodeToString(tx.TxHash))
+		t.Logf("%s", hex.EncodeToString(tx.Recipient))
+		t.Logf("%s", new(big.Int).SetBytes(tx.Amount).String())
+	}
+
+	return
+
 	r, err := c.Eth2Client().SyncCommitteeRewards(6190497)
 	if err != nil {
 		if err != nil {
@@ -195,7 +208,7 @@ func TestBlockDetail(t *testing.T) {
 
 	}
 
-	beaconBlock, _, err := c.Eth2Client().GetBeaconBlock(199214)
+	beaconBlock, _, err = c.Eth2Client().GetBeaconBlock(199214)
 	if err != nil {
 		t.Fatal(err)
 	}

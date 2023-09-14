@@ -6,16 +6,19 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"math/big"
 	"net/http"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/stafiprotocol/eth-lsd-relay/pkg/connection/types"
 	eth2types "github.com/wealdtech/go-eth2-types/v2"
 	"golang.org/x/sync/errgroup"
 
+	gtypes "github.com/ethereum/go-ethereum/core/types"
 	ethpb "github.com/prysmaticlabs/prysm/v3/proto/eth/v1"
 	"github.com/stafiprotocol/eth-lsd-relay/pkg/connection/beacon"
 	"github.com/stafiprotocol/eth-lsd-relay/pkg/utils"
@@ -52,10 +55,11 @@ var (
 type StandardHttpClient struct {
 	providerAddress string
 	eth2Config      beacon.Eth2Config
+	signer          gtypes.Signer
 }
 
 // Create a new client instance
-func NewStandardHttpClient(providerAddress string) (*StandardHttpClient, error) {
+func NewStandardHttpClient(providerAddress string, chainID *big.Int) (*StandardHttpClient, error) {
 
 	client := &StandardHttpClient{
 		providerAddress: providerAddress,
@@ -65,6 +69,8 @@ func NewStandardHttpClient(providerAddress string) (*StandardHttpClient, error) 
 		return nil, err
 	}
 	client.eth2Config = config
+	signer := gtypes.NewLondonSigner(chainID)
+	client.signer = signer
 	return client, nil
 }
 
@@ -582,6 +588,42 @@ func (c *StandardHttpClient) GetBeaconBlock(blockId uint64) (beacon.BeaconBlock,
 			Amount:         uint64(withdrawal.Amount),
 		})
 	}
+
+	txs := make([]*beacon.Transaction, 0, len(block.Data.Message.Body.ExecutionPayload.Transactions))
+	for i, rawTxStr := range block.Data.Message.Body.ExecutionPayload.Transactions {
+		rawTx, err := hexutil.Decode(rawTxStr)
+		if err != nil {
+			return beacon.BeaconBlock{}, false, err
+		}
+		tx := &beacon.Transaction{Raw: rawTx}
+		var decTx gtypes.Transaction
+		if err := decTx.UnmarshalBinary(rawTx); err != nil {
+			return beacon.BeaconBlock{}, false, fmt.Errorf("error parsing tx %d block %x: %v", i, block.Data.Message.Body.ExecutionPayload.BlockHash, err)
+		} else {
+			h := decTx.Hash()
+			tx.TxHash = h[:]
+			tx.AccountNonce = decTx.Nonce()
+			// big endian
+			tx.Price = decTx.GasPrice().Bytes()
+			tx.GasLimit = decTx.Gas()
+			sender, err := c.signer.Sender(&decTx)
+			if err != nil {
+				return beacon.BeaconBlock{}, false, fmt.Errorf("transaction with invalid sender (tx hash: %x): %v", h, err)
+			}
+			tx.Sender = sender.Bytes()
+			if v := decTx.To(); v != nil {
+				tx.Recipient = v.Bytes()
+			} else {
+				tx.Recipient = []byte{}
+			}
+			tx.Amount = decTx.Value().Bytes()
+			tx.Payload = decTx.Data()
+			tx.MaxPriorityFeePerGas = decTx.GasTipCap().Uint64()
+			tx.MaxFeePerGas = decTx.GasFeeCap().Uint64()
+		}
+		txs = append(txs, tx)
+	}
+	beaconBlock.Transactions = txs
 
 	for _, exitMsg := range block.Data.Message.Body.VoluntaryExits {
 		beaconBlock.VoluntaryExits = append(beaconBlock.VoluntaryExits, beacon.VoluntaryExit{

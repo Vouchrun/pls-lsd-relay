@@ -16,7 +16,8 @@ import (
 )
 
 type NodeRewardsList []*NodeReward
-type NodeRewardsMap map[string]*NodeReward
+type NodeRewardsMap map[common.Address]*NodeReward       // nodeAddress(hex with 0x) -> nodeReward
+type NodeNewRewardsMap map[common.Address]*NodeNewReward // nodeAddress(hex with 0x) -> nodeNewReward
 
 type NodeReward struct {
 	Address                string          `json:"address"` // hex with 0x
@@ -32,6 +33,7 @@ type NodeNewReward struct {
 	TotalExitDepositAmount decimal.Decimal `json:"totalExitDepositAmount"`
 }
 
+// ensure withdraw and fee already distribute on target epoch
 func (s *Service) voteMerkleRoot() error {
 	beaconHead, err := s.connection.Eth2BeaconHead()
 	if err != nil {
@@ -86,11 +88,12 @@ func (s *Service) voteMerkleRoot() error {
 	}
 
 	for _, nodeReward := range preNodeRewardList {
-		_, exist := preNodeRewardMap[nodeReward.Address]
+		address := common.HexToAddress(nodeReward.Address)
+		_, exist := preNodeRewardMap[address]
 		if exist {
 			return fmt.Errorf("duplicate node address: %s", nodeReward.Address)
 		}
-		preNodeRewardMap[nodeReward.Address] = nodeReward
+		preNodeRewardMap[address] = nodeReward
 	}
 
 	newNodeRewardsMap, err := s.getNodeNewRewardsBetween(dealedEth1BlockHeight, targetEth1BlockHeight)
@@ -100,12 +103,13 @@ func (s *Service) voteMerkleRoot() error {
 
 	finalNodeRewardsMap := make(NodeRewardsMap, 0)
 	for _, node := range preNodeRewardMap {
-		f, exist := finalNodeRewardsMap[node.Address]
+		address := common.HexToAddress(node.Address)
+		f, exist := finalNodeRewardsMap[address]
 		if exist {
 			f.TotalRewardAmount = f.TotalRewardAmount.Add(node.TotalRewardAmount)
 			f.TotalExitDepositAmount = f.TotalExitDepositAmount.Add(node.TotalExitDepositAmount)
 		} else {
-			finalNodeRewardsMap[node.Address] = &NodeReward{
+			finalNodeRewardsMap[address] = &NodeReward{
 				Address:                node.Address,
 				TotalRewardAmount:      node.TotalRewardAmount,
 				TotalExitDepositAmount: node.TotalExitDepositAmount,
@@ -114,12 +118,13 @@ func (s *Service) voteMerkleRoot() error {
 	}
 
 	for _, node := range newNodeRewardsMap {
-		f, exist := finalNodeRewardsMap[node.Address]
+		address := common.HexToAddress(node.Address)
+		f, exist := finalNodeRewardsMap[address]
 		if exist {
 			f.TotalRewardAmount = f.TotalRewardAmount.Add(node.TotalRewardAmount)
 			f.TotalExitDepositAmount = f.TotalExitDepositAmount.Add(node.TotalExitDepositAmount)
 		} else {
-			finalNodeRewardsMap[node.Address] = &NodeReward{
+			finalNodeRewardsMap[address] = &NodeReward{
 				Address:                node.Address,
 				TotalRewardAmount:      node.TotalRewardAmount,
 				TotalExitDepositAmount: node.TotalExitDepositAmount,

@@ -4,7 +4,7 @@ go 1.20
 
 require (
 	github.com/BurntSushi/toml v1.2.1
-	github.com/ethereum/go-ethereum v1.11.5
+	github.com/ethereum/go-ethereum v1.12.2
 	github.com/ipfs/go-cid v0.3.2
 	github.com/lestrrat-go/file-rotatelogs v2.4.0+incompatible
 	github.com/pkg/errors v0.9.1
@@ -17,8 +17,8 @@ require (
 	github.com/stafiprotocol/chainbridge v0.0.0-20201204032253-9b92852c8d66
 	github.com/wealdtech/go-eth2-types/v2 v2.8.1
 	github.com/web3-storage/go-w3s-client v0.0.7
-	golang.org/x/crypto v0.8.0
-	golang.org/x/sync v0.1.0
+	golang.org/x/crypto v0.9.0
+	golang.org/x/sync v0.3.0
 	google.golang.org/protobuf v1.28.1
 )
 
@@ -46,7 +46,7 @@ require (
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.0.1 // indirect
 	github.com/hashicorp/golang-lru v0.5.5-0.20210104140557-80c98217689d // indirect
 	github.com/herumi/bls-eth-go-binary v1.31.0 // indirect
-	github.com/holiman/uint256 v1.2.0 // indirect
+	github.com/holiman/uint256 v1.2.3 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/ipfs-cluster/ipfs-cluster v1.0.3 // indirect
 	github.com/ipfs/bbloom v0.0.4 // indirect
@@ -122,7 +122,7 @@ require (
 	github.com/spaolacci/murmur3 v1.1.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/stafiprotocol/go-substrate-rpc-client v1.0.2 // indirect
-	github.com/supranational/blst v0.3.10 // indirect
+	github.com/supranational/blst v0.3.11 // indirect
 	github.com/thomaso-mirodin/intmath v0.0.0-20160323211736-5dc6d854e46e // indirect
 	github.com/tklauser/go-sysconf v0.3.10 // indirect
 	github.com/tklauser/numcpus v0.4.0 // indirect
@@ -135,13 +135,13 @@ require (
 	go.uber.org/atomic v1.10.0 // indirect
 	go.uber.org/multierr v1.9.0 // indirect
 	go.uber.org/zap v1.24.0 // indirect
-	golang.org/x/exp v0.0.0-20230206171751-46f607a40771 // indirect
-	golang.org/x/mod v0.8.0 // indirect
-	golang.org/x/net v0.9.0 // indirect
-	golang.org/x/sys v0.7.0 // indirect
-	golang.org/x/term v0.7.0 // indirect
+	golang.org/x/exp v0.0.0-20230810033253-352e893a4cad // indirect
+	golang.org/x/mod v0.11.0 // indirect
+	golang.org/x/net v0.10.0 // indirect
+	golang.org/x/sys v0.9.0 // indirect
+	golang.org/x/term v0.8.0 // indirect
 	golang.org/x/text v0.9.0 // indirect
-	golang.org/x/tools v0.6.0 // indirect
+	golang.org/x/tools v0.9.1 // indirect
 	golang.org/x/xerrors v0.0.0-20220907171357-04be3eba64a2 // indirect
 	google.golang.org/genproto v0.0.0-20210624195500-8bfb893ecb84 // indirect
 	google.golang.org/grpc v1.45.0 // indirect
