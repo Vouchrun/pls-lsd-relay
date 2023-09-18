@@ -54,7 +54,7 @@ func startRelayCmd() *cobra.Command {
 
 			err = log.InitLogFile(cfg.LogFilePath + "/ssv")
 			if err != nil {
-				return err
+				return fmt.Errorf("InitLogFile failed: %w", err)
 			}
 
 			//interrupt signal
@@ -72,7 +72,7 @@ func startRelayCmd() *cobra.Command {
 
 			t, err := service.NewService(cfg, kp)
 			if err != nil {
-				return err
+				return fmt.Errorf("NewService err: %w", err)
 			}
 
 			err = t.Start()

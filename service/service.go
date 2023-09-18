@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"math/big"
+	"os"
 	"reflect"
 	"runtime"
 	"sort"
@@ -171,6 +172,12 @@ func NewService(cfg *config.Config, keyPair *secp256k1.Keypair) (*Service, error
 	if err != nil {
 		return nil, err
 	}
+
+	err = os.MkdirAll(cfg.LogFilePath, 0700)
+	if err != nil {
+		return nil, fmt.Errorf("LogFilePath %w", err)
+	}
+
 	if isDir, err := utils.IsDir(cfg.LogFilePath); err != nil {
 		return nil, err
 	} else if !isDir {
