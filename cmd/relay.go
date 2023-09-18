@@ -52,7 +52,7 @@ func startRelayCmd() *cobra.Command {
   batchRequestBlocksNumber: %d`,
 				cfg.LogFilePath, logLevelStr, cfg.Eth1Endpoint, cfg.Eth2Endpoint, cfg.Account, cfg.Contracts.LsdTokenAddress, cfg.BatchRequestBlocksNumber)
 
-			err = log.InitLogFile(cfg.LogFilePath + "/ssv")
+			err = log.InitLogFile(cfg.LogFilePath + "/relay")
 			if err != nil {
 				return fmt.Errorf("InitLogFile failed: %w", err)
 			}
