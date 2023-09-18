@@ -379,7 +379,7 @@ func (s *Service) initContract() error {
 		return err
 	}
 
-	networkContracts, err := s.lsdNetworkFactoryContract.NetworkContractsOf(nil, s.lsdTokenAddress)
+	networkContracts, err := s.lsdNetworkFactoryContract.NetworkContractsOfLsdToken(nil, s.lsdTokenAddress)
 	if err != nil {
 		return err
 	}
