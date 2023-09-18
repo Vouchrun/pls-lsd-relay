@@ -34,10 +34,6 @@ import (
 	"github.com/web3-storage/go-w3s-client"
 )
 
-var (
-	epochsOfOneDay = uint64(225)
-)
-
 type Service struct {
 	stop                          chan struct{}
 	eth1Endpoint                  string
@@ -192,22 +188,18 @@ func NewService(cfg *config.Config, keyPair *secp256k1.Keypair) (*Service, error
 	}
 
 	s := &Service{
-		stop:                          make(chan struct{}),
-		eth1Endpoint:                  cfg.Eth1Endpoint,
-		eth2Endpoint:                  cfg.Eth2Endpoint,
-		nodeRewardsFilePath:           cfg.LogFilePath,
-		eth1Client:                    eth1client,
-		web3Client:                    w3sClient,
-		lsdTokenAddress:               common.HexToAddress(cfg.Contracts.LsdTokenAddress),
-		lsdNetworkFactoryAddress:      common.HexToAddress(cfg.Contracts.LsdFactoryAddress),
-		keyPair:                       keyPair,
-		gasLimit:                      gasLimitDeci.BigInt(),
-		maxGasPrice:                   maxGasPriceDeci.BigInt(),
-		submitBalancesDuEpochs:        epochsOfOneDay, // 1 day
-		distributeWithdrawalsDuEpochs: epochsOfOneDay,
-		distributePriorityFeeDuEpochs: epochsOfOneDay,
-		merkleRootDuEpochs:            epochsOfOneDay,
-		BatchRequestBlocksNumber:      cfg.BatchRequestBlocksNumber,
+		stop:                     make(chan struct{}),
+		eth1Endpoint:             cfg.Eth1Endpoint,
+		eth2Endpoint:             cfg.Eth2Endpoint,
+		nodeRewardsFilePath:      cfg.LogFilePath,
+		eth1Client:               eth1client,
+		web3Client:               w3sClient,
+		lsdTokenAddress:          common.HexToAddress(cfg.Contracts.LsdTokenAddress),
+		lsdNetworkFactoryAddress: common.HexToAddress(cfg.Contracts.LsdFactoryAddress),
+		keyPair:                  keyPair,
+		gasLimit:                 gasLimitDeci.BigInt(),
+		maxGasPrice:              maxGasPriceDeci.BigInt(),
+		BatchRequestBlocksNumber: cfg.BatchRequestBlocksNumber,
 
 		govDeposits:       make(map[string][][]byte),
 		validators:        make(map[string]*Validator),
@@ -299,6 +291,19 @@ func (s *Service) Start() error {
 	}
 
 	logrus.Debug("init contracts end")
+	// get updateBalances epochs
+	updateBalancesEpochs, err := s.networkBalancesContract.UpdateBalancesEpochs(nil)
+	if err != nil {
+		return err
+	}
+	if updateBalancesEpochs.Uint64() == 0 {
+		return fmt.Errorf("updateBalancesEpochs is zero")
+	}
+
+	s.submitBalancesDuEpochs = updateBalancesEpochs.Uint64()
+	s.distributeWithdrawalsDuEpochs = updateBalancesEpochs.Uint64()
+	s.distributePriorityFeeDuEpochs = updateBalancesEpochs.Uint64()
+	s.merkleRootDuEpochs = updateBalancesEpochs.Uint64()
 
 	latestBlock, err := s.connection.Eth1LatestBlock()
 	if err != nil {
