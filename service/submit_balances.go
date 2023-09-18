@@ -55,6 +55,9 @@ func (s *Service) submitBalances() error {
 		return err
 	}
 	lsdTokenTotalSupplyDeci := decimal.NewFromBigInt(lsdTokenTotalSupply, 0)
+	if lsdTokenTotalSupplyDeci.IsZero() {
+		return nil
+	}
 
 	// deposit pool balance
 	userDepositPoolBalance, err := s.userDepositContract.GetBalance(targetCallOpts)
@@ -122,22 +125,16 @@ func (s *Service) submitBalances() error {
 		return fmt.Errorf("rethContract.GetExchangeRate err: %s", err)
 	}
 	oldExchangeRateDeci := decimal.NewFromBigInt(oldExchangeRate, 0)
-	var newExchangeRateDeci decimal.Decimal
-	if !lsdTokenTotalSupplyDeci.IsZero() {
-		newExchangeRateDeci = totalUserEthDeci.Mul(decimal.NewFromInt(1e18)).Div(lsdTokenTotalSupplyDeci)
-		rateChangeLimit, err := s.networkBalancesContract.RateChangeLimit(nil)
-		if err != nil {
-			return err
-		}
 
-		rateChange := newExchangeRateDeci.Sub(oldExchangeRateDeci).Abs().Div(oldExchangeRateDeci)
+	newExchangeRateDeci := totalUserEthDeci.Mul(decimal.NewFromInt(1e18)).Div(lsdTokenTotalSupplyDeci)
+	rateChangeLimit, err := s.networkBalancesContract.RateChangeLimit(nil)
+	if err != nil {
+		return err
+	}
 
-		if rateChange.GreaterThan(decimal.NewFromBigInt(rateChangeLimit, 0)) {
-			return fmt.Errorf("exceed rate change limit %s, newExchangeRate %s, oldExchangeRate %s", rateChangeLimit.String(), newExchangeRateDeci.String(), oldExchangeRateDeci.String())
-		}
-	} else {
-		//init case
-		newExchangeRateDeci = oldExchangeRateDeci
+	rateChange := newExchangeRateDeci.Sub(oldExchangeRateDeci).Abs().Div(oldExchangeRateDeci)
+	if rateChange.GreaterThan(decimal.NewFromBigInt(rateChangeLimit, 0)) {
+		return fmt.Errorf("exceed rate change limit %s, newExchangeRate %s, oldExchangeRate %s", rateChangeLimit.String(), newExchangeRateDeci.String(), oldExchangeRateDeci.String())
 	}
 
 	hasVoted, err := s.networkProposalContract.HasVoted(nil, utils.SubmitBalancesProposalId(big.NewInt(int64(targetBlock)),

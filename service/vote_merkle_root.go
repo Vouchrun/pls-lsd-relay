@@ -196,7 +196,6 @@ func (s *Service) voteMerkleRoot() error {
 	if err != nil {
 		return err
 	}
-	logrus.Infof("cid: %s", cid)
 
 	var merkleTreeRootHash [32]byte
 	copy(merkleTreeRootHash[:], rootHash)
@@ -235,6 +234,8 @@ func (s *Service) sendSetMerkleRootTx(targetEpoch int64, rootHash [32]byte, cid 
 		return fmt.Errorf("LockAndUpdateTxOpts err: %s", err)
 	}
 	defer s.connection.UnlockTxOpts()
+
+	logrus.Infof("cid: %s", cid)
 
 	tx, err := s.networkWithdrawContract.SetMerkleRoot(s.connection.TxOpts(), big.NewInt(targetEpoch), rootHash, cid)
 	if err != nil {
