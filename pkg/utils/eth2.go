@@ -213,7 +213,7 @@ func VoteMerkleRootProposalId(dealedEpoch *big.Int, merkleRoot []byte, cid strin
 
 func DistributeProposalId(_distributeType uint8, _dealedHeight, _userAmount, _nodeAmount, _platformAmount,
 	_maxClaimableWithdrawIndex *big.Int) [32]byte {
-	return crypto.Keccak256Hash([]byte("distribute"), common.LeftPadBytes(big.NewInt(int64(_distributeType)).Bytes(), 32),
+	return crypto.Keccak256Hash([]byte("distribute"), []byte{byte(_distributeType)},
 		common.LeftPadBytes(_dealedHeight.Bytes(), 32), common.LeftPadBytes(_userAmount.Bytes(), 32),
 		common.LeftPadBytes(_nodeAmount.Bytes(), 32), common.LeftPadBytes(_platformAmount.Bytes(), 32),
 		common.LeftPadBytes(_maxClaimableWithdrawIndex.Bytes(), 32))

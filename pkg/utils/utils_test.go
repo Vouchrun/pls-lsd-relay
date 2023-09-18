@@ -3,6 +3,7 @@ package utils_test
 import (
 	"bytes"
 	"context"
+	"encoding/hex"
 	"encoding/json"
 	"math/big"
 	"os"
@@ -233,6 +234,15 @@ func TestMarshal(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Log(string(bts))
+	proposalId := utils.DistributeProposalId(utils.DistributeTypeWithdrawals, big.NewInt(9715586), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0))
+	t.Log(hex.EncodeToString(proposalId[:]))
+	// 0x0001020000000000000000000000000000000000000000000000000000000000
+	btss, err := hex.DecodeString("0001020000000000000000000000000000000000000000000000000000000000")
+	if err != nil {
+		t.Fatal(err)
+	}
+	p := utils.VoteMerkleRootProposalId(big.NewInt(5), btss, "string")
+	t.Log(hex.EncodeToString(p[:]))
 }
 func TestConfig(t *testing.T) {
 	c, err := connection.NewConnection("https://mainnet.infura.io/v3/4d058381a4d64d31b00a4e15df3ddb94", "https://beacon-lighthouse.stafi.io", nil, nil, nil)
