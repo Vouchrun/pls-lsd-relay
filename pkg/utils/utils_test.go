@@ -237,11 +237,11 @@ func TestMarshal(t *testing.T) {
 	proposalId := utils.DistributeProposalId(utils.DistributeTypeWithdrawals, big.NewInt(9715586), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0))
 	t.Log(hex.EncodeToString(proposalId[:]))
 	// 0x0001020000000000000000000000000000000000000000000000000000000000
-	btss, err := hex.DecodeString("0001020000000000000000000000000000000000000000000000000000000000")
+	btss, err := hex.DecodeString("0000000000000000000000000000000000000000000000000000000000000000")
 	if err != nil {
 		t.Fatal(err)
 	}
-	p := utils.VoteMerkleRootProposalId(big.NewInt(5), btss, "string")
+	p := utils.VoteMerkleRootProposalId(big.NewInt(204300), [32]byte(btss), "bafybeigo3vokmwothiib7iuaq2nygipkbty4jk4xojbne5ibqib6gffmyq")
 	t.Log(hex.EncodeToString(p[:]))
 }
 func TestConfig(t *testing.T) {
