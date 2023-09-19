@@ -19,13 +19,9 @@ func (s *Service) notifyValidatorExit() error {
 	preCycle := currentCycle - 1
 
 	targetEpoch := utils.EpochAtTimestamp(s.eth2Config, uint64(targetTimestamp))
-	targetBlockNumber, err := s.getEpochStartBlocknumber(targetEpoch)
+	targetBlockNumber, err := s.getEpochStartBlocknumberWithCheck(targetEpoch)
 	if err != nil {
 		return err
-	}
-	// init case
-	if targetBlockNumber < s.networkCreateBlock {
-		targetBlockNumber = s.networkCreateBlock
 	}
 
 	// wait validator updated

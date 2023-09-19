@@ -94,12 +94,14 @@ func (s *Service) syncBlocks() error {
 			logrus.Tracef("save block: %d", beaconBlock.ExecutionBlockNumber)
 
 			s.cachedBeaconBlock[beaconBlock.ExecutionBlockNumber] = beaconBlock
+			// update latest block
 			if beaconBlock.ExecutionBlockNumber > s.latestBlockOfSyncBlock {
 				s.latestBlockOfSyncBlock = beaconBlock.ExecutionBlockNumber
 			}
 		}
 		s.cachedBeaconBlockMutex.Unlock()
 
+		// update latest slot
 		s.latestSlotOfSyncBlock = subEnd
 
 		batchRequestEndTime := time.Now().Unix()

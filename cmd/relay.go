@@ -19,7 +19,7 @@ import (
 func startRelayCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "start",
-		Short: "Start relay",
+		Short: "Start lsd relay",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			configPath, err := cmd.Flags().GetString(flagConfigPath)
 			if err != nil {
@@ -49,8 +49,10 @@ func startRelayCmd() *cobra.Command {
   eth2Endpoint: %s
   account: %s
   lsdTokenAddress: %s
+  factoryAddress: %s
   batchRequestBlocksNumber: %d`,
-				cfg.LogFilePath, logLevelStr, cfg.Eth1Endpoint, cfg.Eth2Endpoint, cfg.Account, cfg.Contracts.LsdTokenAddress, cfg.BatchRequestBlocksNumber)
+				cfg.LogFilePath, logLevelStr, cfg.Eth1Endpoint, cfg.Eth2Endpoint, cfg.Account,
+				cfg.Contracts.LsdTokenAddress, cfg.Contracts.LsdFactoryAddress, cfg.BatchRequestBlocksNumber)
 
 			err = log.InitLogFile(cfg.LogFilePath + "/relay")
 			if err != nil {

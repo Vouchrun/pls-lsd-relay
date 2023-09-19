@@ -28,6 +28,18 @@ func (s *Service) waitTxOk(txHash common.Hash) error {
 	return nil
 }
 
+func (s *Service) getEpochStartBlocknumberWithCheck(epoch uint64) (uint64, error) {
+	targetBlock, err := s.getEpochStartBlocknumber(epoch)
+	if err != nil {
+		return 0, err
+	}
+
+	if targetBlock < s.networkCreateBlock {
+		targetBlock = s.networkCreateBlock + 1
+	}
+	return targetBlock, nil
+}
+
 func (s *Service) getEpochStartBlocknumber(epoch uint64) (uint64, error) {
 	eth2ValidatorBalanceSyncerStartSlot := utils.StartSlotOfEpoch(s.eth2Config, epoch)
 	retry := 0

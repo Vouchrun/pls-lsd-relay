@@ -24,12 +24,9 @@ func (s *Service) submitBalances() error {
 		return fmt.Errorf("networkBalancesContract.BalancesBlock err: %s", err)
 	}
 
-	targetBlock, err := s.getEpochStartBlocknumber(targetEpoch)
+	targetBlock, err := s.getEpochStartBlocknumberWithCheck(targetEpoch)
 	if err != nil {
 		return err
-	}
-	if targetBlock < s.networkCreateBlock {
-		targetBlock = s.networkCreateBlock + 1
 	}
 
 	// already update on this block, no need vote

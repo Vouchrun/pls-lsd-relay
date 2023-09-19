@@ -73,13 +73,9 @@ func (s *Service) checkStateForDistributePriorityFee() (uint64, uint64, bool, er
 	finalEpoch := beaconHead.FinalizedEpoch
 
 	targetEpoch := (finalEpoch / s.distributePriorityFeeDuEpochs) * s.distributePriorityFeeDuEpochs
-	targetEth1BlockHeight, err := s.getEpochStartBlocknumber(targetEpoch)
+	targetEth1BlockHeight, err := s.getEpochStartBlocknumberWithCheck(targetEpoch)
 	if err != nil {
 		return 0, 0, false, err
-	}
-	// init case
-	if targetEth1BlockHeight < s.networkCreateBlock {
-		targetEth1BlockHeight = s.networkCreateBlock + 1
 	}
 	logrus.Debugf("targetEth1Block %d", targetEth1BlockHeight)
 

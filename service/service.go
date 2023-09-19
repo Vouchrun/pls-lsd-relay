@@ -36,22 +36,23 @@ import (
 )
 
 type Service struct {
-	stop                          chan struct{}
-	eth1Endpoint                  string
-	eth2Endpoint                  string
-	nodeRewardsFilePath           string
-	keyPair                       *secp256k1.Keypair
-	gasLimit                      *big.Int
-	maxGasPrice                   *big.Int
+	stop                chan struct{}
+	eth1Endpoint        string
+	eth2Endpoint        string
+	nodeRewardsFilePath string
+	keyPair             *secp256k1.Keypair
+	gasLimit            *big.Int
+	maxGasPrice         *big.Int
+
 	submitBalancesDuEpochs        uint64
 	distributeWithdrawalsDuEpochs uint64
 	distributePriorityFeeDuEpochs uint64
 	merkleRootDuEpochs            uint64
-	BatchRequestBlocksNumber      uint64
+
+	BatchRequestBlocksNumber uint64
 
 	// --- need init on start
-	dev             bool
-	eth1StartHeight uint64
+	dev bool
 
 	connection          *connection.Connection
 	eth1Client          *ethclient.Client
@@ -76,8 +77,8 @@ type Service struct {
 	quenedVoteHandlers []Handler
 	quenedSyncHandlers []Handler
 
-	latestBlockOfSyncBlock                uint64
 	latestSlotOfSyncBlock                 uint64
+	latestBlockOfSyncBlock                uint64
 	latestBlockOfSyncDeposit              uint64
 	latestWithdrawCycleOfSyncExitElection uint64
 	latestBlockOfUpdateValidator          uint64
@@ -296,8 +297,8 @@ func (s *Service) Start() error {
 	if err != nil {
 		return err
 	}
-
 	logrus.Debug("init contracts end")
+
 	// get updateBalances epochs
 	updateBalancesEpochs, err := s.networkBalancesContract.UpdateBalancesEpochs(nil)
 	if err != nil {
@@ -318,13 +319,13 @@ func (s *Service) Start() error {
 	}
 
 	// init latest block
-	s.latestBlockOfSyncBlock = s.eth1StartHeight
-	s.latestBlockOfUpdateValidator = s.eth1StartHeight
+	s.latestBlockOfSyncBlock = s.networkCreateBlock
+	s.latestBlockOfUpdateValidator = s.networkCreateBlock
 	s.latestBlockOfSyncDeposit = latestBlock - depositEventPreBlocks
 
 	checkAndUpdateLatestBlockOfSyncBlock := func(block uint64) {
 		if block == 0 {
-			s.latestBlockOfSyncBlock = s.eth1StartHeight
+			s.latestBlockOfSyncBlock = s.networkCreateBlock
 		} else {
 			if block < s.latestBlockOfSyncBlock {
 				s.latestBlockOfSyncBlock = block
@@ -349,11 +350,13 @@ func (s *Service) Start() error {
 		return err
 	}
 	if merkleRootEpoch.Uint64() > 0 {
-		epochBlockNumber, err := s.getEpochStartBlocknumber(merkleRootEpoch.Uint64())
+		epochBlockNumber, err := s.getEpochStartBlocknumberWithCheck(merkleRootEpoch.Uint64())
 		if err != nil {
 			return err
 		}
 		checkAndUpdateLatestBlockOfSyncBlock(epochBlockNumber)
+	} else {
+		checkAndUpdateLatestBlockOfSyncBlock(s.networkCreateBlock)
 	}
 
 	block, err := s.connection.Eth1Client().BlockByNumber(context.Background(), big.NewInt(int64(s.latestBlockOfSyncBlock)))
@@ -371,7 +374,7 @@ func (s *Service) Start() error {
 		s.syncDepositInfo, s.syncExitElection,
 		s.voteWithdrawCredentials,
 		s.submitBalances, s.distributeWithdrawals, s.distributePriorityFee,
-		s.voteMerkleRoot, s.notifyValidatorExit)
+		s.setMerkleRoot, s.notifyValidatorExit)
 
 	utils.SafeGo(s.syncService)
 	utils.SafeGo(s.voteService)
@@ -406,8 +409,6 @@ func (s *Service) initContract() error {
 	if err != nil {
 		return err
 	}
-
-	s.eth1StartHeight = networkContracts.Block.Uint64()
 
 	s.nodeDepositContract, err = node_deposit.NewNodeDeposit(networkContracts.NodeDeposit, s.eth1Client)
 	if err != nil {
@@ -463,7 +464,7 @@ Out:
 
 			for _, handler := range s.quenedVoteHandlers {
 				funcName := handler.name
-				logrus.Debugf("handler %s start.........", funcName)
+				logrus.Debugf("handler %s start...", funcName)
 
 				err := handler.method()
 				if err != nil {
@@ -472,7 +473,7 @@ Out:
 					retry++
 					continue Out
 				}
-				logrus.Debugf("handler %s end.........", funcName)
+				logrus.Debugf("handler %s end", funcName)
 			}
 
 			retry = 0
@@ -501,7 +502,7 @@ Out:
 
 			for _, handler := range s.quenedSyncHandlers {
 				funcName := handler.name
-				logrus.Debugf("handler %s start.........", funcName)
+				logrus.Debugf("handler %s start...", funcName)
 
 				err := handler.method()
 				if err != nil {
@@ -510,7 +511,7 @@ Out:
 					retry++
 					continue Out
 				}
-				logrus.Debugf("handler %s end.........", funcName)
+				logrus.Debugf("handler %s end", funcName)
 			}
 
 			retry = 0
