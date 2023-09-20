@@ -14,23 +14,25 @@ import (
 func (s *Service) notifyValidatorExit() error {
 	currentCycle, targetTimestamp, err := s.currentCycleAndStartTimestamp()
 	if err != nil {
-		return err
+		return fmt.Errorf("currentCycleAndStartTimestamp failed: %w", err)
 	}
 	preCycle := currentCycle - 1
 
 	targetEpoch := utils.EpochAtTimestamp(s.eth2Config, uint64(targetTimestamp))
 	targetBlockNumber, err := s.getEpochStartBlocknumberWithCheck(targetEpoch)
 	if err != nil {
-		return err
+		return fmt.Errorf("getEpochStartBlocknumberWithCheck failed: %w", err)
 	}
 
 	// wait validator updated
 	if targetEpoch > s.latestEpochOfUpdateValidator {
+		logrus.Debugf("targetEpoch: %d  latestEpochOfUpdateValidator: %d", targetEpoch, s.latestEpochOfUpdateValidator)
 		return nil
 	}
 
 	// wait sync block
 	if targetBlockNumber > s.latestBlockOfSyncBlock {
+		logrus.Debugf("targetBlockNumber: %d  latestBlockOfSyncBlock: %d", targetBlockNumber, s.latestBlockOfSyncBlock)
 		return nil
 	}
 
@@ -38,7 +40,7 @@ func (s *Service) notifyValidatorExit() error {
 
 	ejectedValidator, err := s.networkWithdrawContract.GetEjectedValidatorsAtCycle(nil, big.NewInt(preCycle))
 	if err != nil {
-		return err
+		return fmt.Errorf("GetEjectedValidatorsAtCycle failed: %w", err)
 	}
 	// return if already dealed
 	if len(ejectedValidator) != 0 {
@@ -48,7 +50,7 @@ func (s *Service) notifyValidatorExit() error {
 
 	totalMissingAmount, err := s.networkWithdrawContract.TotalMissingAmountForWithdraw(targetCall)
 	if err != nil {
-		return err
+		return fmt.Errorf("TotalMissingAmountForWithdraw failed: %w, target block: %d", err, targetBlockNumber)
 	}
 	totalMissingAmountDeci := decimal.NewFromBigInt(totalMissingAmount, 0)
 
