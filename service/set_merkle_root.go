@@ -50,7 +50,7 @@ func (s *Service) setMerkleRoot() error {
 	var dealedEth1BlockHeight uint64
 	preNodeRewardList := NodeRewardsList{}
 	preNodeRewardMap := make(NodeRewardsMap)
-	if dealedEpochOnchain.Uint64() <= 0 {
+	if dealedEpochOnchain.Uint64() == 0 {
 		// init case
 		dealedEth1BlockHeight = s.networkCreateBlock
 	} else {
@@ -58,17 +58,23 @@ func (s *Service) setMerkleRoot() error {
 		if err != nil {
 			return err
 		}
-		fileBytes, err := utils.DownloadWeb3File(preCid, utils.NodeRewardsFileNameAtEpoch(dealedEpochOnchain.Uint64()))
-		if err != nil {
-			return err
-		}
+		// old file case on dev
+		if s.dev && dealedEpochOnchain.Uint64() == 204525 {
+			preNodeRewardList.Epoch = 204525
+			preNodeRewardList.List = make([]*NodeReward, 0)
+		} else {
+			fileBytes, err := utils.DownloadWeb3File(preCid, utils.NodeRewardsFileNameAtEpoch(dealedEpochOnchain.Uint64()))
+			if err != nil {
+				return err
+			}
 
-		err = json.Unmarshal(fileBytes, &preNodeRewardList)
-		if err != nil {
-			return err
-		}
-		if preNodeRewardList.Epoch != 0 && preNodeRewardList.Epoch != dealedEpochOnchain.Uint64() {
-			return fmt.Errorf("pre node reward file epoch unmatch, cid: %s", preCid)
+			err = json.Unmarshal(fileBytes, &preNodeRewardList)
+			if err != nil {
+				return err
+			}
+			if preNodeRewardList.Epoch != dealedEpochOnchain.Uint64() {
+				return fmt.Errorf("pre node reward file epoch unmatch, cid: %s", preCid)
+			}
 		}
 
 		dealedEth1BlockHeight, err = s.getEpochStartBlocknumberWithCheck(dealedEpochOnchain.Uint64())
