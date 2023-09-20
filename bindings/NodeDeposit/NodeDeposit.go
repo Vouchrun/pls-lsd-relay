@@ -30,7 +30,7 @@ var (
 
 // NodeDepositMetaData contains all meta data concerning the NodeDeposit contract.
 var NodeDepositMetaData = &bind.MetaData{
-	ABI: "[{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"address\",\"name\":\"node\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"enumINodeDeposit.NodeType\",\"name\":\"nodeType\",\"type\":\"uint8\"},{\"indexed\":false,\"internalType\":\"bytes\",\"name\":\"pubkey\",\"type\":\"bytes\"},{\"indexed\":false,\"internalType\":\"bytes\",\"name\":\"validatorSignature\",\"type\":\"bytes\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"}],\"name\":\"Deposited\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"from\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"time\",\"type\":\"uint256\"}],\"name\":\"EtherDeposited\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"address\",\"name\":\"node\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"bytes\",\"name\":\"pubkey\",\"type\":\"bytes\"}],\"name\":\"OffBoarded\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"bytes\",\"name\":\"pubkey\",\"type\":\"bytes\"},{\"indexed\":false,\"internalType\":\"enumINodeDeposit.PubkeyStatus\",\"name\":\"status\",\"type\":\"uint8\"}],\"name\":\"SetPubkeyStatus\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"address\",\"name\":\"node\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"bytes\",\"name\":\"pubkey\",\"type\":\"bytes\"}],\"name\":\"Staked\",\"type\":\"event\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_trustNodeAddress\",\"type\":\"address\"}],\"name\":\"addTrustNode\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bytes[]\",\"name\":\"_validatorPubkeys\",\"type\":\"bytes[]\"},{\"internalType\":\"bytes[]\",\"name\":\"_validatorSignatures\",\"type\":\"bytes[]\"},{\"internalType\":\"bytes32[]\",\"name\":\"_depositDataRoots\",\"type\":\"bytes32[]\"}],\"name\":\"deposit\",\"outputs\":[],\"stateMutability\":\"payable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"depositEth\",\"outputs\":[],\"stateMutability\":\"payable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"ethDepositAddress\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"_start\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"_end\",\"type\":\"uint256\"}],\"name\":\"getPubkeys\",\"outputs\":[{\"internalType\":\"bytes[]\",\"name\":\"pubkeyList\",\"type\":\"bytes[]\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"getPubkeysLength\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_userDepositAddress\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"_ethDepositAddress\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"_networkProposalAddress\",\"type\":\"address\"},{\"internalType\":\"bytes\",\"name\":\"_withdrawCredentials\",\"type\":\"bytes\"}],\"name\":\"init\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"initialized\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"lightNodeDepositAmount\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"lightNodeDepositEnabled\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"networkProposalAddress\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"name\":\"nodeInfoOf\",\"outputs\":[{\"internalType\":\"enumINodeDeposit.NodeType\",\"name\":\"_nodeType\",\"type\":\"uint8\"},{\"internalType\":\"bool\",\"name\":\"_removed\",\"type\":\"bool\"},{\"internalType\":\"uint256\",\"name\":\"_pubkeyNumber\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bytes\",\"name\":\"\",\"type\":\"bytes\"}],\"name\":\"pubkeyInfoOf\",\"outputs\":[{\"internalType\":\"enumINodeDeposit.PubkeyStatus\",\"name\":\"_status\",\"type\":\"uint8\"},{\"internalType\":\"address\",\"name\":\"_owner\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"_nodeDepositAmount\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"_depositBlock\",\"type\":\"uint256\"},{\"internalType\":\"bytes\",\"name\":\"_depositSignature\",\"type\":\"bytes\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"name\":\"pubkeys\",\"outputs\":[{\"internalType\":\"bytes\",\"name\":\"\",\"type\":\"bytes\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_trustNodeAddress\",\"type\":\"address\"}],\"name\":\"removeTrustNode\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"_amount\",\"type\":\"uint256\"}],\"name\":\"setLightNodeDepositAmount\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bool\",\"name\":\"_value\",\"type\":\"bool\"}],\"name\":\"setLightNodeDepositEnabled\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bytes\",\"name\":\"_validatorPubkey\",\"type\":\"bytes\"},{\"internalType\":\"enumINodeDeposit.PubkeyStatus\",\"name\":\"_status\",\"type\":\"uint8\"}],\"name\":\"setNodePubkeyStatus\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bool\",\"name\":\"_value\",\"type\":\"bool\"}],\"name\":\"setTrustNodeDepositEnabled\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"_value\",\"type\":\"uint256\"}],\"name\":\"setTrustNodePubkeyLimit\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bytes\",\"name\":\"_withdrawCredentials\",\"type\":\"bytes\"}],\"name\":\"setWithdrawCredentials\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bytes[]\",\"name\":\"_validatorPubkeys\",\"type\":\"bytes[]\"},{\"internalType\":\"bytes[]\",\"name\":\"_validatorSignatures\",\"type\":\"bytes[]\"},{\"internalType\":\"bytes32[]\",\"name\":\"_depositDataRoots\",\"type\":\"bytes32[]\"}],\"name\":\"stake\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"trustNodeDepositEnabled\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"trustNodePubkeyNumberLimit\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"userDepositAddress\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"version\",\"outputs\":[{\"internalType\":\"uint8\",\"name\":\"\",\"type\":\"uint8\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bytes[]\",\"name\":\"_pubkeys\",\"type\":\"bytes[]\"},{\"internalType\":\"bool[]\",\"name\":\"_matchs\",\"type\":\"bool[]\"}],\"name\":\"voteWithdrawCredentials\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"withdrawCredentials\",\"outputs\":[{\"internalType\":\"bytes\",\"name\":\"\",\"type\":\"bytes\"}],\"stateMutability\":\"view\",\"type\":\"function\"}]",
+	ABI: "[{\"inputs\":[],\"name\":\"AddressNotAllowed\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"AlreadyClaimed\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"AlreadyDealedEpoch\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"AlreadyDealedHeight\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"AlreadyInitialized\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"AlreadyNotifyCycle\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"AlreadyVoted\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"AmountNotZero\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"AmountUnmatch\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"AmountZero\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"BalanceNotEnough\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"BlockNotMatch\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"CallerNotAllowed\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"ClaimableAmountZero\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"ClaimableDepositZero\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"ClaimableRewardZero\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"CycleNotMatch\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"DepositAmountLTMinAmount\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"EthAmountZero\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"FailedToCall\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"FailedToTransfer\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"InvalidMerkleProof\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"InvalidThreshold\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"LengthNotMatch\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"LsdTokenAmountZero\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"NodeAlreadyExist\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"NodeAlreadyRemoved\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"NodeNotClaimable\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"NotClaimable\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"NotFactoryAdmin\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"NotNetworkAdmin\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"NotPubkeyOwner\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"NotTrustNode\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"ProposalAlreadyExecuted\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"PubkeyAlreadyExist\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"PubkeyNotExist\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"PubkeyStatusUnmatch\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"RateChangeOverLimit\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"ReachCycleWithdrawLimit\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"ReachPubkeyNumberLimit\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"ReachUserWithdrawLimit\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"SecondsZero\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"SoloNodeDepositDisabled\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"SubmitBalancesDisable\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"TrustNodeDepositDisabled\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"UserDepositDisabled\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"VoterNumberOverLimit\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"VotersDuplicate\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"VotersNotEnough\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"VotersNotExist\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"WithdrawIndexEmpty\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"WithdrawIndexOver\",\"type\":\"error\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"address\",\"name\":\"node\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"enumINodeDeposit.NodeType\",\"name\":\"nodeType\",\"type\":\"uint8\"},{\"indexed\":false,\"internalType\":\"bytes\",\"name\":\"pubkey\",\"type\":\"bytes\"},{\"indexed\":false,\"internalType\":\"bytes\",\"name\":\"validatorSignature\",\"type\":\"bytes\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"}],\"name\":\"Deposited\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"from\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"time\",\"type\":\"uint256\"}],\"name\":\"EtherDeposited\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"bytes\",\"name\":\"pubkey\",\"type\":\"bytes\"},{\"indexed\":false,\"internalType\":\"enumINodeDeposit.PubkeyStatus\",\"name\":\"status\",\"type\":\"uint8\"}],\"name\":\"SetPubkeyStatus\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"address\",\"name\":\"node\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"bytes\",\"name\":\"pubkey\",\"type\":\"bytes\"}],\"name\":\"Staked\",\"type\":\"event\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_trustNodeAddress\",\"type\":\"address\"}],\"name\":\"addTrustNode\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bytes[]\",\"name\":\"_validatorPubkeys\",\"type\":\"bytes[]\"},{\"internalType\":\"bytes[]\",\"name\":\"_validatorSignatures\",\"type\":\"bytes[]\"},{\"internalType\":\"bytes32[]\",\"name\":\"_depositDataRoots\",\"type\":\"bytes32[]\"}],\"name\":\"deposit\",\"outputs\":[],\"stateMutability\":\"payable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"depositEth\",\"outputs\":[],\"stateMutability\":\"payable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"ethDepositAddress\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"_start\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"_end\",\"type\":\"uint256\"}],\"name\":\"getPubkeys\",\"outputs\":[{\"internalType\":\"bytes[]\",\"name\":\"pubkeyList\",\"type\":\"bytes[]\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"getPubkeysLength\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_userDepositAddress\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"_ethDepositAddress\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"_networkProposalAddress\",\"type\":\"address\"},{\"internalType\":\"bytes\",\"name\":\"_withdrawCredentials\",\"type\":\"bytes\"}],\"name\":\"init\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"initialized\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"networkProposalAddress\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"name\":\"nodeInfoOf\",\"outputs\":[{\"internalType\":\"enumINodeDeposit.NodeType\",\"name\":\"_nodeType\",\"type\":\"uint8\"},{\"internalType\":\"bool\",\"name\":\"_removed\",\"type\":\"bool\"},{\"internalType\":\"uint256\",\"name\":\"_pubkeyNumber\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bytes\",\"name\":\"\",\"type\":\"bytes\"}],\"name\":\"pubkeyInfoOf\",\"outputs\":[{\"internalType\":\"enumINodeDeposit.PubkeyStatus\",\"name\":\"_status\",\"type\":\"uint8\"},{\"internalType\":\"address\",\"name\":\"_owner\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"_nodeDepositAmount\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"_depositBlock\",\"type\":\"uint256\"},{\"internalType\":\"bytes\",\"name\":\"_depositSignature\",\"type\":\"bytes\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"name\":\"pubkeys\",\"outputs\":[{\"internalType\":\"bytes\",\"name\":\"\",\"type\":\"bytes\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_trustNodeAddress\",\"type\":\"address\"}],\"name\":\"removeTrustNode\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bytes\",\"name\":\"_validatorPubkey\",\"type\":\"bytes\"},{\"internalType\":\"enumINodeDeposit.PubkeyStatus\",\"name\":\"_status\",\"type\":\"uint8\"}],\"name\":\"setNodePubkeyStatus\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"_amount\",\"type\":\"uint256\"}],\"name\":\"setSoloNodeDepositAmount\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bool\",\"name\":\"_value\",\"type\":\"bool\"}],\"name\":\"setSoloNodeDepositEnabled\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bool\",\"name\":\"_value\",\"type\":\"bool\"}],\"name\":\"setTrustNodeDepositEnabled\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"_value\",\"type\":\"uint256\"}],\"name\":\"setTrustNodePubkeyLimit\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bytes\",\"name\":\"_withdrawCredentials\",\"type\":\"bytes\"}],\"name\":\"setWithdrawCredentials\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"soloNodeDepositAmount\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"soloNodeDepositEnabled\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bytes[]\",\"name\":\"_validatorPubkeys\",\"type\":\"bytes[]\"},{\"internalType\":\"bytes[]\",\"name\":\"_validatorSignatures\",\"type\":\"bytes[]\"},{\"internalType\":\"bytes32[]\",\"name\":\"_depositDataRoots\",\"type\":\"bytes32[]\"}],\"name\":\"stake\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"trustNodeDepositEnabled\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"trustNodePubkeyNumberLimit\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"userDepositAddress\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"version\",\"outputs\":[{\"internalType\":\"uint8\",\"name\":\"\",\"type\":\"uint8\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bytes[]\",\"name\":\"_pubkeys\",\"type\":\"bytes[]\"},{\"internalType\":\"bool[]\",\"name\":\"_matchs\",\"type\":\"bool[]\"}],\"name\":\"voteWithdrawCredentials\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"withdrawCredentials\",\"outputs\":[{\"internalType\":\"bytes\",\"name\":\"\",\"type\":\"bytes\"}],\"stateMutability\":\"view\",\"type\":\"function\"}]",
 }
 
 // NodeDepositABI is the input ABI used to generate the binding from.
@@ -303,68 +303,6 @@ func (_NodeDeposit *NodeDepositCallerSession) Initialized() (bool, error) {
 	return _NodeDeposit.Contract.Initialized(&_NodeDeposit.CallOpts)
 }
 
-// LightNodeDepositAmount is a free data retrieval call binding the contract method 0x0e96b92e.
-//
-// Solidity: function lightNodeDepositAmount() view returns(uint256)
-func (_NodeDeposit *NodeDepositCaller) LightNodeDepositAmount(opts *bind.CallOpts) (*big.Int, error) {
-	var out []interface{}
-	err := _NodeDeposit.contract.Call(opts, &out, "lightNodeDepositAmount")
-
-	if err != nil {
-		return *new(*big.Int), err
-	}
-
-	out0 := *abi.ConvertType(out[0], new(*big.Int)).(**big.Int)
-
-	return out0, err
-
-}
-
-// LightNodeDepositAmount is a free data retrieval call binding the contract method 0x0e96b92e.
-//
-// Solidity: function lightNodeDepositAmount() view returns(uint256)
-func (_NodeDeposit *NodeDepositSession) LightNodeDepositAmount() (*big.Int, error) {
-	return _NodeDeposit.Contract.LightNodeDepositAmount(&_NodeDeposit.CallOpts)
-}
-
-// LightNodeDepositAmount is a free data retrieval call binding the contract method 0x0e96b92e.
-//
-// Solidity: function lightNodeDepositAmount() view returns(uint256)
-func (_NodeDeposit *NodeDepositCallerSession) LightNodeDepositAmount() (*big.Int, error) {
-	return _NodeDeposit.Contract.LightNodeDepositAmount(&_NodeDeposit.CallOpts)
-}
-
-// LightNodeDepositEnabled is a free data retrieval call binding the contract method 0xb25f1fd6.
-//
-// Solidity: function lightNodeDepositEnabled() view returns(bool)
-func (_NodeDeposit *NodeDepositCaller) LightNodeDepositEnabled(opts *bind.CallOpts) (bool, error) {
-	var out []interface{}
-	err := _NodeDeposit.contract.Call(opts, &out, "lightNodeDepositEnabled")
-
-	if err != nil {
-		return *new(bool), err
-	}
-
-	out0 := *abi.ConvertType(out[0], new(bool)).(*bool)
-
-	return out0, err
-
-}
-
-// LightNodeDepositEnabled is a free data retrieval call binding the contract method 0xb25f1fd6.
-//
-// Solidity: function lightNodeDepositEnabled() view returns(bool)
-func (_NodeDeposit *NodeDepositSession) LightNodeDepositEnabled() (bool, error) {
-	return _NodeDeposit.Contract.LightNodeDepositEnabled(&_NodeDeposit.CallOpts)
-}
-
-// LightNodeDepositEnabled is a free data retrieval call binding the contract method 0xb25f1fd6.
-//
-// Solidity: function lightNodeDepositEnabled() view returns(bool)
-func (_NodeDeposit *NodeDepositCallerSession) LightNodeDepositEnabled() (bool, error) {
-	return _NodeDeposit.Contract.LightNodeDepositEnabled(&_NodeDeposit.CallOpts)
-}
-
 // NetworkProposalAddress is a free data retrieval call binding the contract method 0xb4701c09.
 //
 // Solidity: function networkProposalAddress() view returns(address)
@@ -535,6 +473,68 @@ func (_NodeDeposit *NodeDepositSession) Pubkeys(arg0 *big.Int) ([]byte, error) {
 // Solidity: function pubkeys(uint256 ) view returns(bytes)
 func (_NodeDeposit *NodeDepositCallerSession) Pubkeys(arg0 *big.Int) ([]byte, error) {
 	return _NodeDeposit.Contract.Pubkeys(&_NodeDeposit.CallOpts, arg0)
+}
+
+// SoloNodeDepositAmount is a free data retrieval call binding the contract method 0x0fc6d510.
+//
+// Solidity: function soloNodeDepositAmount() view returns(uint256)
+func (_NodeDeposit *NodeDepositCaller) SoloNodeDepositAmount(opts *bind.CallOpts) (*big.Int, error) {
+	var out []interface{}
+	err := _NodeDeposit.contract.Call(opts, &out, "soloNodeDepositAmount")
+
+	if err != nil {
+		return *new(*big.Int), err
+	}
+
+	out0 := *abi.ConvertType(out[0], new(*big.Int)).(**big.Int)
+
+	return out0, err
+
+}
+
+// SoloNodeDepositAmount is a free data retrieval call binding the contract method 0x0fc6d510.
+//
+// Solidity: function soloNodeDepositAmount() view returns(uint256)
+func (_NodeDeposit *NodeDepositSession) SoloNodeDepositAmount() (*big.Int, error) {
+	return _NodeDeposit.Contract.SoloNodeDepositAmount(&_NodeDeposit.CallOpts)
+}
+
+// SoloNodeDepositAmount is a free data retrieval call binding the contract method 0x0fc6d510.
+//
+// Solidity: function soloNodeDepositAmount() view returns(uint256)
+func (_NodeDeposit *NodeDepositCallerSession) SoloNodeDepositAmount() (*big.Int, error) {
+	return _NodeDeposit.Contract.SoloNodeDepositAmount(&_NodeDeposit.CallOpts)
+}
+
+// SoloNodeDepositEnabled is a free data retrieval call binding the contract method 0x70a70b8f.
+//
+// Solidity: function soloNodeDepositEnabled() view returns(bool)
+func (_NodeDeposit *NodeDepositCaller) SoloNodeDepositEnabled(opts *bind.CallOpts) (bool, error) {
+	var out []interface{}
+	err := _NodeDeposit.contract.Call(opts, &out, "soloNodeDepositEnabled")
+
+	if err != nil {
+		return *new(bool), err
+	}
+
+	out0 := *abi.ConvertType(out[0], new(bool)).(*bool)
+
+	return out0, err
+
+}
+
+// SoloNodeDepositEnabled is a free data retrieval call binding the contract method 0x70a70b8f.
+//
+// Solidity: function soloNodeDepositEnabled() view returns(bool)
+func (_NodeDeposit *NodeDepositSession) SoloNodeDepositEnabled() (bool, error) {
+	return _NodeDeposit.Contract.SoloNodeDepositEnabled(&_NodeDeposit.CallOpts)
+}
+
+// SoloNodeDepositEnabled is a free data retrieval call binding the contract method 0x70a70b8f.
+//
+// Solidity: function soloNodeDepositEnabled() view returns(bool)
+func (_NodeDeposit *NodeDepositCallerSession) SoloNodeDepositEnabled() (bool, error) {
+	return _NodeDeposit.Contract.SoloNodeDepositEnabled(&_NodeDeposit.CallOpts)
 }
 
 // TrustNodeDepositEnabled is a free data retrieval call binding the contract method 0xc2e6d64c.
@@ -797,48 +797,6 @@ func (_NodeDeposit *NodeDepositTransactorSession) RemoveTrustNode(_trustNodeAddr
 	return _NodeDeposit.Contract.RemoveTrustNode(&_NodeDeposit.TransactOpts, _trustNodeAddress)
 }
 
-// SetLightNodeDepositAmount is a paid mutator transaction binding the contract method 0x3fc50c92.
-//
-// Solidity: function setLightNodeDepositAmount(uint256 _amount) returns()
-func (_NodeDeposit *NodeDepositTransactor) SetLightNodeDepositAmount(opts *bind.TransactOpts, _amount *big.Int) (*types.Transaction, error) {
-	return _NodeDeposit.contract.Transact(opts, "setLightNodeDepositAmount", _amount)
-}
-
-// SetLightNodeDepositAmount is a paid mutator transaction binding the contract method 0x3fc50c92.
-//
-// Solidity: function setLightNodeDepositAmount(uint256 _amount) returns()
-func (_NodeDeposit *NodeDepositSession) SetLightNodeDepositAmount(_amount *big.Int) (*types.Transaction, error) {
-	return _NodeDeposit.Contract.SetLightNodeDepositAmount(&_NodeDeposit.TransactOpts, _amount)
-}
-
-// SetLightNodeDepositAmount is a paid mutator transaction binding the contract method 0x3fc50c92.
-//
-// Solidity: function setLightNodeDepositAmount(uint256 _amount) returns()
-func (_NodeDeposit *NodeDepositTransactorSession) SetLightNodeDepositAmount(_amount *big.Int) (*types.Transaction, error) {
-	return _NodeDeposit.Contract.SetLightNodeDepositAmount(&_NodeDeposit.TransactOpts, _amount)
-}
-
-// SetLightNodeDepositEnabled is a paid mutator transaction binding the contract method 0xadf1d8d6.
-//
-// Solidity: function setLightNodeDepositEnabled(bool _value) returns()
-func (_NodeDeposit *NodeDepositTransactor) SetLightNodeDepositEnabled(opts *bind.TransactOpts, _value bool) (*types.Transaction, error) {
-	return _NodeDeposit.contract.Transact(opts, "setLightNodeDepositEnabled", _value)
-}
-
-// SetLightNodeDepositEnabled is a paid mutator transaction binding the contract method 0xadf1d8d6.
-//
-// Solidity: function setLightNodeDepositEnabled(bool _value) returns()
-func (_NodeDeposit *NodeDepositSession) SetLightNodeDepositEnabled(_value bool) (*types.Transaction, error) {
-	return _NodeDeposit.Contract.SetLightNodeDepositEnabled(&_NodeDeposit.TransactOpts, _value)
-}
-
-// SetLightNodeDepositEnabled is a paid mutator transaction binding the contract method 0xadf1d8d6.
-//
-// Solidity: function setLightNodeDepositEnabled(bool _value) returns()
-func (_NodeDeposit *NodeDepositTransactorSession) SetLightNodeDepositEnabled(_value bool) (*types.Transaction, error) {
-	return _NodeDeposit.Contract.SetLightNodeDepositEnabled(&_NodeDeposit.TransactOpts, _value)
-}
-
 // SetNodePubkeyStatus is a paid mutator transaction binding the contract method 0xd1dd8614.
 //
 // Solidity: function setNodePubkeyStatus(bytes _validatorPubkey, uint8 _status) returns()
@@ -858,6 +816,48 @@ func (_NodeDeposit *NodeDepositSession) SetNodePubkeyStatus(_validatorPubkey []b
 // Solidity: function setNodePubkeyStatus(bytes _validatorPubkey, uint8 _status) returns()
 func (_NodeDeposit *NodeDepositTransactorSession) SetNodePubkeyStatus(_validatorPubkey []byte, _status uint8) (*types.Transaction, error) {
 	return _NodeDeposit.Contract.SetNodePubkeyStatus(&_NodeDeposit.TransactOpts, _validatorPubkey, _status)
+}
+
+// SetSoloNodeDepositAmount is a paid mutator transaction binding the contract method 0x7ac75644.
+//
+// Solidity: function setSoloNodeDepositAmount(uint256 _amount) returns()
+func (_NodeDeposit *NodeDepositTransactor) SetSoloNodeDepositAmount(opts *bind.TransactOpts, _amount *big.Int) (*types.Transaction, error) {
+	return _NodeDeposit.contract.Transact(opts, "setSoloNodeDepositAmount", _amount)
+}
+
+// SetSoloNodeDepositAmount is a paid mutator transaction binding the contract method 0x7ac75644.
+//
+// Solidity: function setSoloNodeDepositAmount(uint256 _amount) returns()
+func (_NodeDeposit *NodeDepositSession) SetSoloNodeDepositAmount(_amount *big.Int) (*types.Transaction, error) {
+	return _NodeDeposit.Contract.SetSoloNodeDepositAmount(&_NodeDeposit.TransactOpts, _amount)
+}
+
+// SetSoloNodeDepositAmount is a paid mutator transaction binding the contract method 0x7ac75644.
+//
+// Solidity: function setSoloNodeDepositAmount(uint256 _amount) returns()
+func (_NodeDeposit *NodeDepositTransactorSession) SetSoloNodeDepositAmount(_amount *big.Int) (*types.Transaction, error) {
+	return _NodeDeposit.Contract.SetSoloNodeDepositAmount(&_NodeDeposit.TransactOpts, _amount)
+}
+
+// SetSoloNodeDepositEnabled is a paid mutator transaction binding the contract method 0xb89358a7.
+//
+// Solidity: function setSoloNodeDepositEnabled(bool _value) returns()
+func (_NodeDeposit *NodeDepositTransactor) SetSoloNodeDepositEnabled(opts *bind.TransactOpts, _value bool) (*types.Transaction, error) {
+	return _NodeDeposit.contract.Transact(opts, "setSoloNodeDepositEnabled", _value)
+}
+
+// SetSoloNodeDepositEnabled is a paid mutator transaction binding the contract method 0xb89358a7.
+//
+// Solidity: function setSoloNodeDepositEnabled(bool _value) returns()
+func (_NodeDeposit *NodeDepositSession) SetSoloNodeDepositEnabled(_value bool) (*types.Transaction, error) {
+	return _NodeDeposit.Contract.SetSoloNodeDepositEnabled(&_NodeDeposit.TransactOpts, _value)
+}
+
+// SetSoloNodeDepositEnabled is a paid mutator transaction binding the contract method 0xb89358a7.
+//
+// Solidity: function setSoloNodeDepositEnabled(bool _value) returns()
+func (_NodeDeposit *NodeDepositTransactorSession) SetSoloNodeDepositEnabled(_value bool) (*types.Transaction, error) {
+	return _NodeDeposit.Contract.SetSoloNodeDepositEnabled(&_NodeDeposit.TransactOpts, _value)
 }
 
 // SetTrustNodeDepositEnabled is a paid mutator transaction binding the contract method 0xcce0835e.
@@ -1243,141 +1243,6 @@ func (_NodeDeposit *NodeDepositFilterer) WatchEtherDeposited(opts *bind.WatchOpt
 func (_NodeDeposit *NodeDepositFilterer) ParseEtherDeposited(log types.Log) (*NodeDepositEtherDeposited, error) {
 	event := new(NodeDepositEtherDeposited)
 	if err := _NodeDeposit.contract.UnpackLog(event, "EtherDeposited", log); err != nil {
-		return nil, err
-	}
-	event.Raw = log
-	return event, nil
-}
-
-// NodeDepositOffBoardedIterator is returned from FilterOffBoarded and is used to iterate over the raw logs and unpacked data for OffBoarded events raised by the NodeDeposit contract.
-type NodeDepositOffBoardedIterator struct {
-	Event *NodeDepositOffBoarded // Event containing the contract specifics and raw log
-
-	contract *bind.BoundContract // Generic contract to use for unpacking event data
-	event    string              // Event name to use for unpacking event data
-
-	logs chan types.Log        // Log channel receiving the found contract events
-	sub  ethereum.Subscription // Subscription for errors, completion and termination
-	done bool                  // Whether the subscription completed delivering logs
-	fail error                 // Occurred error to stop iteration
-}
-
-// Next advances the iterator to the subsequent event, returning whether there
-// are any more events found. In case of a retrieval or parsing error, false is
-// returned and Error() can be queried for the exact failure.
-func (it *NodeDepositOffBoardedIterator) Next() bool {
-	// If the iterator failed, stop iterating
-	if it.fail != nil {
-		return false
-	}
-	// If the iterator completed, deliver directly whatever's available
-	if it.done {
-		select {
-		case log := <-it.logs:
-			it.Event = new(NodeDepositOffBoarded)
-			if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
-				it.fail = err
-				return false
-			}
-			it.Event.Raw = log
-			return true
-
-		default:
-			return false
-		}
-	}
-	// Iterator still in progress, wait for either a data or an error event
-	select {
-	case log := <-it.logs:
-		it.Event = new(NodeDepositOffBoarded)
-		if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
-			it.fail = err
-			return false
-		}
-		it.Event.Raw = log
-		return true
-
-	case err := <-it.sub.Err():
-		it.done = true
-		it.fail = err
-		return it.Next()
-	}
-}
-
-// Error returns any retrieval or parsing error occurred during filtering.
-func (it *NodeDepositOffBoardedIterator) Error() error {
-	return it.fail
-}
-
-// Close terminates the iteration process, releasing any pending underlying
-// resources.
-func (it *NodeDepositOffBoardedIterator) Close() error {
-	it.sub.Unsubscribe()
-	return nil
-}
-
-// NodeDepositOffBoarded represents a OffBoarded event raised by the NodeDeposit contract.
-type NodeDepositOffBoarded struct {
-	Node   common.Address
-	Pubkey []byte
-	Raw    types.Log // Blockchain specific contextual infos
-}
-
-// FilterOffBoarded is a free log retrieval operation binding the contract event 0x9d5023d85497e8c264e3b053f8da9415f4db76eb5af3ecef3fe953fe9f981470.
-//
-// Solidity: event OffBoarded(address node, bytes pubkey)
-func (_NodeDeposit *NodeDepositFilterer) FilterOffBoarded(opts *bind.FilterOpts) (*NodeDepositOffBoardedIterator, error) {
-
-	logs, sub, err := _NodeDeposit.contract.FilterLogs(opts, "OffBoarded")
-	if err != nil {
-		return nil, err
-	}
-	return &NodeDepositOffBoardedIterator{contract: _NodeDeposit.contract, event: "OffBoarded", logs: logs, sub: sub}, nil
-}
-
-// WatchOffBoarded is a free log subscription operation binding the contract event 0x9d5023d85497e8c264e3b053f8da9415f4db76eb5af3ecef3fe953fe9f981470.
-//
-// Solidity: event OffBoarded(address node, bytes pubkey)
-func (_NodeDeposit *NodeDepositFilterer) WatchOffBoarded(opts *bind.WatchOpts, sink chan<- *NodeDepositOffBoarded) (event.Subscription, error) {
-
-	logs, sub, err := _NodeDeposit.contract.WatchLogs(opts, "OffBoarded")
-	if err != nil {
-		return nil, err
-	}
-	return event.NewSubscription(func(quit <-chan struct{}) error {
-		defer sub.Unsubscribe()
-		for {
-			select {
-			case log := <-logs:
-				// New log arrived, parse the event and forward to the user
-				event := new(NodeDepositOffBoarded)
-				if err := _NodeDeposit.contract.UnpackLog(event, "OffBoarded", log); err != nil {
-					return err
-				}
-				event.Raw = log
-
-				select {
-				case sink <- event:
-				case err := <-sub.Err():
-					return err
-				case <-quit:
-					return nil
-				}
-			case err := <-sub.Err():
-				return err
-			case <-quit:
-				return nil
-			}
-		}
-	}), nil
-}
-
-// ParseOffBoarded is a log parse operation binding the contract event 0x9d5023d85497e8c264e3b053f8da9415f4db76eb5af3ecef3fe953fe9f981470.
-//
-// Solidity: event OffBoarded(address node, bytes pubkey)
-func (_NodeDeposit *NodeDepositFilterer) ParseOffBoarded(log types.Log) (*NodeDepositOffBoarded, error) {
-	event := new(NodeDepositOffBoarded)
-	if err := _NodeDeposit.contract.UnpackLog(event, "OffBoarded", log); err != nil {
 		return nil, err
 	}
 	event.Raw = log

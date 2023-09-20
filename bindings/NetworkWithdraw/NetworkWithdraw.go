@@ -30,7 +30,7 @@ var (
 
 // NetworkWithdrawMetaData contains all meta data concerning the NetworkWithdraw contract.
 var NetworkWithdrawMetaData = &bind.MetaData{
-	ABI: "[{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"enumINetworkWithdraw.DistributeType\",\"name\":\"_distributeType\",\"type\":\"uint8\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"_dealedHeight\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"_userAmount\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"_nodeAmount\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"_platformAmount\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"_maxClaimableWithdrawIndex\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"_mvAmount\",\"type\":\"uint256\"}],\"name\":\"DistributeRewards\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"_from\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"_amount\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"_time\",\"type\":\"uint256\"}],\"name\":\"EtherDeposited\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"_index\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"address\",\"name\":\"_account\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"_claimableReward\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"_claimableDeposit\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"enumINetworkWithdraw.ClaimType\",\"name\":\"_claimType\",\"type\":\"uint8\"}],\"name\":\"NodeClaimed\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"_withdrawCycle\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"_ejectedStartWithdrawCycle\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"uint256[]\",\"name\":\"_ejectedValidators\",\"type\":\"uint256[]\"}],\"name\":\"NotifyValidatorExit\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"uint256\",\"name\":\"_dealedEpoch\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"bytes32\",\"name\":\"_merkleRoot\",\"type\":\"bytes32\"},{\"indexed\":false,\"internalType\":\"string\",\"name\":\"_nodeRewardsFileCid\",\"type\":\"string\"}],\"name\":\"SetMerkleRoot\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"_userWithdrawLimitPerCycle\",\"type\":\"uint256\"}],\"name\":\"SetUserWithdrawLimitPerCycle\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"_seconds\",\"type\":\"uint256\"}],\"name\":\"SetWithdrawCycleSeconds\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"_withdrawLimitPerCycle\",\"type\":\"uint256\"}],\"name\":\"SetWithdrawLimitPerCycle\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"_from\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"_lsdTokenAmount\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"_ethAmount\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"_withdrawIndex\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"bool\",\"name\":\"_instantly\",\"type\":\"bool\"}],\"name\":\"Unstake\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"_from\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256[]\",\"name\":\"_withdrawIndexList\",\"type\":\"uint256[]\"}],\"name\":\"Withdraw\",\"type\":\"event\"},{\"inputs\":[],\"name\":\"currentWithdrawCycle\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"depositEth\",\"outputs\":[],\"stateMutability\":\"payable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"depositEthAndUpdateTotalMissingAmount\",\"outputs\":[],\"stateMutability\":\"payable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"enumINetworkWithdraw.DistributeType\",\"name\":\"_distributeType\",\"type\":\"uint8\"},{\"internalType\":\"uint256\",\"name\":\"_dealedHeight\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"_userAmount\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"_nodeAmount\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"_platformAmount\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"_maxClaimableWithdrawIndex\",\"type\":\"uint256\"}],\"name\":\"distribute\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"ejectedStartCycle\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"name\":\"ejectedValidatorsAtCycle\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"factoryAddress\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"factoryCommissionRate\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"feePoolAddress\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"cycle\",\"type\":\"uint256\"}],\"name\":\"getEjectedValidatorsAtCycle\",\"outputs\":[{\"internalType\":\"uint256[]\",\"name\":\"\",\"type\":\"uint256[]\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"user\",\"type\":\"address\"}],\"name\":\"getUnclaimedWithdrawalsOfUser\",\"outputs\":[{\"internalType\":\"uint256[]\",\"name\":\"\",\"type\":\"uint256[]\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_lsdTokenAddress\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"_userDepositAddress\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"_networkProposalAddress\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"_feePoolAddress\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"_factoryAddress\",\"type\":\"address\"}],\"name\":\"init\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"initialized\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"latestDistributePriorityFeeHeight\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"latestDistributeWithdrawalsHeight\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"latestMerkleRootEpoch\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"lsdTokenAddress\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"maxClaimableWithdrawIndex\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"merkleRoot\",\"outputs\":[{\"internalType\":\"bytes32\",\"name\":\"\",\"type\":\"bytes32\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"networkBalancesAddress\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"networkProposalAddress\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"nextWithdrawIndex\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"_index\",\"type\":\"uint256\"},{\"internalType\":\"address\",\"name\":\"_account\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"_totalRewardAmount\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"_totalExitDepositAmount\",\"type\":\"uint256\"},{\"internalType\":\"bytes32[]\",\"name\":\"_merkleProof\",\"type\":\"bytes32[]\"},{\"internalType\":\"enumINetworkWithdraw.ClaimType\",\"name\":\"_claimType\",\"type\":\"uint8\"}],\"name\":\"nodeClaim\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"nodeRewardsFileCid\",\"outputs\":[{\"internalType\":\"string\",\"name\":\"\",\"type\":\"string\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"_withdrawCycle\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"_ejectedStartCycle\",\"type\":\"uint256\"},{\"internalType\":\"uint256[]\",\"name\":\"_validatorIndexList\",\"type\":\"uint256[]\"}],\"name\":\"notifyValidatorExit\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_recipient\",\"type\":\"address\"}],\"name\":\"platformClaim\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"platformCommissionRate\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"_dealedEpoch\",\"type\":\"uint256\"},{\"internalType\":\"bytes32\",\"name\":\"_merkleRoot\",\"type\":\"bytes32\"},{\"internalType\":\"string\",\"name\":\"_nodeRewardsFileCid\",\"type\":\"string\"}],\"name\":\"setMerkleRoot\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"_userWithdrawLimitPerCycle\",\"type\":\"uint256\"}],\"name\":\"setUserWithdrawLimitAmountPerCycle\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"_withdrawCycleSeconds\",\"type\":\"uint256\"}],\"name\":\"setWithdrawCycleSeconds\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"_withdrawLimitPerCycle\",\"type\":\"uint256\"}],\"name\":\"setWithdrawLimitAmountPerCycle\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"name\":\"totalClaimedDepositOfNode\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"name\":\"totalClaimedRewardOfNode\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"totalMissingAmountForWithdraw\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"totalPlatformClaimedAmount\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"totalPlatformCommission\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"name\":\"totalWithdrawAmountAtCycle\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"_lsdTokenAmount\",\"type\":\"uint256\"}],\"name\":\"unstake\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bytes32\",\"name\":\"_merkleRoot\",\"type\":\"bytes32\"}],\"name\":\"updateMerkleRoot\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"userDepositAddress\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"name\":\"userWithdrawAmountAtCycle\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"userWithdrawLimitAmountPerCycle\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"version\",\"outputs\":[{\"internalType\":\"uint8\",\"name\":\"\",\"type\":\"uint8\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256[]\",\"name\":\"_withdrawIndexList\",\"type\":\"uint256[]\"}],\"name\":\"withdraw\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"withdrawCycleSeconds\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"withdrawLimitAmountPerCycle\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"name\":\"withdrawalAtIndex\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"_address\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"_amount\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"stateMutability\":\"payable\",\"type\":\"receive\"}]",
+	ABI: "[{\"inputs\":[],\"name\":\"AddressNotAllowed\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"AlreadyClaimed\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"AlreadyDealedEpoch\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"AlreadyDealedHeight\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"AlreadyInitialized\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"AlreadyNotifyCycle\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"AlreadyVoted\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"AmountNotZero\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"AmountUnmatch\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"AmountZero\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"BalanceNotEnough\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"BlockNotMatch\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"CallerNotAllowed\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"ClaimableAmountZero\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"ClaimableDepositZero\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"ClaimableRewardZero\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"CycleNotMatch\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"DepositAmountLTMinAmount\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"EthAmountZero\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"FailedToCall\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"FailedToTransfer\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"InvalidMerkleProof\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"InvalidThreshold\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"LengthNotMatch\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"LsdTokenAmountZero\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"NodeAlreadyExist\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"NodeAlreadyRemoved\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"NodeNotClaimable\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"NotClaimable\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"NotFactoryAdmin\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"NotNetworkAdmin\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"NotPubkeyOwner\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"NotTrustNode\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"ProposalAlreadyExecuted\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"PubkeyAlreadyExist\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"PubkeyNotExist\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"PubkeyStatusUnmatch\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"RateChangeOverLimit\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"ReachCycleWithdrawLimit\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"ReachPubkeyNumberLimit\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"ReachUserWithdrawLimit\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"SecondsZero\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"SoloNodeDepositDisabled\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"SubmitBalancesDisable\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"TrustNodeDepositDisabled\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"UserDepositDisabled\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"VoterNumberOverLimit\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"VotersDuplicate\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"VotersNotEnough\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"VotersNotExist\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"WithdrawIndexEmpty\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"WithdrawIndexOver\",\"type\":\"error\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"enumINetworkWithdraw.DistributeType\",\"name\":\"distributeType\",\"type\":\"uint8\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"dealedHeight\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"userAmount\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"nodeAmount\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"platformAmount\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"maxClaimableWithdrawIndex\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"mvAmount\",\"type\":\"uint256\"}],\"name\":\"DistributeRewards\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"from\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"time\",\"type\":\"uint256\"}],\"name\":\"EtherDeposited\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"index\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"claimableReward\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"claimableDeposit\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"enumINetworkWithdraw.ClaimType\",\"name\":\"claimType\",\"type\":\"uint8\"}],\"name\":\"NodeClaimed\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"withdrawCycle\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"ejectedStartWithdrawCycle\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"uint256[]\",\"name\":\"ejectedValidators\",\"type\":\"uint256[]\"}],\"name\":\"NotifyValidatorExit\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"uint256\",\"name\":\"dealedEpoch\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"bytes32\",\"name\":\"merkleRoot\",\"type\":\"bytes32\"},{\"indexed\":false,\"internalType\":\"string\",\"name\":\"nodeRewardsFileCid\",\"type\":\"string\"}],\"name\":\"SetMerkleRoot\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"userWithdrawLimitPerCycle\",\"type\":\"uint256\"}],\"name\":\"SetUserWithdrawLimitPerCycle\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"cycleSeconds\",\"type\":\"uint256\"}],\"name\":\"SetWithdrawCycleSeconds\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"withdrawLimitPerCycle\",\"type\":\"uint256\"}],\"name\":\"SetWithdrawLimitPerCycle\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"from\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"lsdTokenAmount\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"ethAmount\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"withdrawIndex\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"bool\",\"name\":\"instantly\",\"type\":\"bool\"}],\"name\":\"Unstake\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"from\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256[]\",\"name\":\"withdrawIndexList\",\"type\":\"uint256[]\"}],\"name\":\"Withdraw\",\"type\":\"event\"},{\"inputs\":[],\"name\":\"currentWithdrawCycle\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"depositEth\",\"outputs\":[],\"stateMutability\":\"payable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"depositEthAndUpdateTotalMissingAmount\",\"outputs\":[],\"stateMutability\":\"payable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"enumINetworkWithdraw.DistributeType\",\"name\":\"_distributeType\",\"type\":\"uint8\"},{\"internalType\":\"uint256\",\"name\":\"_dealedHeight\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"_userAmount\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"_nodeAmount\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"_platformAmount\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"_maxClaimableWithdrawIndex\",\"type\":\"uint256\"}],\"name\":\"distribute\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"ejectedStartCycle\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"name\":\"ejectedValidatorsAtCycle\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"factoryAddress\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"factoryCommissionRate\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"feePoolAddress\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"cycle\",\"type\":\"uint256\"}],\"name\":\"getEjectedValidatorsAtCycle\",\"outputs\":[{\"internalType\":\"uint256[]\",\"name\":\"\",\"type\":\"uint256[]\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"user\",\"type\":\"address\"}],\"name\":\"getUnclaimedWithdrawalsOfUser\",\"outputs\":[{\"internalType\":\"uint256[]\",\"name\":\"\",\"type\":\"uint256[]\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_lsdTokenAddress\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"_userDepositAddress\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"_networkProposalAddress\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"_networkBalancesAddress\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"_feePoolAddress\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"_factoryAddress\",\"type\":\"address\"}],\"name\":\"init\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"initialized\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"latestDistributePriorityFeeHeight\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"latestDistributeWithdrawalsHeight\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"latestMerkleRootEpoch\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"lsdTokenAddress\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"maxClaimableWithdrawIndex\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"merkleRoot\",\"outputs\":[{\"internalType\":\"bytes32\",\"name\":\"\",\"type\":\"bytes32\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"networkBalancesAddress\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"networkProposalAddress\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"nextWithdrawIndex\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"_index\",\"type\":\"uint256\"},{\"internalType\":\"address\",\"name\":\"_account\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"_totalRewardAmount\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"_totalExitDepositAmount\",\"type\":\"uint256\"},{\"internalType\":\"bytes32[]\",\"name\":\"_merkleProof\",\"type\":\"bytes32[]\"},{\"internalType\":\"enumINetworkWithdraw.ClaimType\",\"name\":\"_claimType\",\"type\":\"uint8\"}],\"name\":\"nodeClaim\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"nodeClaimEnabled\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"nodeRewardsFileCid\",\"outputs\":[{\"internalType\":\"string\",\"name\":\"\",\"type\":\"string\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"_withdrawCycle\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"_ejectedStartCycle\",\"type\":\"uint256\"},{\"internalType\":\"uint256[]\",\"name\":\"_validatorIndexList\",\"type\":\"uint256[]\"}],\"name\":\"notifyValidatorExit\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_recipient\",\"type\":\"address\"}],\"name\":\"platformClaim\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"platformCommissionRate\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"_dealedEpoch\",\"type\":\"uint256\"},{\"internalType\":\"bytes32\",\"name\":\"_merkleRoot\",\"type\":\"bytes32\"},{\"internalType\":\"string\",\"name\":\"_nodeRewardsFileCid\",\"type\":\"string\"}],\"name\":\"setMerkleRoot\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bool\",\"name\":\"_value\",\"type\":\"bool\"}],\"name\":\"setNodeClaimEnabled\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"_userWithdrawLimitPerCycle\",\"type\":\"uint256\"}],\"name\":\"setUserWithdrawLimitAmountPerCycle\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"_withdrawCycleSeconds\",\"type\":\"uint256\"}],\"name\":\"setWithdrawCycleSeconds\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"_withdrawLimitPerCycle\",\"type\":\"uint256\"}],\"name\":\"setWithdrawLimitAmountPerCycle\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"name\":\"totalClaimedDepositOfNode\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"name\":\"totalClaimedRewardOfNode\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"totalMissingAmountForWithdraw\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"totalPlatformClaimedAmount\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"totalPlatformCommission\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"name\":\"totalWithdrawAmountAtCycle\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"_lsdTokenAmount\",\"type\":\"uint256\"}],\"name\":\"unstake\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"userDepositAddress\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"name\":\"userWithdrawAmountAtCycle\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"userWithdrawLimitAmountPerCycle\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"version\",\"outputs\":[{\"internalType\":\"uint8\",\"name\":\"\",\"type\":\"uint8\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256[]\",\"name\":\"_withdrawIndexList\",\"type\":\"uint256[]\"}],\"name\":\"withdraw\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"withdrawCycleSeconds\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"withdrawLimitAmountPerCycle\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"name\":\"withdrawalAtIndex\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"_address\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"_amount\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"stateMutability\":\"payable\",\"type\":\"receive\"}]",
 }
 
 // NetworkWithdrawABI is the input ABI used to generate the binding from.
@@ -737,6 +737,37 @@ func (_NetworkWithdraw *NetworkWithdrawCallerSession) NextWithdrawIndex() (*big.
 	return _NetworkWithdraw.Contract.NextWithdrawIndex(&_NetworkWithdraw.CallOpts)
 }
 
+// NodeClaimEnabled is a free data retrieval call binding the contract method 0xd3638c7e.
+//
+// Solidity: function nodeClaimEnabled() view returns(bool)
+func (_NetworkWithdraw *NetworkWithdrawCaller) NodeClaimEnabled(opts *bind.CallOpts) (bool, error) {
+	var out []interface{}
+	err := _NetworkWithdraw.contract.Call(opts, &out, "nodeClaimEnabled")
+
+	if err != nil {
+		return *new(bool), err
+	}
+
+	out0 := *abi.ConvertType(out[0], new(bool)).(*bool)
+
+	return out0, err
+
+}
+
+// NodeClaimEnabled is a free data retrieval call binding the contract method 0xd3638c7e.
+//
+// Solidity: function nodeClaimEnabled() view returns(bool)
+func (_NetworkWithdraw *NetworkWithdrawSession) NodeClaimEnabled() (bool, error) {
+	return _NetworkWithdraw.Contract.NodeClaimEnabled(&_NetworkWithdraw.CallOpts)
+}
+
+// NodeClaimEnabled is a free data retrieval call binding the contract method 0xd3638c7e.
+//
+// Solidity: function nodeClaimEnabled() view returns(bool)
+func (_NetworkWithdraw *NetworkWithdrawCallerSession) NodeClaimEnabled() (bool, error) {
+	return _NetworkWithdraw.Contract.NodeClaimEnabled(&_NetworkWithdraw.CallOpts)
+}
+
 // NodeRewardsFileCid is a free data retrieval call binding the contract method 0xd57dc824.
 //
 // Solidity: function nodeRewardsFileCid() view returns(string)
@@ -1279,25 +1310,25 @@ func (_NetworkWithdraw *NetworkWithdrawTransactorSession) Distribute(_distribute
 	return _NetworkWithdraw.Contract.Distribute(&_NetworkWithdraw.TransactOpts, _distributeType, _dealedHeight, _userAmount, _nodeAmount, _platformAmount, _maxClaimableWithdrawIndex)
 }
 
-// Init is a paid mutator transaction binding the contract method 0x359ef75b.
+// Init is a paid mutator transaction binding the contract method 0x99e133f9.
 //
-// Solidity: function init(address _lsdTokenAddress, address _userDepositAddress, address _networkProposalAddress, address _feePoolAddress, address _factoryAddress) returns()
-func (_NetworkWithdraw *NetworkWithdrawTransactor) Init(opts *bind.TransactOpts, _lsdTokenAddress common.Address, _userDepositAddress common.Address, _networkProposalAddress common.Address, _feePoolAddress common.Address, _factoryAddress common.Address) (*types.Transaction, error) {
-	return _NetworkWithdraw.contract.Transact(opts, "init", _lsdTokenAddress, _userDepositAddress, _networkProposalAddress, _feePoolAddress, _factoryAddress)
+// Solidity: function init(address _lsdTokenAddress, address _userDepositAddress, address _networkProposalAddress, address _networkBalancesAddress, address _feePoolAddress, address _factoryAddress) returns()
+func (_NetworkWithdraw *NetworkWithdrawTransactor) Init(opts *bind.TransactOpts, _lsdTokenAddress common.Address, _userDepositAddress common.Address, _networkProposalAddress common.Address, _networkBalancesAddress common.Address, _feePoolAddress common.Address, _factoryAddress common.Address) (*types.Transaction, error) {
+	return _NetworkWithdraw.contract.Transact(opts, "init", _lsdTokenAddress, _userDepositAddress, _networkProposalAddress, _networkBalancesAddress, _feePoolAddress, _factoryAddress)
 }
 
-// Init is a paid mutator transaction binding the contract method 0x359ef75b.
+// Init is a paid mutator transaction binding the contract method 0x99e133f9.
 //
-// Solidity: function init(address _lsdTokenAddress, address _userDepositAddress, address _networkProposalAddress, address _feePoolAddress, address _factoryAddress) returns()
-func (_NetworkWithdraw *NetworkWithdrawSession) Init(_lsdTokenAddress common.Address, _userDepositAddress common.Address, _networkProposalAddress common.Address, _feePoolAddress common.Address, _factoryAddress common.Address) (*types.Transaction, error) {
-	return _NetworkWithdraw.Contract.Init(&_NetworkWithdraw.TransactOpts, _lsdTokenAddress, _userDepositAddress, _networkProposalAddress, _feePoolAddress, _factoryAddress)
+// Solidity: function init(address _lsdTokenAddress, address _userDepositAddress, address _networkProposalAddress, address _networkBalancesAddress, address _feePoolAddress, address _factoryAddress) returns()
+func (_NetworkWithdraw *NetworkWithdrawSession) Init(_lsdTokenAddress common.Address, _userDepositAddress common.Address, _networkProposalAddress common.Address, _networkBalancesAddress common.Address, _feePoolAddress common.Address, _factoryAddress common.Address) (*types.Transaction, error) {
+	return _NetworkWithdraw.Contract.Init(&_NetworkWithdraw.TransactOpts, _lsdTokenAddress, _userDepositAddress, _networkProposalAddress, _networkBalancesAddress, _feePoolAddress, _factoryAddress)
 }
 
-// Init is a paid mutator transaction binding the contract method 0x359ef75b.
+// Init is a paid mutator transaction binding the contract method 0x99e133f9.
 //
-// Solidity: function init(address _lsdTokenAddress, address _userDepositAddress, address _networkProposalAddress, address _feePoolAddress, address _factoryAddress) returns()
-func (_NetworkWithdraw *NetworkWithdrawTransactorSession) Init(_lsdTokenAddress common.Address, _userDepositAddress common.Address, _networkProposalAddress common.Address, _feePoolAddress common.Address, _factoryAddress common.Address) (*types.Transaction, error) {
-	return _NetworkWithdraw.Contract.Init(&_NetworkWithdraw.TransactOpts, _lsdTokenAddress, _userDepositAddress, _networkProposalAddress, _feePoolAddress, _factoryAddress)
+// Solidity: function init(address _lsdTokenAddress, address _userDepositAddress, address _networkProposalAddress, address _networkBalancesAddress, address _feePoolAddress, address _factoryAddress) returns()
+func (_NetworkWithdraw *NetworkWithdrawTransactorSession) Init(_lsdTokenAddress common.Address, _userDepositAddress common.Address, _networkProposalAddress common.Address, _networkBalancesAddress common.Address, _feePoolAddress common.Address, _factoryAddress common.Address) (*types.Transaction, error) {
+	return _NetworkWithdraw.Contract.Init(&_NetworkWithdraw.TransactOpts, _lsdTokenAddress, _userDepositAddress, _networkProposalAddress, _networkBalancesAddress, _feePoolAddress, _factoryAddress)
 }
 
 // NodeClaim is a paid mutator transaction binding the contract method 0xfdf435e9.
@@ -1384,6 +1415,27 @@ func (_NetworkWithdraw *NetworkWithdrawTransactorSession) SetMerkleRoot(_dealedE
 	return _NetworkWithdraw.Contract.SetMerkleRoot(&_NetworkWithdraw.TransactOpts, _dealedEpoch, _merkleRoot, _nodeRewardsFileCid)
 }
 
+// SetNodeClaimEnabled is a paid mutator transaction binding the contract method 0xf1583c08.
+//
+// Solidity: function setNodeClaimEnabled(bool _value) returns()
+func (_NetworkWithdraw *NetworkWithdrawTransactor) SetNodeClaimEnabled(opts *bind.TransactOpts, _value bool) (*types.Transaction, error) {
+	return _NetworkWithdraw.contract.Transact(opts, "setNodeClaimEnabled", _value)
+}
+
+// SetNodeClaimEnabled is a paid mutator transaction binding the contract method 0xf1583c08.
+//
+// Solidity: function setNodeClaimEnabled(bool _value) returns()
+func (_NetworkWithdraw *NetworkWithdrawSession) SetNodeClaimEnabled(_value bool) (*types.Transaction, error) {
+	return _NetworkWithdraw.Contract.SetNodeClaimEnabled(&_NetworkWithdraw.TransactOpts, _value)
+}
+
+// SetNodeClaimEnabled is a paid mutator transaction binding the contract method 0xf1583c08.
+//
+// Solidity: function setNodeClaimEnabled(bool _value) returns()
+func (_NetworkWithdraw *NetworkWithdrawTransactorSession) SetNodeClaimEnabled(_value bool) (*types.Transaction, error) {
+	return _NetworkWithdraw.Contract.SetNodeClaimEnabled(&_NetworkWithdraw.TransactOpts, _value)
+}
+
 // SetUserWithdrawLimitAmountPerCycle is a paid mutator transaction binding the contract method 0xdd0cb13f.
 //
 // Solidity: function setUserWithdrawLimitAmountPerCycle(uint256 _userWithdrawLimitPerCycle) returns()
@@ -1466,27 +1518,6 @@ func (_NetworkWithdraw *NetworkWithdrawSession) Unstake(_lsdTokenAmount *big.Int
 // Solidity: function unstake(uint256 _lsdTokenAmount) returns()
 func (_NetworkWithdraw *NetworkWithdrawTransactorSession) Unstake(_lsdTokenAmount *big.Int) (*types.Transaction, error) {
 	return _NetworkWithdraw.Contract.Unstake(&_NetworkWithdraw.TransactOpts, _lsdTokenAmount)
-}
-
-// UpdateMerkleRoot is a paid mutator transaction binding the contract method 0x4783f0ef.
-//
-// Solidity: function updateMerkleRoot(bytes32 _merkleRoot) returns()
-func (_NetworkWithdraw *NetworkWithdrawTransactor) UpdateMerkleRoot(opts *bind.TransactOpts, _merkleRoot [32]byte) (*types.Transaction, error) {
-	return _NetworkWithdraw.contract.Transact(opts, "updateMerkleRoot", _merkleRoot)
-}
-
-// UpdateMerkleRoot is a paid mutator transaction binding the contract method 0x4783f0ef.
-//
-// Solidity: function updateMerkleRoot(bytes32 _merkleRoot) returns()
-func (_NetworkWithdraw *NetworkWithdrawSession) UpdateMerkleRoot(_merkleRoot [32]byte) (*types.Transaction, error) {
-	return _NetworkWithdraw.Contract.UpdateMerkleRoot(&_NetworkWithdraw.TransactOpts, _merkleRoot)
-}
-
-// UpdateMerkleRoot is a paid mutator transaction binding the contract method 0x4783f0ef.
-//
-// Solidity: function updateMerkleRoot(bytes32 _merkleRoot) returns()
-func (_NetworkWithdraw *NetworkWithdrawTransactorSession) UpdateMerkleRoot(_merkleRoot [32]byte) (*types.Transaction, error) {
-	return _NetworkWithdraw.Contract.UpdateMerkleRoot(&_NetworkWithdraw.TransactOpts, _merkleRoot)
 }
 
 // Withdraw is a paid mutator transaction binding the contract method 0x983d95ce.
@@ -1612,7 +1643,7 @@ type NetworkWithdrawDistributeRewards struct {
 
 // FilterDistributeRewards is a free log retrieval operation binding the contract event 0xf10021cf129ec9c5003084ae330dba6d0bd143c47a2677c4d68939a19423206b.
 //
-// Solidity: event DistributeRewards(uint8 _distributeType, uint256 _dealedHeight, uint256 _userAmount, uint256 _nodeAmount, uint256 _platformAmount, uint256 _maxClaimableWithdrawIndex, uint256 _mvAmount)
+// Solidity: event DistributeRewards(uint8 distributeType, uint256 dealedHeight, uint256 userAmount, uint256 nodeAmount, uint256 platformAmount, uint256 maxClaimableWithdrawIndex, uint256 mvAmount)
 func (_NetworkWithdraw *NetworkWithdrawFilterer) FilterDistributeRewards(opts *bind.FilterOpts) (*NetworkWithdrawDistributeRewardsIterator, error) {
 
 	logs, sub, err := _NetworkWithdraw.contract.FilterLogs(opts, "DistributeRewards")
@@ -1624,7 +1655,7 @@ func (_NetworkWithdraw *NetworkWithdrawFilterer) FilterDistributeRewards(opts *b
 
 // WatchDistributeRewards is a free log subscription operation binding the contract event 0xf10021cf129ec9c5003084ae330dba6d0bd143c47a2677c4d68939a19423206b.
 //
-// Solidity: event DistributeRewards(uint8 _distributeType, uint256 _dealedHeight, uint256 _userAmount, uint256 _nodeAmount, uint256 _platformAmount, uint256 _maxClaimableWithdrawIndex, uint256 _mvAmount)
+// Solidity: event DistributeRewards(uint8 distributeType, uint256 dealedHeight, uint256 userAmount, uint256 nodeAmount, uint256 platformAmount, uint256 maxClaimableWithdrawIndex, uint256 mvAmount)
 func (_NetworkWithdraw *NetworkWithdrawFilterer) WatchDistributeRewards(opts *bind.WatchOpts, sink chan<- *NetworkWithdrawDistributeRewards) (event.Subscription, error) {
 
 	logs, sub, err := _NetworkWithdraw.contract.WatchLogs(opts, "DistributeRewards")
@@ -1661,7 +1692,7 @@ func (_NetworkWithdraw *NetworkWithdrawFilterer) WatchDistributeRewards(opts *bi
 
 // ParseDistributeRewards is a log parse operation binding the contract event 0xf10021cf129ec9c5003084ae330dba6d0bd143c47a2677c4d68939a19423206b.
 //
-// Solidity: event DistributeRewards(uint8 _distributeType, uint256 _dealedHeight, uint256 _userAmount, uint256 _nodeAmount, uint256 _platformAmount, uint256 _maxClaimableWithdrawIndex, uint256 _mvAmount)
+// Solidity: event DistributeRewards(uint8 distributeType, uint256 dealedHeight, uint256 userAmount, uint256 nodeAmount, uint256 platformAmount, uint256 maxClaimableWithdrawIndex, uint256 mvAmount)
 func (_NetworkWithdraw *NetworkWithdrawFilterer) ParseDistributeRewards(log types.Log) (*NetworkWithdrawDistributeRewards, error) {
 	event := new(NetworkWithdrawDistributeRewards)
 	if err := _NetworkWithdraw.contract.UnpackLog(event, "DistributeRewards", log); err != nil {
@@ -1748,15 +1779,15 @@ type NetworkWithdrawEtherDeposited struct {
 
 // FilterEtherDeposited is a free log retrieval operation binding the contract event 0xef51b4c870b8b0100eae2072e91db01222a303072af3728e58c9d4d2da33127f.
 //
-// Solidity: event EtherDeposited(address indexed _from, uint256 _amount, uint256 _time)
-func (_NetworkWithdraw *NetworkWithdrawFilterer) FilterEtherDeposited(opts *bind.FilterOpts, _from []common.Address) (*NetworkWithdrawEtherDepositedIterator, error) {
+// Solidity: event EtherDeposited(address indexed from, uint256 amount, uint256 time)
+func (_NetworkWithdraw *NetworkWithdrawFilterer) FilterEtherDeposited(opts *bind.FilterOpts, from []common.Address) (*NetworkWithdrawEtherDepositedIterator, error) {
 
-	var _fromRule []interface{}
-	for _, _fromItem := range _from {
-		_fromRule = append(_fromRule, _fromItem)
+	var fromRule []interface{}
+	for _, fromItem := range from {
+		fromRule = append(fromRule, fromItem)
 	}
 
-	logs, sub, err := _NetworkWithdraw.contract.FilterLogs(opts, "EtherDeposited", _fromRule)
+	logs, sub, err := _NetworkWithdraw.contract.FilterLogs(opts, "EtherDeposited", fromRule)
 	if err != nil {
 		return nil, err
 	}
@@ -1765,15 +1796,15 @@ func (_NetworkWithdraw *NetworkWithdrawFilterer) FilterEtherDeposited(opts *bind
 
 // WatchEtherDeposited is a free log subscription operation binding the contract event 0xef51b4c870b8b0100eae2072e91db01222a303072af3728e58c9d4d2da33127f.
 //
-// Solidity: event EtherDeposited(address indexed _from, uint256 _amount, uint256 _time)
-func (_NetworkWithdraw *NetworkWithdrawFilterer) WatchEtherDeposited(opts *bind.WatchOpts, sink chan<- *NetworkWithdrawEtherDeposited, _from []common.Address) (event.Subscription, error) {
+// Solidity: event EtherDeposited(address indexed from, uint256 amount, uint256 time)
+func (_NetworkWithdraw *NetworkWithdrawFilterer) WatchEtherDeposited(opts *bind.WatchOpts, sink chan<- *NetworkWithdrawEtherDeposited, from []common.Address) (event.Subscription, error) {
 
-	var _fromRule []interface{}
-	for _, _fromItem := range _from {
-		_fromRule = append(_fromRule, _fromItem)
+	var fromRule []interface{}
+	for _, fromItem := range from {
+		fromRule = append(fromRule, fromItem)
 	}
 
-	logs, sub, err := _NetworkWithdraw.contract.WatchLogs(opts, "EtherDeposited", _fromRule)
+	logs, sub, err := _NetworkWithdraw.contract.WatchLogs(opts, "EtherDeposited", fromRule)
 	if err != nil {
 		return nil, err
 	}
@@ -1807,7 +1838,7 @@ func (_NetworkWithdraw *NetworkWithdrawFilterer) WatchEtherDeposited(opts *bind.
 
 // ParseEtherDeposited is a log parse operation binding the contract event 0xef51b4c870b8b0100eae2072e91db01222a303072af3728e58c9d4d2da33127f.
 //
-// Solidity: event EtherDeposited(address indexed _from, uint256 _amount, uint256 _time)
+// Solidity: event EtherDeposited(address indexed from, uint256 amount, uint256 time)
 func (_NetworkWithdraw *NetworkWithdrawFilterer) ParseEtherDeposited(log types.Log) (*NetworkWithdrawEtherDeposited, error) {
 	event := new(NetworkWithdrawEtherDeposited)
 	if err := _NetworkWithdraw.contract.UnpackLog(event, "EtherDeposited", log); err != nil {
@@ -1896,7 +1927,7 @@ type NetworkWithdrawNodeClaimed struct {
 
 // FilterNodeClaimed is a free log retrieval operation binding the contract event 0x659e842f0209726671f562e8d7ee3a25d2cef92c2b85dcd268af93ef5d13582c.
 //
-// Solidity: event NodeClaimed(uint256 _index, address _account, uint256 _claimableReward, uint256 _claimableDeposit, uint8 _claimType)
+// Solidity: event NodeClaimed(uint256 index, address account, uint256 claimableReward, uint256 claimableDeposit, uint8 claimType)
 func (_NetworkWithdraw *NetworkWithdrawFilterer) FilterNodeClaimed(opts *bind.FilterOpts) (*NetworkWithdrawNodeClaimedIterator, error) {
 
 	logs, sub, err := _NetworkWithdraw.contract.FilterLogs(opts, "NodeClaimed")
@@ -1908,7 +1939,7 @@ func (_NetworkWithdraw *NetworkWithdrawFilterer) FilterNodeClaimed(opts *bind.Fi
 
 // WatchNodeClaimed is a free log subscription operation binding the contract event 0x659e842f0209726671f562e8d7ee3a25d2cef92c2b85dcd268af93ef5d13582c.
 //
-// Solidity: event NodeClaimed(uint256 _index, address _account, uint256 _claimableReward, uint256 _claimableDeposit, uint8 _claimType)
+// Solidity: event NodeClaimed(uint256 index, address account, uint256 claimableReward, uint256 claimableDeposit, uint8 claimType)
 func (_NetworkWithdraw *NetworkWithdrawFilterer) WatchNodeClaimed(opts *bind.WatchOpts, sink chan<- *NetworkWithdrawNodeClaimed) (event.Subscription, error) {
 
 	logs, sub, err := _NetworkWithdraw.contract.WatchLogs(opts, "NodeClaimed")
@@ -1945,7 +1976,7 @@ func (_NetworkWithdraw *NetworkWithdrawFilterer) WatchNodeClaimed(opts *bind.Wat
 
 // ParseNodeClaimed is a log parse operation binding the contract event 0x659e842f0209726671f562e8d7ee3a25d2cef92c2b85dcd268af93ef5d13582c.
 //
-// Solidity: event NodeClaimed(uint256 _index, address _account, uint256 _claimableReward, uint256 _claimableDeposit, uint8 _claimType)
+// Solidity: event NodeClaimed(uint256 index, address account, uint256 claimableReward, uint256 claimableDeposit, uint8 claimType)
 func (_NetworkWithdraw *NetworkWithdrawFilterer) ParseNodeClaimed(log types.Log) (*NetworkWithdrawNodeClaimed, error) {
 	event := new(NetworkWithdrawNodeClaimed)
 	if err := _NetworkWithdraw.contract.UnpackLog(event, "NodeClaimed", log); err != nil {
@@ -2032,7 +2063,7 @@ type NetworkWithdrawNotifyValidatorExit struct {
 
 // FilterNotifyValidatorExit is a free log retrieval operation binding the contract event 0xb83477449e27b4bab4f28c938d033b953557d6a1b9b4469a43d229f78ed6e55c.
 //
-// Solidity: event NotifyValidatorExit(uint256 _withdrawCycle, uint256 _ejectedStartWithdrawCycle, uint256[] _ejectedValidators)
+// Solidity: event NotifyValidatorExit(uint256 withdrawCycle, uint256 ejectedStartWithdrawCycle, uint256[] ejectedValidators)
 func (_NetworkWithdraw *NetworkWithdrawFilterer) FilterNotifyValidatorExit(opts *bind.FilterOpts) (*NetworkWithdrawNotifyValidatorExitIterator, error) {
 
 	logs, sub, err := _NetworkWithdraw.contract.FilterLogs(opts, "NotifyValidatorExit")
@@ -2044,7 +2075,7 @@ func (_NetworkWithdraw *NetworkWithdrawFilterer) FilterNotifyValidatorExit(opts 
 
 // WatchNotifyValidatorExit is a free log subscription operation binding the contract event 0xb83477449e27b4bab4f28c938d033b953557d6a1b9b4469a43d229f78ed6e55c.
 //
-// Solidity: event NotifyValidatorExit(uint256 _withdrawCycle, uint256 _ejectedStartWithdrawCycle, uint256[] _ejectedValidators)
+// Solidity: event NotifyValidatorExit(uint256 withdrawCycle, uint256 ejectedStartWithdrawCycle, uint256[] ejectedValidators)
 func (_NetworkWithdraw *NetworkWithdrawFilterer) WatchNotifyValidatorExit(opts *bind.WatchOpts, sink chan<- *NetworkWithdrawNotifyValidatorExit) (event.Subscription, error) {
 
 	logs, sub, err := _NetworkWithdraw.contract.WatchLogs(opts, "NotifyValidatorExit")
@@ -2081,7 +2112,7 @@ func (_NetworkWithdraw *NetworkWithdrawFilterer) WatchNotifyValidatorExit(opts *
 
 // ParseNotifyValidatorExit is a log parse operation binding the contract event 0xb83477449e27b4bab4f28c938d033b953557d6a1b9b4469a43d229f78ed6e55c.
 //
-// Solidity: event NotifyValidatorExit(uint256 _withdrawCycle, uint256 _ejectedStartWithdrawCycle, uint256[] _ejectedValidators)
+// Solidity: event NotifyValidatorExit(uint256 withdrawCycle, uint256 ejectedStartWithdrawCycle, uint256[] ejectedValidators)
 func (_NetworkWithdraw *NetworkWithdrawFilterer) ParseNotifyValidatorExit(log types.Log) (*NetworkWithdrawNotifyValidatorExit, error) {
 	event := new(NetworkWithdrawNotifyValidatorExit)
 	if err := _NetworkWithdraw.contract.UnpackLog(event, "NotifyValidatorExit", log); err != nil {
@@ -2168,15 +2199,15 @@ type NetworkWithdrawSetMerkleRoot struct {
 
 // FilterSetMerkleRoot is a free log retrieval operation binding the contract event 0xec43b2424d0504da473794ad49016df3e06fb0d772bb403d724c9e5d53d8afb8.
 //
-// Solidity: event SetMerkleRoot(uint256 indexed _dealedEpoch, bytes32 _merkleRoot, string _nodeRewardsFileCid)
-func (_NetworkWithdraw *NetworkWithdrawFilterer) FilterSetMerkleRoot(opts *bind.FilterOpts, _dealedEpoch []*big.Int) (*NetworkWithdrawSetMerkleRootIterator, error) {
+// Solidity: event SetMerkleRoot(uint256 indexed dealedEpoch, bytes32 merkleRoot, string nodeRewardsFileCid)
+func (_NetworkWithdraw *NetworkWithdrawFilterer) FilterSetMerkleRoot(opts *bind.FilterOpts, dealedEpoch []*big.Int) (*NetworkWithdrawSetMerkleRootIterator, error) {
 
-	var _dealedEpochRule []interface{}
-	for _, _dealedEpochItem := range _dealedEpoch {
-		_dealedEpochRule = append(_dealedEpochRule, _dealedEpochItem)
+	var dealedEpochRule []interface{}
+	for _, dealedEpochItem := range dealedEpoch {
+		dealedEpochRule = append(dealedEpochRule, dealedEpochItem)
 	}
 
-	logs, sub, err := _NetworkWithdraw.contract.FilterLogs(opts, "SetMerkleRoot", _dealedEpochRule)
+	logs, sub, err := _NetworkWithdraw.contract.FilterLogs(opts, "SetMerkleRoot", dealedEpochRule)
 	if err != nil {
 		return nil, err
 	}
@@ -2185,15 +2216,15 @@ func (_NetworkWithdraw *NetworkWithdrawFilterer) FilterSetMerkleRoot(opts *bind.
 
 // WatchSetMerkleRoot is a free log subscription operation binding the contract event 0xec43b2424d0504da473794ad49016df3e06fb0d772bb403d724c9e5d53d8afb8.
 //
-// Solidity: event SetMerkleRoot(uint256 indexed _dealedEpoch, bytes32 _merkleRoot, string _nodeRewardsFileCid)
-func (_NetworkWithdraw *NetworkWithdrawFilterer) WatchSetMerkleRoot(opts *bind.WatchOpts, sink chan<- *NetworkWithdrawSetMerkleRoot, _dealedEpoch []*big.Int) (event.Subscription, error) {
+// Solidity: event SetMerkleRoot(uint256 indexed dealedEpoch, bytes32 merkleRoot, string nodeRewardsFileCid)
+func (_NetworkWithdraw *NetworkWithdrawFilterer) WatchSetMerkleRoot(opts *bind.WatchOpts, sink chan<- *NetworkWithdrawSetMerkleRoot, dealedEpoch []*big.Int) (event.Subscription, error) {
 
-	var _dealedEpochRule []interface{}
-	for _, _dealedEpochItem := range _dealedEpoch {
-		_dealedEpochRule = append(_dealedEpochRule, _dealedEpochItem)
+	var dealedEpochRule []interface{}
+	for _, dealedEpochItem := range dealedEpoch {
+		dealedEpochRule = append(dealedEpochRule, dealedEpochItem)
 	}
 
-	logs, sub, err := _NetworkWithdraw.contract.WatchLogs(opts, "SetMerkleRoot", _dealedEpochRule)
+	logs, sub, err := _NetworkWithdraw.contract.WatchLogs(opts, "SetMerkleRoot", dealedEpochRule)
 	if err != nil {
 		return nil, err
 	}
@@ -2227,7 +2258,7 @@ func (_NetworkWithdraw *NetworkWithdrawFilterer) WatchSetMerkleRoot(opts *bind.W
 
 // ParseSetMerkleRoot is a log parse operation binding the contract event 0xec43b2424d0504da473794ad49016df3e06fb0d772bb403d724c9e5d53d8afb8.
 //
-// Solidity: event SetMerkleRoot(uint256 indexed _dealedEpoch, bytes32 _merkleRoot, string _nodeRewardsFileCid)
+// Solidity: event SetMerkleRoot(uint256 indexed dealedEpoch, bytes32 merkleRoot, string nodeRewardsFileCid)
 func (_NetworkWithdraw *NetworkWithdrawFilterer) ParseSetMerkleRoot(log types.Log) (*NetworkWithdrawSetMerkleRoot, error) {
 	event := new(NetworkWithdrawSetMerkleRoot)
 	if err := _NetworkWithdraw.contract.UnpackLog(event, "SetMerkleRoot", log); err != nil {
@@ -2312,7 +2343,7 @@ type NetworkWithdrawSetUserWithdrawLimitPerCycle struct {
 
 // FilterSetUserWithdrawLimitPerCycle is a free log retrieval operation binding the contract event 0x208ed057768c8997dde633000b59d3a1c2f498337c95bf9ecccc810f698d9194.
 //
-// Solidity: event SetUserWithdrawLimitPerCycle(uint256 _userWithdrawLimitPerCycle)
+// Solidity: event SetUserWithdrawLimitPerCycle(uint256 userWithdrawLimitPerCycle)
 func (_NetworkWithdraw *NetworkWithdrawFilterer) FilterSetUserWithdrawLimitPerCycle(opts *bind.FilterOpts) (*NetworkWithdrawSetUserWithdrawLimitPerCycleIterator, error) {
 
 	logs, sub, err := _NetworkWithdraw.contract.FilterLogs(opts, "SetUserWithdrawLimitPerCycle")
@@ -2324,7 +2355,7 @@ func (_NetworkWithdraw *NetworkWithdrawFilterer) FilterSetUserWithdrawLimitPerCy
 
 // WatchSetUserWithdrawLimitPerCycle is a free log subscription operation binding the contract event 0x208ed057768c8997dde633000b59d3a1c2f498337c95bf9ecccc810f698d9194.
 //
-// Solidity: event SetUserWithdrawLimitPerCycle(uint256 _userWithdrawLimitPerCycle)
+// Solidity: event SetUserWithdrawLimitPerCycle(uint256 userWithdrawLimitPerCycle)
 func (_NetworkWithdraw *NetworkWithdrawFilterer) WatchSetUserWithdrawLimitPerCycle(opts *bind.WatchOpts, sink chan<- *NetworkWithdrawSetUserWithdrawLimitPerCycle) (event.Subscription, error) {
 
 	logs, sub, err := _NetworkWithdraw.contract.WatchLogs(opts, "SetUserWithdrawLimitPerCycle")
@@ -2361,7 +2392,7 @@ func (_NetworkWithdraw *NetworkWithdrawFilterer) WatchSetUserWithdrawLimitPerCyc
 
 // ParseSetUserWithdrawLimitPerCycle is a log parse operation binding the contract event 0x208ed057768c8997dde633000b59d3a1c2f498337c95bf9ecccc810f698d9194.
 //
-// Solidity: event SetUserWithdrawLimitPerCycle(uint256 _userWithdrawLimitPerCycle)
+// Solidity: event SetUserWithdrawLimitPerCycle(uint256 userWithdrawLimitPerCycle)
 func (_NetworkWithdraw *NetworkWithdrawFilterer) ParseSetUserWithdrawLimitPerCycle(log types.Log) (*NetworkWithdrawSetUserWithdrawLimitPerCycle, error) {
 	event := new(NetworkWithdrawSetUserWithdrawLimitPerCycle)
 	if err := _NetworkWithdraw.contract.UnpackLog(event, "SetUserWithdrawLimitPerCycle", log); err != nil {
@@ -2440,13 +2471,13 @@ func (it *NetworkWithdrawSetWithdrawCycleSecondsIterator) Close() error {
 
 // NetworkWithdrawSetWithdrawCycleSeconds represents a SetWithdrawCycleSeconds event raised by the NetworkWithdraw contract.
 type NetworkWithdrawSetWithdrawCycleSeconds struct {
-	Seconds *big.Int
-	Raw     types.Log // Blockchain specific contextual infos
+	CycleSeconds *big.Int
+	Raw          types.Log // Blockchain specific contextual infos
 }
 
 // FilterSetWithdrawCycleSeconds is a free log retrieval operation binding the contract event 0xa8bf31f5ff469d988ee50031edcb6b8a44b1cd010a1561d9a7a06d71c2193e6c.
 //
-// Solidity: event SetWithdrawCycleSeconds(uint256 _seconds)
+// Solidity: event SetWithdrawCycleSeconds(uint256 cycleSeconds)
 func (_NetworkWithdraw *NetworkWithdrawFilterer) FilterSetWithdrawCycleSeconds(opts *bind.FilterOpts) (*NetworkWithdrawSetWithdrawCycleSecondsIterator, error) {
 
 	logs, sub, err := _NetworkWithdraw.contract.FilterLogs(opts, "SetWithdrawCycleSeconds")
@@ -2458,7 +2489,7 @@ func (_NetworkWithdraw *NetworkWithdrawFilterer) FilterSetWithdrawCycleSeconds(o
 
 // WatchSetWithdrawCycleSeconds is a free log subscription operation binding the contract event 0xa8bf31f5ff469d988ee50031edcb6b8a44b1cd010a1561d9a7a06d71c2193e6c.
 //
-// Solidity: event SetWithdrawCycleSeconds(uint256 _seconds)
+// Solidity: event SetWithdrawCycleSeconds(uint256 cycleSeconds)
 func (_NetworkWithdraw *NetworkWithdrawFilterer) WatchSetWithdrawCycleSeconds(opts *bind.WatchOpts, sink chan<- *NetworkWithdrawSetWithdrawCycleSeconds) (event.Subscription, error) {
 
 	logs, sub, err := _NetworkWithdraw.contract.WatchLogs(opts, "SetWithdrawCycleSeconds")
@@ -2495,7 +2526,7 @@ func (_NetworkWithdraw *NetworkWithdrawFilterer) WatchSetWithdrawCycleSeconds(op
 
 // ParseSetWithdrawCycleSeconds is a log parse operation binding the contract event 0xa8bf31f5ff469d988ee50031edcb6b8a44b1cd010a1561d9a7a06d71c2193e6c.
 //
-// Solidity: event SetWithdrawCycleSeconds(uint256 _seconds)
+// Solidity: event SetWithdrawCycleSeconds(uint256 cycleSeconds)
 func (_NetworkWithdraw *NetworkWithdrawFilterer) ParseSetWithdrawCycleSeconds(log types.Log) (*NetworkWithdrawSetWithdrawCycleSeconds, error) {
 	event := new(NetworkWithdrawSetWithdrawCycleSeconds)
 	if err := _NetworkWithdraw.contract.UnpackLog(event, "SetWithdrawCycleSeconds", log); err != nil {
@@ -2580,7 +2611,7 @@ type NetworkWithdrawSetWithdrawLimitPerCycle struct {
 
 // FilterSetWithdrawLimitPerCycle is a free log retrieval operation binding the contract event 0x8425a2e73ee4ea13649867c99971ddd01b64049295025867a4737f69c671358c.
 //
-// Solidity: event SetWithdrawLimitPerCycle(uint256 _withdrawLimitPerCycle)
+// Solidity: event SetWithdrawLimitPerCycle(uint256 withdrawLimitPerCycle)
 func (_NetworkWithdraw *NetworkWithdrawFilterer) FilterSetWithdrawLimitPerCycle(opts *bind.FilterOpts) (*NetworkWithdrawSetWithdrawLimitPerCycleIterator, error) {
 
 	logs, sub, err := _NetworkWithdraw.contract.FilterLogs(opts, "SetWithdrawLimitPerCycle")
@@ -2592,7 +2623,7 @@ func (_NetworkWithdraw *NetworkWithdrawFilterer) FilterSetWithdrawLimitPerCycle(
 
 // WatchSetWithdrawLimitPerCycle is a free log subscription operation binding the contract event 0x8425a2e73ee4ea13649867c99971ddd01b64049295025867a4737f69c671358c.
 //
-// Solidity: event SetWithdrawLimitPerCycle(uint256 _withdrawLimitPerCycle)
+// Solidity: event SetWithdrawLimitPerCycle(uint256 withdrawLimitPerCycle)
 func (_NetworkWithdraw *NetworkWithdrawFilterer) WatchSetWithdrawLimitPerCycle(opts *bind.WatchOpts, sink chan<- *NetworkWithdrawSetWithdrawLimitPerCycle) (event.Subscription, error) {
 
 	logs, sub, err := _NetworkWithdraw.contract.WatchLogs(opts, "SetWithdrawLimitPerCycle")
@@ -2629,7 +2660,7 @@ func (_NetworkWithdraw *NetworkWithdrawFilterer) WatchSetWithdrawLimitPerCycle(o
 
 // ParseSetWithdrawLimitPerCycle is a log parse operation binding the contract event 0x8425a2e73ee4ea13649867c99971ddd01b64049295025867a4737f69c671358c.
 //
-// Solidity: event SetWithdrawLimitPerCycle(uint256 _withdrawLimitPerCycle)
+// Solidity: event SetWithdrawLimitPerCycle(uint256 withdrawLimitPerCycle)
 func (_NetworkWithdraw *NetworkWithdrawFilterer) ParseSetWithdrawLimitPerCycle(log types.Log) (*NetworkWithdrawSetWithdrawLimitPerCycle, error) {
 	event := new(NetworkWithdrawSetWithdrawLimitPerCycle)
 	if err := _NetworkWithdraw.contract.UnpackLog(event, "SetWithdrawLimitPerCycle", log); err != nil {
@@ -2718,15 +2749,15 @@ type NetworkWithdrawUnstake struct {
 
 // FilterUnstake is a free log retrieval operation binding the contract event 0xc7ccdcb2d25f572c6814e377dbb34ea4318a4b7d3cd890f5cfad699d75327c7c.
 //
-// Solidity: event Unstake(address indexed _from, uint256 _lsdTokenAmount, uint256 _ethAmount, uint256 _withdrawIndex, bool _instantly)
-func (_NetworkWithdraw *NetworkWithdrawFilterer) FilterUnstake(opts *bind.FilterOpts, _from []common.Address) (*NetworkWithdrawUnstakeIterator, error) {
+// Solidity: event Unstake(address indexed from, uint256 lsdTokenAmount, uint256 ethAmount, uint256 withdrawIndex, bool instantly)
+func (_NetworkWithdraw *NetworkWithdrawFilterer) FilterUnstake(opts *bind.FilterOpts, from []common.Address) (*NetworkWithdrawUnstakeIterator, error) {
 
-	var _fromRule []interface{}
-	for _, _fromItem := range _from {
-		_fromRule = append(_fromRule, _fromItem)
+	var fromRule []interface{}
+	for _, fromItem := range from {
+		fromRule = append(fromRule, fromItem)
 	}
 
-	logs, sub, err := _NetworkWithdraw.contract.FilterLogs(opts, "Unstake", _fromRule)
+	logs, sub, err := _NetworkWithdraw.contract.FilterLogs(opts, "Unstake", fromRule)
 	if err != nil {
 		return nil, err
 	}
@@ -2735,15 +2766,15 @@ func (_NetworkWithdraw *NetworkWithdrawFilterer) FilterUnstake(opts *bind.Filter
 
 // WatchUnstake is a free log subscription operation binding the contract event 0xc7ccdcb2d25f572c6814e377dbb34ea4318a4b7d3cd890f5cfad699d75327c7c.
 //
-// Solidity: event Unstake(address indexed _from, uint256 _lsdTokenAmount, uint256 _ethAmount, uint256 _withdrawIndex, bool _instantly)
-func (_NetworkWithdraw *NetworkWithdrawFilterer) WatchUnstake(opts *bind.WatchOpts, sink chan<- *NetworkWithdrawUnstake, _from []common.Address) (event.Subscription, error) {
+// Solidity: event Unstake(address indexed from, uint256 lsdTokenAmount, uint256 ethAmount, uint256 withdrawIndex, bool instantly)
+func (_NetworkWithdraw *NetworkWithdrawFilterer) WatchUnstake(opts *bind.WatchOpts, sink chan<- *NetworkWithdrawUnstake, from []common.Address) (event.Subscription, error) {
 
-	var _fromRule []interface{}
-	for _, _fromItem := range _from {
-		_fromRule = append(_fromRule, _fromItem)
+	var fromRule []interface{}
+	for _, fromItem := range from {
+		fromRule = append(fromRule, fromItem)
 	}
 
-	logs, sub, err := _NetworkWithdraw.contract.WatchLogs(opts, "Unstake", _fromRule)
+	logs, sub, err := _NetworkWithdraw.contract.WatchLogs(opts, "Unstake", fromRule)
 	if err != nil {
 		return nil, err
 	}
@@ -2777,7 +2808,7 @@ func (_NetworkWithdraw *NetworkWithdrawFilterer) WatchUnstake(opts *bind.WatchOp
 
 // ParseUnstake is a log parse operation binding the contract event 0xc7ccdcb2d25f572c6814e377dbb34ea4318a4b7d3cd890f5cfad699d75327c7c.
 //
-// Solidity: event Unstake(address indexed _from, uint256 _lsdTokenAmount, uint256 _ethAmount, uint256 _withdrawIndex, bool _instantly)
+// Solidity: event Unstake(address indexed from, uint256 lsdTokenAmount, uint256 ethAmount, uint256 withdrawIndex, bool instantly)
 func (_NetworkWithdraw *NetworkWithdrawFilterer) ParseUnstake(log types.Log) (*NetworkWithdrawUnstake, error) {
 	event := new(NetworkWithdrawUnstake)
 	if err := _NetworkWithdraw.contract.UnpackLog(event, "Unstake", log); err != nil {
@@ -2863,15 +2894,15 @@ type NetworkWithdrawWithdraw struct {
 
 // FilterWithdraw is a free log retrieval operation binding the contract event 0x67e9df8b3c7743c9f1b625ba4f2b4e601206dbd46ed5c33c85a1242e4d23a2d1.
 //
-// Solidity: event Withdraw(address indexed _from, uint256[] _withdrawIndexList)
-func (_NetworkWithdraw *NetworkWithdrawFilterer) FilterWithdraw(opts *bind.FilterOpts, _from []common.Address) (*NetworkWithdrawWithdrawIterator, error) {
+// Solidity: event Withdraw(address indexed from, uint256[] withdrawIndexList)
+func (_NetworkWithdraw *NetworkWithdrawFilterer) FilterWithdraw(opts *bind.FilterOpts, from []common.Address) (*NetworkWithdrawWithdrawIterator, error) {
 
-	var _fromRule []interface{}
-	for _, _fromItem := range _from {
-		_fromRule = append(_fromRule, _fromItem)
+	var fromRule []interface{}
+	for _, fromItem := range from {
+		fromRule = append(fromRule, fromItem)
 	}
 
-	logs, sub, err := _NetworkWithdraw.contract.FilterLogs(opts, "Withdraw", _fromRule)
+	logs, sub, err := _NetworkWithdraw.contract.FilterLogs(opts, "Withdraw", fromRule)
 	if err != nil {
 		return nil, err
 	}
@@ -2880,15 +2911,15 @@ func (_NetworkWithdraw *NetworkWithdrawFilterer) FilterWithdraw(opts *bind.Filte
 
 // WatchWithdraw is a free log subscription operation binding the contract event 0x67e9df8b3c7743c9f1b625ba4f2b4e601206dbd46ed5c33c85a1242e4d23a2d1.
 //
-// Solidity: event Withdraw(address indexed _from, uint256[] _withdrawIndexList)
-func (_NetworkWithdraw *NetworkWithdrawFilterer) WatchWithdraw(opts *bind.WatchOpts, sink chan<- *NetworkWithdrawWithdraw, _from []common.Address) (event.Subscription, error) {
+// Solidity: event Withdraw(address indexed from, uint256[] withdrawIndexList)
+func (_NetworkWithdraw *NetworkWithdrawFilterer) WatchWithdraw(opts *bind.WatchOpts, sink chan<- *NetworkWithdrawWithdraw, from []common.Address) (event.Subscription, error) {
 
-	var _fromRule []interface{}
-	for _, _fromItem := range _from {
-		_fromRule = append(_fromRule, _fromItem)
+	var fromRule []interface{}
+	for _, fromItem := range from {
+		fromRule = append(fromRule, fromItem)
 	}
 
-	logs, sub, err := _NetworkWithdraw.contract.WatchLogs(opts, "Withdraw", _fromRule)
+	logs, sub, err := _NetworkWithdraw.contract.WatchLogs(opts, "Withdraw", fromRule)
 	if err != nil {
 		return nil, err
 	}
@@ -2922,7 +2953,7 @@ func (_NetworkWithdraw *NetworkWithdrawFilterer) WatchWithdraw(opts *bind.WatchO
 
 // ParseWithdraw is a log parse operation binding the contract event 0x67e9df8b3c7743c9f1b625ba4f2b4e601206dbd46ed5c33c85a1242e4d23a2d1.
 //
-// Solidity: event Withdraw(address indexed _from, uint256[] _withdrawIndexList)
+// Solidity: event Withdraw(address indexed from, uint256[] withdrawIndexList)
 func (_NetworkWithdraw *NetworkWithdrawFilterer) ParseWithdraw(log types.Log) (*NetworkWithdrawWithdraw, error) {
 	event := new(NetworkWithdrawWithdraw)
 	if err := _NetworkWithdraw.contract.UnpackLog(event, "Withdraw", log); err != nil {
