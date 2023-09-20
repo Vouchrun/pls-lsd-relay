@@ -15,7 +15,10 @@ import (
 	"github.com/stafiprotocol/eth-lsd-relay/pkg/utils"
 )
 
-type NodeRewardsList []*NodeReward
+type NodeRewardsList struct {
+	Epoch uint64
+	List  []*NodeReward
+}
 type NodeRewardsMap map[common.Address]*NodeReward       // nodeAddress(hex with 0x) -> nodeReward
 type NodeNewRewardsMap map[common.Address]*NodeNewReward // nodeAddress(hex with 0x) -> nodeNewReward
 
@@ -45,19 +48,16 @@ func (s *Service) setMerkleRoot() error {
 	}
 
 	var dealedEth1BlockHeight uint64
-	preNodeRewardList := make(NodeRewardsList, 0)
+	preNodeRewardList := NodeRewardsList{}
 	preNodeRewardMap := make(NodeRewardsMap)
-	if dealedEpochOnchain.Uint64() > 0 {
-		merkleRootIter, err := s.networkWithdrawContract.FilterSetMerkleRoot(nil, []*big.Int{dealedEpochOnchain})
+	if dealedEpochOnchain.Uint64() <= 0 {
+		// init case
+		dealedEth1BlockHeight = s.networkCreateBlock
+	} else {
+		preCid, err := s.networkWithdrawContract.NodeRewardsFileCid(nil)
 		if err != nil {
 			return err
 		}
-		if !merkleRootIter.Next() {
-			return fmt.Errorf("SetMerkleRoot event not exit on target epoch %d", dealedEpochOnchain.Uint64())
-		}
-
-		preCid := merkleRootIter.Event.NodeRewardsFileCid
-
 		fileBytes, err := utils.DownloadWeb3File(preCid, utils.NodeRewardsFileNameAtEpoch(dealedEpochOnchain.Uint64()))
 		if err != nil {
 			return err
@@ -67,17 +67,17 @@ func (s *Service) setMerkleRoot() error {
 		if err != nil {
 			return err
 		}
+		if preNodeRewardList.Epoch != 0 && preNodeRewardList.Epoch != dealedEpochOnchain.Uint64() {
+			return fmt.Errorf("pre node reward file epoch unmatch, cid: %s", preCid)
+		}
 
 		dealedEth1BlockHeight, err = s.getEpochStartBlocknumberWithCheck(dealedEpochOnchain.Uint64())
 		if err != nil {
 			return err
 		}
-	} else {
-		// init case
-		dealedEth1BlockHeight = s.networkCreateBlock
 	}
 
-	for _, nodeReward := range preNodeRewardList {
+	for _, nodeReward := range preNodeRewardList.List {
 		address := common.HexToAddress(nodeReward.Address)
 		_, exist := preNodeRewardMap[address]
 		if exist {
@@ -123,19 +123,19 @@ func (s *Service) setMerkleRoot() error {
 	}
 
 	// got final list
-	finalNodeRewardsList := make(NodeRewardsList, 0)
+	finalNodeRewardsList := NodeRewardsList{Epoch: targetEpoch, List: make([]*NodeReward, 0)}
 	for _, node := range finalNodeRewardsMap {
-		finalNodeRewardsList = append(finalNodeRewardsList, node)
+		finalNodeRewardsList.List = append(finalNodeRewardsList.List, node)
 	}
-	sort.SliceStable(finalNodeRewardsList, func(i, j int) bool {
-		return finalNodeRewardsList[i].Address < finalNodeRewardsList[j].Address
+	sort.SliceStable(finalNodeRewardsList.List, func(i, j int) bool {
+		return finalNodeRewardsList.List[i].Address < finalNodeRewardsList.List[j].Address
 	})
-	for i, node := range finalNodeRewardsList {
+	for i, node := range finalNodeRewardsList.List {
 		node.Index = uint32(i)
 	}
 
 	rootHash := utils.NodeHash{}
-	if len(finalNodeRewardsList) > 0 {
+	if len(finalNodeRewardsList.List) > 0 {
 		// build merkle tree
 		tree, err := buildMerkleTree(finalNodeRewardsList)
 		if err != nil {
@@ -147,7 +147,7 @@ func (s *Service) setMerkleRoot() error {
 		}
 
 		// calc proof
-		for _, nodeReward := range finalNodeRewardsList {
+		for _, nodeReward := range finalNodeRewardsList.List {
 			nodeHash := utils.GetNodeHash(big.NewInt(int64(nodeReward.Index)), common.HexToAddress(nodeReward.Address),
 				nodeReward.TotalRewardAmount.BigInt(), nodeReward.TotalExitDepositAmount.BigInt())
 			proofList, err := tree.GetProof(nodeHash)
@@ -196,12 +196,11 @@ func (s *Service) setMerkleRoot() error {
 }
 
 func buildMerkleTree(nodelist NodeRewardsList) (*utils.MerkleTree, error) {
-	if len(nodelist) == 0 {
+	if len(nodelist.List) == 0 {
 		return nil, fmt.Errorf("proof list empty")
 	}
-	list := make(utils.NodeHashList, len(nodelist))
-	for i, data := range nodelist {
-
+	list := make(utils.NodeHashList, len(nodelist.List))
+	for i, data := range nodelist.List {
 		list[i] = utils.GetNodeHash(big.NewInt(int64(data.Index)), common.HexToAddress(data.Address),
 			data.TotalRewardAmount.BigInt(), data.TotalExitDepositAmount.BigInt())
 	}
