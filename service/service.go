@@ -327,12 +327,13 @@ func (s *Service) Start() error {
 		return err
 	}
 	s.nodeCommissionRate = decimal.NewFromBigInt(nodeCommissionRate, 0).Div(decimal.NewFromInt(1e18))
-
 	platformCommissionRate, err := s.networkWithdrawContract.PlatformCommissionRate(nil)
 	if err != nil {
 		return err
 	}
 	s.platfromCommissionRate = decimal.NewFromBigInt(platformCommissionRate, 0).Div(decimal.NewFromInt(1e18))
+
+	logrus.Infof("nodeCommission rate: %s, platformCommission rate: %s", s.nodeCommissionRate.String(), s.platfromCommissionRate.String())
 
 	// init latest block and slot number
 	s.latestBlockOfSyncBlock = s.networkCreateBlock

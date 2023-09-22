@@ -291,6 +291,9 @@ func WaitTxOkCommon(client *ethclient.Client, txHash common.Hash) (blockNumber u
 	return blockNumber, nil
 }
 
+// user = 90%*(1-nodedeposit/32)
+// node = 5% + (90% * nodedeposit/32)
+// platform = 5%
 // nodeDepositAmount decimals 18
 // rewardDeci decimals 18
 // return (user reward, node reward, paltform fee) decimals 18
@@ -299,25 +302,17 @@ func GetUserNodePlatformReward(nodeCommissionRate, platformCommissionRate, nodeD
 		return decimal.Zero, decimal.Zero, decimal.Zero
 	}
 
-	userDepositAmountDeci := StandardEffectiveBalanceDeci.Sub(nodeDepositAmountDeci)
-
 	// platform Fee
-	platformFinalFeeDeci := rewardDeci.Mul(platformCommissionRate)
-
-	// left fee(node+user)
-	leftRewardDeci := rewardDeci.Sub(platformFinalFeeDeci)
+	platformFee := rewardDeci.Mul(platformCommissionRate)
 
 	// node fee
-	userFee := userDepositAmountDeci.Mul(leftRewardDeci).Div(StandardEffectiveBalanceDeci)
+	leftRate := decimal.NewFromInt(1).Sub(nodeCommissionRate.Add(platformCommissionRate))
+	nodeTotalRate := nodeCommissionRate.Add(leftRate.Mul(nodeDepositAmountDeci.Div(StandardEffectiveBalanceDeci)))
+	nodeFee := rewardDeci.Mul(nodeTotalRate)
 
-	// nodeCommission
-	nodeCommission := userFee.Mul(nodeCommissionRate)
+	// user fee
 
-	// final user fee
-	userFinalFee := userFee.Sub(nodeCommission)
+	userFee := rewardDeci.Sub(platformFee.Add(nodeFee))
 
-	// final node fee
-	nodeFinalFee := leftRewardDeci.Sub(userFinalFee)
-
-	return userFinalFee, nodeFinalFee, platformFinalFeeDeci
+	return userFee, nodeFee, platformFee
 }
