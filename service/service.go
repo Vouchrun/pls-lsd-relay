@@ -334,7 +334,7 @@ func (s *Service) Start() error {
 	}
 	s.platfromCommissionRate = decimal.NewFromBigInt(platformCommissionRate, 0).Div(decimal.NewFromInt(1e18))
 
-	// init latest block
+	// init latest block and slot number
 	s.latestBlockOfSyncBlock = s.networkCreateBlock
 	s.latestBlockOfUpdateValidator = s.networkCreateBlock
 	s.latestBlockOfSyncDeposit = latestBlock - depositEventPreBlocks
@@ -383,7 +383,7 @@ func (s *Service) Start() error {
 
 	// start services
 	logrus.Info("start services...")
-	s.appendSyncHandlers(s.syncBlocks)
+	s.appendSyncHandlers(s.syncBlocks, s.pruneBlocks)
 
 	s.appendVoteHandlers(
 		s.updateValidatorsFromNetwork, s.updateValidatorsFromBeacon,
