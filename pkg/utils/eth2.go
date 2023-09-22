@@ -68,9 +68,6 @@ const (
 var (
 	GweiDeci = decimal.NewFromInt(1e9)
 
-	PlatformFeeV1Deci = decimal.NewFromFloat(0.1)
-	NodeFeeV1Deci     = decimal.NewFromFloat(0.1)
-
 	Percent5Deci  = decimal.NewFromFloat(0.05)
 	Percent90Deci = decimal.NewFromFloat(0.9)
 
@@ -294,27 +291,33 @@ func WaitTxOkCommon(client *ethclient.Client, txHash common.Hash) (blockNumber u
 	return blockNumber, nil
 }
 
-// user = 90%*(1-nodedeposit/32)
-// node = 5% + (90% * nodedeposit/32)
-// platform = 5%
 // nodeDepositAmount decimals 18
 // rewardDeci decimals 18
 // return (user reward, node reward, paltform fee) decimals 18
-func GetUserNodePlatformReward(nodeDepositAmount, rewardDeci decimal.Decimal) (decimal.Decimal, decimal.Decimal, decimal.Decimal) {
-	if !rewardDeci.IsPositive() || nodeDepositAmount.GreaterThan(StandardEffectiveBalanceDeci) {
+func GetUserNodePlatformReward(nodeCommissionRate, platformCommissionRate, nodeDepositAmountDeci, rewardDeci decimal.Decimal) (decimal.Decimal, decimal.Decimal, decimal.Decimal) {
+	if !rewardDeci.IsPositive() || nodeDepositAmountDeci.GreaterThan(StandardEffectiveBalanceDeci) {
 		return decimal.Zero, decimal.Zero, decimal.Zero
 	}
-	nodeDepositAmountDeci := nodeDepositAmount
-	standEffectiveBalanceDeci := StandardEffectiveBalanceDeci
+
+	userDepositAmountDeci := StandardEffectiveBalanceDeci.Sub(nodeDepositAmountDeci)
 
 	// platform Fee
-	platformFeeDeci := rewardDeci.Mul(Percent5Deci)
-	nodeRewardDeci := platformFeeDeci.Add(rewardDeci.Mul(Percent90Deci).Mul(nodeDepositAmountDeci).Div(standEffectiveBalanceDeci))
+	platformFinalFeeDeci := rewardDeci.Mul(platformCommissionRate)
 
-	userRewardDeci := rewardDeci.Sub(platformFeeDeci).Sub(nodeRewardDeci)
-	if userRewardDeci.IsNegative() {
-		userRewardDeci = decimal.Zero
-	}
+	// left fee(node+user)
+	leftRewardDeci := rewardDeci.Sub(platformFinalFeeDeci)
 
-	return userRewardDeci, nodeRewardDeci, platformFeeDeci
+	// node fee
+	userFee := userDepositAmountDeci.Mul(leftRewardDeci).Div(StandardEffectiveBalanceDeci)
+
+	// nodeCommission
+	nodeCommission := userFee.Mul(nodeCommissionRate)
+
+	// final user fee
+	userFinalFee := userFee.Sub(nodeCommission)
+
+	// final node fee
+	nodeFinalFee := leftRewardDeci.Sub(userFinalFee)
+
+	return userFinalFee, nodeFinalFee, platformFinalFeeDeci
 }

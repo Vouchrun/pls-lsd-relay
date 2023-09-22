@@ -74,6 +74,9 @@ type Service struct {
 	lsdTokenContract          *erc20.Erc20
 	userDepositContract       *user_deposit.UserDeposit
 
+	nodeCommissionRate     decimal.Decimal
+	platfromCommissionRate decimal.Decimal
+
 	quenedVoteHandlers []Handler
 	quenedSyncHandlers []Handler
 
@@ -317,6 +320,19 @@ func (s *Service) Start() error {
 	if err != nil {
 		return err
 	}
+
+	// init commission
+	nodeCommissionRate, err := s.networkWithdrawContract.NodeCommissionRate(nil)
+	if err != nil {
+		return err
+	}
+	s.nodeCommissionRate = decimal.NewFromBigInt(nodeCommissionRate, 0).Div(decimal.NewFromInt(1e18))
+
+	platformCommissionRate, err := s.networkWithdrawContract.PlatformCommissionRate(nil)
+	if err != nil {
+		return err
+	}
+	s.platfromCommissionRate = decimal.NewFromBigInt(platformCommissionRate, 0).Div(decimal.NewFromInt(1e18))
 
 	// init latest block
 	s.latestBlockOfSyncBlock = s.networkCreateBlock
