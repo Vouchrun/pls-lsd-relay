@@ -98,7 +98,7 @@ type Service struct {
 
 	stakerWithdrawals map[uint64]*StakerWithdrawal // withraw index => stakerWithdrawal
 
-	cachedBeaconBlock      map[uint64]*beacon.BeaconBlock // executionBlockNumber => beaconblock
+	cachedBeaconBlock      map[uint64]*CachedBeaconBlock // executionBlockNumber => beaconblock
 	cachedBeaconBlockMutex sync.RWMutex
 
 	exitElections map[uint64]*ExitElection // cycle -> exitElection
@@ -141,6 +141,28 @@ type StakerWithdrawal struct {
 type ExitElection struct {
 	WithdrawCycle      uint64
 	ValidatorIndexList []uint64
+}
+
+type CachedBeaconBlock struct {
+	ProposerIndex uint64
+	Withdrawals   []*CachedWithdrawal
+
+	// execute layer
+	FeeRecipient         common.Address
+	Transactions         []*CachedTransaction
+	PriorityFee          *big.Int // may be nil if not pool validator
+}
+
+type CachedTransaction struct {
+	// big endian
+	Recipient []byte
+	// big endian
+	Amount []byte
+}
+
+type CachedWithdrawal struct {
+	ValidatorIndex uint64
+	Amount         uint64
 }
 
 type Handler struct {
@@ -217,7 +239,7 @@ func NewService(cfg *config.Config, keyPair *secp256k1.Keypair) (*Service, error
 		validatorsByIndex: make(map[uint64]*Validator),
 		nodes:             make(map[common.Address]*Node),
 		stakerWithdrawals: make(map[uint64]*StakerWithdrawal),
-		cachedBeaconBlock: make(map[uint64]*beacon.BeaconBlock),
+		cachedBeaconBlock: make(map[uint64]*CachedBeaconBlock),
 		exitElections:     make(map[uint64]*ExitElection),
 	}
 
@@ -578,7 +600,7 @@ func (s *Service) GetValidatorDepositedListBefore(block uint64) []*Validator {
 	return selectedValidator
 }
 
-func (s *Service) getBeaconBlock(eth1BlcokNumber uint64) (*beacon.BeaconBlock, error) {
+func (s *Service) getBeaconBlock(eth1BlcokNumber uint64) (*CachedBeaconBlock, error) {
 	s.cachedBeaconBlockMutex.RLock()
 	defer s.cachedBeaconBlockMutex.RUnlock()
 

@@ -86,20 +86,43 @@ func (s *Service) syncBlocks() error {
 
 		batchRequestWaitTime := time.Now().Unix()
 
-		s.cachedBeaconBlockMutex.Lock()
 		for _, beaconBlock := range blockReciever {
 			if beaconBlock == nil {
 				continue
 			}
 			logrus.Tracef("save block: %d", beaconBlock.ExecutionBlockNumber)
 
-			s.cachedBeaconBlock[beaconBlock.ExecutionBlockNumber] = beaconBlock
+			cachedWithdrawals := make([]*CachedWithdrawal, len(beaconBlock.Withdrawals))
+			for i, w := range beaconBlock.Withdrawals {
+				cachedWithdrawals[i] = &CachedWithdrawal{
+					ValidatorIndex: w.ValidatorIndex,
+					Amount:         w.Amount,
+				}
+			}
+
+			cachedTxs := make([]*CachedTransaction, len(beaconBlock.Transactions))
+			for i, t := range beaconBlock.Transactions {
+				cachedTxs[i] = &CachedTransaction{
+					Recipient: t.Recipient,
+					Amount:    t.Amount,
+				}
+			}
+
+			s.cachedBeaconBlockMutex.Lock()
+			s.cachedBeaconBlock[beaconBlock.ExecutionBlockNumber] = &CachedBeaconBlock{
+				ProposerIndex: beaconBlock.ProposerIndex,
+				Withdrawals:   cachedWithdrawals,
+				FeeRecipient:  beaconBlock.FeeRecipient,
+				Transactions:  cachedTxs,
+				PriorityFee:   beaconBlock.PriorityFee,
+			}
+			s.cachedBeaconBlockMutex.Unlock()
+
 			// update latest block
 			if beaconBlock.ExecutionBlockNumber > s.latestBlockOfSyncBlock {
 				s.latestBlockOfSyncBlock = beaconBlock.ExecutionBlockNumber
 			}
 		}
-		s.cachedBeaconBlockMutex.Unlock()
 
 		// update latest slot
 		s.latestSlotOfSyncBlock = subEnd

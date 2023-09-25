@@ -1,5 +1,7 @@
 package service
 
+import "github.com/sirupsen/logrus"
+
 func (s *Service) pruneBlocks() error {
 	latestDistributeWithdrawalsHeight, err := s.networkWithdrawContract.LatestDistributeWithdrawalsHeight(nil)
 	if err != nil {
@@ -40,11 +42,17 @@ func (s *Service) pruneBlocks() error {
 	s.cachedBeaconBlockMutex.Lock()
 	defer s.cachedBeaconBlockMutex.Unlock()
 
+	maxHeight := uint64(0)
 	for blockNumber := range s.cachedBeaconBlock {
 		if blockNumber < minHeight {
 			delete(s.cachedBeaconBlock, blockNumber)
 		}
+		if blockNumber > maxHeight {
+			maxHeight = blockNumber
+		}
 	}
+
+	logrus.Debugf("cachedBlocks minHeight: %d, maxHeight: %d", minHeight, maxHeight)
 
 	return nil
 }
