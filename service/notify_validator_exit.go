@@ -16,7 +16,7 @@ func (s *Service) notifyValidatorExit() error {
 	if err != nil {
 		return fmt.Errorf("currentCycleAndStartTimestamp failed: %w", err)
 	}
-	preCycle := currentCycle - 1
+	willDealCycle := currentCycle - 1
 
 	targetEpoch := utils.EpochAtTimestamp(s.eth2Config, uint64(targetTimestamp))
 	targetBlockNumber, err := s.getEpochStartBlocknumberWithCheck(targetEpoch)
@@ -38,13 +38,13 @@ func (s *Service) notifyValidatorExit() error {
 
 	targetCall := s.connection.CallOpts(big.NewInt(int64(targetBlockNumber)))
 
-	ejectedValidator, err := s.networkWithdrawContract.GetEjectedValidatorsAtCycle(nil, big.NewInt(preCycle))
+	ejectedValidator, err := s.networkWithdrawContract.GetEjectedValidatorsAtCycle(nil, big.NewInt(willDealCycle))
 	if err != nil {
 		return fmt.Errorf("GetEjectedValidatorsAtCycle failed: %w", err)
 	}
 	// return if already dealed
 	if len(ejectedValidator) != 0 {
-		logrus.Debugf("ejectedValidator %d at precycle %d", len(ejectedValidator), preCycle)
+		logrus.Debugf("ejectedValidator %d at cycle %d", len(ejectedValidator), willDealCycle)
 		return nil
 	}
 
@@ -104,7 +104,7 @@ func (s *Service) notifyValidatorExit() error {
 	// final total missing amount
 	finalTotalMissingAmountDeci := totalMissingAmountDeci.Sub(totalPendingAmountDeci)
 
-	selectVals, err := s.mustSelectValidatorsForExit(finalTotalMissingAmountDeci, targetEpoch)
+	selectVals, err := s.mustSelectValidatorsForExit(finalTotalMissingAmountDeci, targetEpoch, uint64(willDealCycle))
 	if err != nil {
 		return errors.Wrap(err, "selectValidatorsForExit failed")
 	}
@@ -113,8 +113,8 @@ func (s *Service) notifyValidatorExit() error {
 	}
 
 	// cal start cycle
-	startCycle := preCycle - 1
-	notExitElectionList := s.notExitElectionList(uint64(currentCycle))
+	startCycle := willDealCycle - 1
+	notExitElectionList := s.notExitElectionListBefore(uint64(willDealCycle))
 	if err != nil {
 		return errors.Wrap(err, "GetAllNotExitElectionList failed")
 	}
@@ -122,13 +122,13 @@ func (s *Service) notifyValidatorExit() error {
 		startCycle = int64(notExitElectionList[0].WithdrawCycle)
 	}
 	logrus.WithFields(logrus.Fields{
-		"startCycle": startCycle,
-		"preCycle":   preCycle,
-		"selectVal":  selectVals,
+		"startCycle":    startCycle,
+		"willDealCycle": willDealCycle,
+		"selectVal":     selectVals,
 	}).Debug("will sendNotifyValidatorExitTx")
 
 	// ---- send NotifyValidatorExit tx
-	return s.sendNotifyExitTx(uint64(preCycle), uint64(startCycle), selectVals)
+	return s.sendNotifyExitTx(uint64(willDealCycle), uint64(startCycle), selectVals)
 }
 
 func (s *Service) sendNotifyExitTx(preCycle, startCycle uint64, selectVal []*big.Int) error {
@@ -162,7 +162,7 @@ func (s *Service) currentCycleAndStartTimestamp() (int64, int64, error) {
 	return int64(currentCycle.Uint64()), int64(targetTimestamp), nil
 }
 
-func (s *Service) mustSelectValidatorsForExit(totalMissingAmount decimal.Decimal, targetEpoch uint64) ([]*big.Int, error) {
+func (s *Service) mustSelectValidatorsForExit(totalMissingAmount decimal.Decimal, targetEpoch, willDealCycle uint64) ([]*big.Int, error) {
 	vals, err := s.getValidatorsOfTargetEpoch(targetEpoch)
 	if err != nil {
 		return nil, err
@@ -171,5 +171,23 @@ func (s *Service) mustSelectValidatorsForExit(totalMissingAmount decimal.Decimal
 		return vals[i].ActiveEpoch < vals[j].ActiveEpoch
 	})
 
-	return nil, nil
+	selectVal := make([]*big.Int, 0)
+	totalExitAmountDeci := decimal.Zero
+	for _, val := range vals {
+		// skip if exist in election list
+		if election, exist := s.exitElections[val.ValidatorIndex]; exist && election.WithdrawCycle < willDealCycle {
+			continue
+		}
+
+		userAmountDeci := utils.StandardEffectiveBalanceDeci.Sub(val.NodeDepositAmountDeci)
+		totalExitAmountDeci = totalExitAmountDeci.Add(userAmountDeci)
+
+		selectVal = append(selectVal, big.NewInt(int64(val.ValidatorIndex)))
+
+		if totalExitAmountDeci.GreaterThanOrEqual(totalMissingAmount) {
+			break
+		}
+	}
+
+	return selectVal, nil
 }

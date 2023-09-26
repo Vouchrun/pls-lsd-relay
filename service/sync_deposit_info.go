@@ -40,7 +40,7 @@ func (s *Service) syncDepositInfo() error {
 			subEnd = end
 		}
 
-		err = s.fetchDepositContractEvents(subStart, subEnd)
+		err = s.fetchDepositContractEventsAndCache(subStart, subEnd)
 		if err != nil {
 			return err
 		}
@@ -57,7 +57,7 @@ func (s *Service) syncDepositInfo() error {
 	return nil
 }
 
-func (s *Service) fetchDepositContractEvents(start, end uint64) error {
+func (s *Service) fetchDepositContractEventsAndCache(start, end uint64) error {
 	iterDeposited, err := s.govDepositContract.FilterDepositEvent(&bind.FilterOpts{
 		Start:   start,
 		End:     &end,
@@ -69,6 +69,7 @@ func (s *Service) fetchDepositContractEvents(start, end uint64) error {
 
 	for iterDeposited.Next() {
 		pubkeyStr := hex.EncodeToString(iterDeposited.Event.Pubkey)
+
 		s.govDeposits[pubkeyStr] = append(s.govDeposits[pubkeyStr], iterDeposited.Event.WithdrawalCredentials)
 	}
 

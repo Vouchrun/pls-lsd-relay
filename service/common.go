@@ -271,12 +271,13 @@ func (s *Service) getValidatorsOfTargetEpoch(targetEpoch uint64) ([]*Validator, 
 		pubkeyStr := pubkey.String()
 		if status.Exists {
 			// must exist here
-			val, exist := s.validators[pubkeyStr]
+			valOfLatest, exist := s.validators[pubkeyStr]
 			if !exist {
 				return nil, fmt.Errorf("validator %s not exist", pubkeyStr)
 			}
 
-			validator := *val
+			// copy value
+			validator := *valOfLatest
 
 			updateBaseInfo := func() {
 				// validator's info may be inited at any status
@@ -342,7 +343,7 @@ func (s *Service) getValidatorsOfTargetEpoch(targetEpoch uint64) ([]*Validator, 
 				return nil, fmt.Errorf("unsupported validator status %d", status.Status)
 			}
 
-			if validator.ActiveEpoch > targetEpoch {
+			if validator.ActiveEpoch < targetEpoch {
 				vals = append(vals, &validator)
 			}
 		}

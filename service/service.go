@@ -148,9 +148,9 @@ type CachedBeaconBlock struct {
 	Withdrawals   []*CachedWithdrawal
 
 	// execute layer
-	FeeRecipient         common.Address
-	Transactions         []*CachedTransaction
-	PriorityFee          *big.Int // may be nil if not pool validator
+	FeeRecipient common.Address
+	Transactions []*CachedTransaction
+	PriorityFee  *big.Int // may be nil if not pool validator
 }
 
 type CachedTransaction struct {
@@ -518,7 +518,7 @@ Out:
 			retry = 0
 		}
 
-		time.Sleep(6 * time.Second)
+		time.Sleep(12 * time.Second)
 	}
 }
 
@@ -630,10 +630,10 @@ func (s *Service) exitButNotDistributedValidatorList(epoch uint64) []*Validator 
 	return vals
 }
 
-func (s *Service) notExitElectionList(currentCycle uint64) []*ExitElection {
+func (s *Service) notExitElectionListBefore(willDealCycle uint64) []*ExitElection {
 	els := make([]*ExitElection, 0)
 	for cycle, e := range s.exitElections {
-		if cycle >= currentCycle {
+		if cycle >= willDealCycle {
 			continue
 		}
 		for _, valIndex := range e.ValidatorIndexList {
