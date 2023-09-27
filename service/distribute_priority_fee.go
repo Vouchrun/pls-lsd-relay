@@ -15,11 +15,11 @@ func (s *Service) distributePriorityFee() error {
 	if err != nil {
 		return errors.Wrap(err, "distributePriorityFee checkSyncState failed")
 	}
-
 	if !shouldGoNext {
 		logrus.Debug("distributePriorityFee should not go next")
 		return nil
 	}
+
 	logrus.WithFields(logrus.Fields{
 		"latestDistributeHeight": latestDistributeHeight,
 		"targetEth1BlockHeight":  targetEth1BlockHeight,
@@ -77,19 +77,16 @@ func (s *Service) checkStateForDistributePriorityFee() (uint64, uint64, bool, er
 	if err != nil {
 		return 0, 0, false, err
 	}
-	logrus.Debugf("targetEth1Block %d", targetEth1BlockHeight)
+	logrus.Debugf("checkStateForDistributePriorityFee targetEth1Block: %d", targetEth1BlockHeight)
 
-	latestDistributeHeight, err := s.networkWithdrawContract.LatestDistributePriorityFeeHeight(nil)
-	if err != nil {
-		return 0, 0, false, err
-	}
+	latestDistributeHeight := s.latestDistributePriorityFeeHeight
 	// init case
-	if latestDistributeHeight.Uint64() == 0 {
-		latestDistributeHeight = big.NewInt(int64(s.networkCreateBlock))
+	if latestDistributeHeight == 0 {
+		latestDistributeHeight = s.networkCreateBlock
 	}
 
-	if latestDistributeHeight.Uint64() >= targetEth1BlockHeight {
-		logrus.Debugf("latestDistributeHeight: %d  targetEth1BlockHeight: %d", latestDistributeHeight.Uint64(), targetEth1BlockHeight)
+	if latestDistributeHeight >= targetEth1BlockHeight {
+		logrus.Debugf("latestDistributeHeight: %d  targetEth1BlockHeight: %d", latestDistributeHeight, targetEth1BlockHeight)
 		return 0, 0, false, nil
 	}
 
@@ -98,5 +95,5 @@ func (s *Service) checkStateForDistributePriorityFee() (uint64, uint64, bool, er
 		return 0, 0, false, nil
 	}
 
-	return latestDistributeHeight.Uint64(), targetEth1BlockHeight, true, nil
+	return latestDistributeHeight, targetEth1BlockHeight, true, nil
 }

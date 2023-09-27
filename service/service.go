@@ -80,13 +80,17 @@ type Service struct {
 	quenedVoteHandlers []Handler
 	quenedSyncHandlers []Handler
 
-	latestSlotOfSyncBlock                 uint64
-	latestBlockOfSyncBlock                uint64
-	latestBlockOfSyncDeposit              uint64
-	latestWithdrawCycleOfSyncExitElection uint64
-	latestBlockOfUpdateValidator          uint64
-	latestEpochOfUpdateValidator          uint64
-	networkCreateBlock                    uint64
+	latestSlotOfSyncBlock        uint64
+	latestBlockOfSyncBlock       uint64
+	latestBlockOfSyncEvents      uint64
+	latestBlockOfUpdateValidator uint64
+	latestEpochOfUpdateValidator uint64
+	networkCreateBlock           uint64
+
+	cycleSeconds                      uint64
+	latestDistributeWithdrawalsHeight uint64
+	latestDistributePriorityFeeHeight uint64
+	latestMerkleRootEpoch             uint64
 
 	govDeposits map[string][][]byte // pubkey(hex.encodeToString) -> withdrawalCredentials
 
@@ -338,11 +342,6 @@ func (s *Service) Start() error {
 	s.distributePriorityFeeDuEpochs = updateBalancesEpochs.Uint64()
 	s.merkleRootDuEpochs = updateBalancesEpochs.Uint64()
 
-	latestBlock, err := s.connection.Eth1LatestBlock()
-	if err != nil {
-		return err
-	}
-
 	// init commission
 	nodeCommissionRate, err := s.networkWithdrawContract.NodeCommissionRate(nil)
 	if err != nil {
@@ -357,10 +356,17 @@ func (s *Service) Start() error {
 
 	logrus.Infof("nodeCommission rate: %s, platformCommission rate: %s", s.nodeCommissionRate.String(), s.platfromCommissionRate.String())
 
+	// init cycle seconds
+	cycleSeconds, err := s.networkWithdrawContract.WithdrawCycleSeconds(nil)
+	if err != nil {
+		return err
+	}
+	s.cycleSeconds = cycleSeconds.Uint64()
+
 	// init latest block and slot number
 	s.latestBlockOfSyncBlock = s.networkCreateBlock
 	s.latestBlockOfUpdateValidator = s.networkCreateBlock
-	s.latestBlockOfSyncDeposit = latestBlock - depositEventPreBlocks
+	s.latestBlockOfSyncEvents = s.networkCreateBlock
 
 	checkAndUpdateLatestBlockOfSyncBlock := func(block uint64) {
 		if block == 0 {
@@ -409,8 +415,7 @@ func (s *Service) Start() error {
 	s.appendSyncHandlers(s.syncBlocks, s.pruneBlocks)
 
 	s.appendVoteHandlers(
-		s.updateValidatorsFromNetwork, s.updateValidatorsFromBeacon,
-		s.syncDepositInfo, s.syncExitElection,
+		s.updateValidatorsFromNetwork, s.updateValidatorsFromBeacon, s.syncEvents,
 		s.voteWithdrawCredentials,
 		s.submitBalances, s.distributeWithdrawals, s.distributePriorityFee,
 		s.setMerkleRoot, s.notifyValidatorExit)
@@ -556,7 +561,7 @@ Out:
 			retry = 0
 		}
 
-		time.Sleep(6 * time.Second)
+		time.Sleep(12 * time.Second)
 	}
 }
 

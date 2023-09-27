@@ -26,7 +26,7 @@ func (s *Service) voteWithdrawCredentials() error {
 	validatorMatchs := make([]bool, 0)
 	for _, validator := range validatorListNeedVote {
 		// skip if not sync to deposit block
-		if validator.DepositBlock > s.latestBlockOfSyncDeposit {
+		if validator.DepositBlock > s.latestBlockOfSyncEvents {
 			continue
 		}
 

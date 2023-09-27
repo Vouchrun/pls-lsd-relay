@@ -16,11 +16,11 @@ func (s *Service) distributeWithdrawals() error {
 	if err != nil {
 		return errors.Wrap(err, "distributeWithdrawals checkSyncState failed")
 	}
-
 	if !shouldGoNext {
 		logrus.Debug("distributeWithdrawals should not go next")
 		return nil
 	}
+
 	logrus.WithFields(logrus.Fields{
 		"latestDistributeHeight": latestDistributeHeight,
 		"targetEth1BlockHeight":  targetEth1BlockHeight,
@@ -80,17 +80,17 @@ func (s *Service) checkStateForDistributeWithdraw() (uint64, uint64, bool, error
 
 	logrus.Debugf("targetEth1Block %d", targetEth1BlockHeight)
 
-	latestDistributeHeight, err := s.networkWithdrawContract.LatestDistributeWithdrawalsHeight(nil)
+	latestDistributeHeight := s.latestDistributeWithdrawalsHeight
 	if err != nil {
 		return 0, 0, false, err
 	}
 	// init case
-	if latestDistributeHeight.Uint64() == 0 {
-		latestDistributeHeight = big.NewInt(int64(s.networkCreateBlock))
+	if latestDistributeHeight == 0 {
+		latestDistributeHeight = s.networkCreateBlock
 	}
 
-	if latestDistributeHeight.Uint64() >= targetEth1BlockHeight {
-		logrus.Debugf("latestDistributeHeight: %d  targetEth1BlockHeight: %d", latestDistributeHeight.Uint64(), targetEth1BlockHeight)
+	if latestDistributeHeight >= targetEth1BlockHeight {
+		logrus.Debugf("latestDistributeHeight: %d  targetEth1BlockHeight: %d", latestDistributeHeight, targetEth1BlockHeight)
 		return 0, 0, false, nil
 	}
 
@@ -99,7 +99,7 @@ func (s *Service) checkStateForDistributeWithdraw() (uint64, uint64, bool, error
 		return 0, 0, false, nil
 	}
 
-	return latestDistributeHeight.Uint64(), targetEth1BlockHeight, true, nil
+	return latestDistributeHeight, targetEth1BlockHeight, true, nil
 }
 
 func (s *Service) calMaxClaimableWithdrawIndex(targetEth1BlockHeight uint64, totalUserEthDeci decimal.Decimal) (uint64, error) {

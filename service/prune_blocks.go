@@ -3,33 +3,19 @@ package service
 import "github.com/sirupsen/logrus"
 
 func (s *Service) pruneBlocks() error {
-	latestDistributeWithdrawalsHeight, err := s.networkWithdrawContract.LatestDistributeWithdrawalsHeight(nil)
-	if err != nil {
-		return err
-	}
-
-	latestDistributePriorityFeeHeight, err := s.networkWithdrawContract.LatestDistributePriorityFeeHeight(nil)
-	if err != nil {
-		return err
-	}
-
-	latestMerkleRootEpoch, err := s.networkWithdrawContract.LatestMerkleRootEpoch(nil)
-	if err != nil {
-		return err
-	}
 
 	latestMerkleRootEpochStartBlock := uint64(0)
-	if latestMerkleRootEpoch.Uint64() != 0 {
-		latestMerkleRootEpochStartBlockRes, err := s.getEpochStartBlocknumberWithCheck(latestMerkleRootEpoch.Uint64())
+	if s.latestMerkleRootEpoch != 0 {
+		latestMerkleRootEpochStartBlockRes, err := s.getEpochStartBlocknumberWithCheck(s.latestMerkleRootEpoch)
 		if err != nil {
 			return err
 		}
 		latestMerkleRootEpochStartBlock = latestMerkleRootEpochStartBlockRes
 	}
 
-	minHeight := latestDistributePriorityFeeHeight.Uint64()
-	if minHeight > latestDistributeWithdrawalsHeight.Uint64() {
-		minHeight = latestDistributeWithdrawalsHeight.Uint64()
+	minHeight := s.latestDistributePriorityFeeHeight
+	if minHeight > s.latestDistributeWithdrawalsHeight {
+		minHeight = s.latestDistributeWithdrawalsHeight
 	}
 	if minHeight > latestMerkleRootEpochStartBlock {
 		minHeight = latestMerkleRootEpochStartBlock

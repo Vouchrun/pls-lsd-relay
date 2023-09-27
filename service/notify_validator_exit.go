@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math/big"
 	"sort"
+	"time"
 
 	"github.com/pkg/errors"
 	"github.com/shopspring/decimal"
@@ -38,6 +39,17 @@ func (s *Service) notifyValidatorExit() error {
 
 	targetCall := s.connection.CallOpts(big.NewInt(int64(targetBlockNumber)))
 
+	totalMissingAmount, err := s.networkWithdrawContract.TotalMissingAmountForWithdraw(targetCall)
+	if err != nil {
+		return fmt.Errorf("TotalMissingAmountForWithdraw failed: %w, target block: %d", err, targetBlockNumber)
+	}
+	totalMissingAmountDeci := decimal.NewFromBigInt(totalMissingAmount, 0)
+
+	// no need notify exit election
+	if totalMissingAmount.Cmp(big.NewInt(0)) == 0 {
+		return nil
+	}
+
 	ejectedValidator, err := s.networkWithdrawContract.GetEjectedValidatorsAtCycle(nil, big.NewInt(willDealCycle))
 	if err != nil {
 		return fmt.Errorf("GetEjectedValidatorsAtCycle failed: %w", err)
@@ -45,17 +57,6 @@ func (s *Service) notifyValidatorExit() error {
 	// return if already dealed
 	if len(ejectedValidator) != 0 {
 		logrus.Debugf("ejectedValidator %d at cycle %d", len(ejectedValidator), willDealCycle)
-		return nil
-	}
-
-	totalMissingAmount, err := s.networkWithdrawContract.TotalMissingAmountForWithdraw(targetCall)
-	if err != nil {
-		return fmt.Errorf("TotalMissingAmountForWithdraw failed: %w, target block: %d", err, targetBlockNumber)
-	}
-	totalMissingAmountDeci := decimal.NewFromBigInt(totalMissingAmount, 0)
-
-	// no need notify exit
-	if totalMissingAmount.Cmp(big.NewInt(0)) == 0 {
 		return nil
 	}
 
@@ -149,17 +150,10 @@ func (s *Service) sendNotifyExitTx(preCycle, startCycle uint64, selectVal []*big
 }
 
 func (s *Service) currentCycleAndStartTimestamp() (int64, int64, error) {
-	currentCycle, err := s.networkWithdrawContract.CurrentWithdrawCycle(nil)
-	if err != nil {
-		return 0, 0, err
-	}
-	cycleSeconds, err := s.networkWithdrawContract.WithdrawCycleSeconds(nil)
-	if err != nil {
-		return 0, 0, err
-	}
+	currentCycle := uint64(time.Now().Unix()) / s.cycleSeconds
 
-	targetTimestamp := currentCycle.Uint64() * cycleSeconds.Uint64()
-	return int64(currentCycle.Uint64()), int64(targetTimestamp), nil
+	targetTimestamp := uint64(currentCycle) * s.cycleSeconds
+	return int64(currentCycle), int64(targetTimestamp), nil
 }
 
 func (s *Service) mustSelectValidatorsForExit(totalMissingAmount decimal.Decimal, targetEpoch, willDealCycle uint64) ([]*big.Int, error) {
