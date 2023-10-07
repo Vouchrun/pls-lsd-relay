@@ -62,7 +62,7 @@ func startRelayCmd() *cobra.Command {
 			//interrupt signal
 			ctx := utils.ShutdownListener()
 
-			// load super node account
+			// load trust node account
 			kpI, err := keystore.KeypairFromAddress(cfg.Account, keystore.EthChain, cfg.KeystorePath, false)
 			if err != nil {
 				return err
