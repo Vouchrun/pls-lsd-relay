@@ -61,6 +61,8 @@ func (s *Service) updateValidatorsFromNetwork() error {
 				}
 
 				s.nodes[node.NodeAddress] = &node
+
+				nodeLocal = &node
 			}
 
 			val := Validator{

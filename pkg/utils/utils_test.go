@@ -12,6 +12,7 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
+	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/ipfs/go-cid"
 	"github.com/shopspring/decimal"
 	"github.com/stafiprotocol/eth-lsd-relay/pkg/connection"
@@ -165,21 +166,22 @@ func TestGetGas(t *testing.T) {
 }
 
 func TestTx(t *testing.T) {
+	t.Log("3")
 	client, err := ethclient.Dial("https://goerli.infura.io/v3/b3611f564322439ab2491e04ddd55b39")
 	if err != nil {
 		t.Fatal(err)
 	}
-	txr, err := client.TransactionReceipt(context.Background(), common.HexToHash("0x82c151b3d2ca12f59a3264b40fe60af85ef02680d5649e23802dcb532b937d45"))
+	txr, err := client.TransactionReceipt(context.Background(), common.HexToHash("0x1237ee59275516a0c170d9ceadf7d27873467df1cd9046959f952a6e474d3536"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	t.Log(txr.Logs)
+	t.Logf("%+v", txr)
 
-	tx, _, err := client.TransactionByHash(context.Background(), common.HexToHash("0x82c151b3d2ca12f59a3264b40fe60af85ef02680d5649e23802dcb532b937d45"))
+	blockReceipts, err := client.BlockReceipts(context.Background(), rpc.BlockNumberOrHashWithNumber(9824110))
 	if err != nil {
 		t.Fatal(err)
 	}
-	t.Log(tx)
+	t.Log(blockReceipts)
 
 }
 
