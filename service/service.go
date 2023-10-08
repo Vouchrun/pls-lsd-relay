@@ -328,6 +328,12 @@ func (s *Service) Start() error {
 	}
 	logrus.Debug("init contracts end")
 
+	credentials, err := s.nodeDepositContract.WithdrawCredentials(nil)
+	if err != nil {
+		return err
+	}
+	s.withdrawCredentials = credentials
+
 	// get updateBalances epochs
 	updateBalancesEpochs, err := s.networkBalancesContract.UpdateBalancesEpochs(nil)
 	if err != nil {

@@ -16,7 +16,7 @@ func (s *Service) voteWithdrawCredentials() error {
 
 	validatorListNeedVote := make([]*Validator, 0)
 	for _, val := range s.validators {
-		if val.Status != utils.ValidatorStatusDeposited {
+		if !(val.Status == utils.ValidatorStatusDeposited || val.Status == utils.ValidatorStatusWithdrawUnmatch) {
 			continue
 		}
 
