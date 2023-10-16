@@ -134,8 +134,9 @@ func (s *Service) submitBalances() error {
 		return fmt.Errorf("exceed rate change limit %s, newExchangeRate %s, oldExchangeRate %s", rateChangeLimit.String(), newExchangeRateDeci.String(), oldExchangeRateDeci.String())
 	}
 
-	hasVoted, err := s.networkProposalContract.HasVoted(nil, utils.SubmitBalancesProposalId(big.NewInt(int64(targetBlock)),
-		totalUserEthDeci.BigInt(), lsdTokenTotalSupply), s.keyPair.CommonAddress())
+	proposalId := utils.SubmitBalancesProposalId(big.NewInt(int64(targetBlock)),
+		totalUserEthDeci.BigInt(), lsdTokenTotalSupply)
+	hasVoted, err := s.networkProposalContract.HasVoted(nil, proposalId, s.keyPair.CommonAddress())
 	if err != nil {
 		return err
 	}
@@ -157,7 +158,7 @@ func (s *Service) submitBalances() error {
 		"oldExchangeRate":                   oldExchangeRateDeci.StringFixed(0),
 	}).Info("exchangeRateInfo")
 
-	return s.sendSubmitBalancesTx(big.NewInt(int64(targetBlock)), totalUserEthDeci.BigInt(), lsdTokenTotalSupply)
+	return s.sendSubmitBalancesTx(big.NewInt(int64(targetBlock)), totalUserEthDeci.BigInt(), lsdTokenTotalSupply, proposalId)
 
 }
 
@@ -236,7 +237,7 @@ func (s *Service) getUserDepositPlusReward(nodeDepositAmount, validatorBalance d
 	}
 }
 
-func (s *Service) sendSubmitBalancesTx(block, totalUserEth, lsdTokenTotalSupply *big.Int) error {
+func (s *Service) sendSubmitBalancesTx(block, totalUserEth, lsdTokenTotalSupply *big.Int, proposalId [32]byte) error {
 	err := s.connection.LockAndUpdateTxOpts()
 	if err != nil {
 		return fmt.Errorf("LockAndUpdateTxOpts err: %s", err)
@@ -254,5 +255,5 @@ func (s *Service) sendSubmitBalancesTx(block, totalUserEth, lsdTokenTotalSupply 
 
 	logrus.Info("send submitBalances tx hash: ", tx.Hash().String())
 
-	return s.waitTxOk(tx.Hash())
+	return s.waitProposalTxOk(tx.Hash(), proposalId)
 }

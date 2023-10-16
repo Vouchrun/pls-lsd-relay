@@ -39,9 +39,10 @@ func (s *Service) distributePriorityFee() error {
 		return errors.Wrap(err, "calMaxClaimableWithdrawIndex failed")
 	}
 
+	proposalId := utils.DistributeProposalId(utils.DistributeTypePriorityFee, big.NewInt(int64(targetEth1BlockHeight)),
+		totalUserEthDeci.BigInt(), totalNodeEthDeci.BigInt(), totalPlatformEthDeci.BigInt(), big.NewInt(int64(newMaxClaimableWithdrawIndex)))
 	// check voted
-	hasVoted, err := s.networkProposalContract.HasVoted(nil, utils.DistributeProposalId(utils.DistributeTypePriorityFee, big.NewInt(int64(targetEth1BlockHeight)),
-		totalUserEthDeci.BigInt(), totalNodeEthDeci.BigInt(), totalPlatformEthDeci.BigInt(), big.NewInt(int64(newMaxClaimableWithdrawIndex))), s.keyPair.CommonAddress())
+	hasVoted, err := s.networkProposalContract.HasVoted(nil, proposalId, s.keyPair.CommonAddress())
 	if err != nil {
 		return fmt.Errorf("networkProposalContract.HasVoted err: %s", err)
 	}
@@ -60,7 +61,7 @@ func (s *Service) distributePriorityFee() error {
 
 	// -----3 send vote tx
 	return s.sendDistributeTx(utils.DistributeTypePriorityFee, big.NewInt(int64(targetEth1BlockHeight)),
-		totalUserEthDeci.BigInt(), totalNodeEthDeci.BigInt(), totalPlatformEthDeci.BigInt(), big.NewInt(int64(newMaxClaimableWithdrawIndex)))
+		totalUserEthDeci.BigInt(), totalNodeEthDeci.BigInt(), totalPlatformEthDeci.BigInt(), big.NewInt(int64(newMaxClaimableWithdrawIndex)), proposalId)
 }
 
 // check sync and vote state

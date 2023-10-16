@@ -187,9 +187,10 @@ func (s *Service) setMerkleRoot() error {
 	var merkleTreeRootHash [32]byte
 	copy(merkleTreeRootHash[:], rootHash)
 
+	proposalId := utils.VoteMerkleRootProposalId(big.NewInt(int64(targetEpoch)),
+		merkleTreeRootHash, cid)
 	// check voted
-	hasVoted, err := s.networkProposalContract.HasVoted(nil, utils.VoteMerkleRootProposalId(big.NewInt(int64(targetEpoch)),
-		merkleTreeRootHash, cid), s.keyPair.CommonAddress())
+	hasVoted, err := s.networkProposalContract.HasVoted(nil, proposalId, s.keyPair.CommonAddress())
 	if err != nil {
 		return fmt.Errorf("networkProposalContract.HasVoted err: %s", err)
 	}
@@ -198,7 +199,7 @@ func (s *Service) setMerkleRoot() error {
 		return nil
 	}
 
-	return s.sendSetMerkleRootTx(int64(targetEpoch), merkleTreeRootHash, cid)
+	return s.sendSetMerkleRootTx(int64(targetEpoch), merkleTreeRootHash, cid, proposalId)
 }
 
 func buildMerkleTree(nodelist NodeRewardsList) (*utils.MerkleTree, error) {
@@ -252,7 +253,7 @@ func (s *Service) checkStateForSetMerkleRoot() (uint64, uint64, uint64, bool, er
 	return dealedEpochOnchain, targetEpoch, targetEth1BlockHeight, true, nil
 }
 
-func (s *Service) sendSetMerkleRootTx(targetEpoch int64, rootHash [32]byte, cid string) error {
+func (s *Service) sendSetMerkleRootTx(targetEpoch int64, rootHash [32]byte, cid string, proposalId [32]byte) error {
 	err := s.connection.LockAndUpdateTxOpts()
 	if err != nil {
 		return fmt.Errorf("LockAndUpdateTxOpts err: %s", err)
@@ -268,5 +269,5 @@ func (s *Service) sendSetMerkleRootTx(targetEpoch int64, rootHash [32]byte, cid 
 
 	logrus.Info("send setMerkleRoot tx hash: ", tx.Hash().String())
 
-	return s.waitTxOk(tx.Hash())
+	return s.waitProposalTxOk(tx.Hash(), proposalId)
 }

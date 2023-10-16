@@ -24,6 +24,7 @@ func (s *Service) voteWithdrawCredentials() error {
 	}
 	validatorPubkeys := make([][]byte, 0)
 	validatorMatchs := make([]bool, 0)
+	proposalIds := make([][32]byte, 0)
 	for _, validator := range validatorListNeedVote {
 		// skip if not sync to deposit block
 		if validator.DepositBlock > s.latestBlockOfSyncEvents {
@@ -83,7 +84,10 @@ func (s *Service) voteWithdrawCredentials() error {
 			"match":  match,
 		}).Debug("match info")
 
-		hasVoted, err := s.networkProposalContract.HasVoted(nil, utils.VoteWithdrawCredentialsProposalId(validator.Pubkey), s.keyPair.CommonAddress())
+		proposalId := utils.VoteWithdrawCredentialsProposalId(validator.Pubkey)
+		proposalIds = append(proposalIds, proposalId)
+
+		hasVoted, err := s.networkProposalContract.HasVoted(nil, proposalId, s.keyPair.CommonAddress())
 		if err != nil {
 			return err
 		}
@@ -93,10 +97,10 @@ func (s *Service) voteWithdrawCredentials() error {
 		}
 	}
 
-	return s.voteWithdrawCredentialsTx(validatorPubkeys, validatorMatchs)
+	return s.voteWithdrawCredentialsTx(validatorPubkeys, validatorMatchs, proposalIds)
 }
 
-func (s *Service) voteWithdrawCredentialsTx(validatorPubkeys [][]byte, matchs []bool) error {
+func (s *Service) voteWithdrawCredentialsTx(validatorPubkeys [][]byte, matchs []bool, proposalIds [][32]byte) error {
 	if len(validatorPubkeys) == 0 {
 		return nil
 	}
@@ -125,7 +129,7 @@ func (s *Service) voteWithdrawCredentialsTx(validatorPubkeys [][]byte, matchs []
 	}
 	logrus.Info("send vote tx hash: ", tx.Hash().String())
 
-	return s.waitTxOk(tx.Hash())
+	return s.waitProposalsTxOk(tx.Hash(), proposalIds)
 }
 
 func pubkeyToHex(pubkeys [][]byte) []string {

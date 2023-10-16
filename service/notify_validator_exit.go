@@ -122,6 +122,18 @@ func (s *Service) notifyValidatorExit() error {
 	if len(notExitElectionList) > 0 {
 		startCycle = int64(notExitElectionList[0].WithdrawCycle)
 	}
+
+	proposalId := utils.NotifyExitProposalId(big.NewInt(willDealCycle), big.NewInt(startCycle), selectVals)
+	// check voted
+	hasVoted, err := s.networkProposalContract.HasVoted(nil, proposalId, s.keyPair.CommonAddress())
+	if err != nil {
+		return fmt.Errorf("networkProposalContract.HasVoted err: %s", err)
+	}
+	if hasVoted {
+		logrus.Debug("networkProposalContract voted")
+		return nil
+	}
+
 	logrus.WithFields(logrus.Fields{
 		"startCycle":    startCycle,
 		"willDealCycle": willDealCycle,
@@ -129,10 +141,10 @@ func (s *Service) notifyValidatorExit() error {
 	}).Debug("will sendNotifyValidatorExitTx")
 
 	// ---- send NotifyValidatorExit tx
-	return s.sendNotifyExitTx(uint64(willDealCycle), uint64(startCycle), selectVals)
+	return s.sendNotifyExitTx(uint64(willDealCycle), uint64(startCycle), selectVals, proposalId)
 }
 
-func (s *Service) sendNotifyExitTx(preCycle, startCycle uint64, selectVal []*big.Int) error {
+func (s *Service) sendNotifyExitTx(preCycle, startCycle uint64, selectVal []*big.Int, proposalId [32]byte) error {
 	err := s.connection.LockAndUpdateTxOpts()
 	if err != nil {
 		return fmt.Errorf("LockAndUpdateTxOpts err: %s", err)
@@ -146,7 +158,7 @@ func (s *Service) sendNotifyExitTx(preCycle, startCycle uint64, selectVal []*big
 
 	logrus.Info("send NotifyValidatorExit tx hash: ", tx.Hash().String())
 
-	return s.waitTxOk(tx.Hash())
+	return s.waitProposalTxOk(tx.Hash(), proposalId)
 }
 
 func (s *Service) currentCycleAndStartTimestamp() (int64, int64, error) {

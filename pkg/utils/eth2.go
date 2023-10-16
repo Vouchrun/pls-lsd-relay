@@ -218,6 +218,22 @@ func DistributeProposalId(_distributeType uint8, _dealedHeight, _userAmount, _no
 
 }
 
+// bytes32 proposalId = keccak256(
+// 	abi.encodePacked("notifyValidatorExit", _withdrawCycle, _ejectedStartCycle, _validatorIndexList)
+// );
+
+func NotifyExitProposalId(_withdrawCycle, _ejectedStartCycle *big.Int, _validatorIndexList []*big.Int) [32]byte {
+
+	validatorIndexBytes := make([]byte, 0)
+	for _, val := range _validatorIndexList {
+		validatorIndexBytes = append(validatorIndexBytes, common.LeftPadBytes(val.Bytes(), 32)...)
+	}
+
+	return crypto.Keccak256Hash([]byte("notifyValidatorExit"),
+		common.LeftPadBytes(_withdrawCycle.Bytes(), 32), common.LeftPadBytes(_ejectedStartCycle.Bytes(), 32), validatorIndexBytes)
+
+}
+
 func WaitTxOkCommon(client *ethclient.Client, txHash common.Hash) (blockNumber uint64, err error) {
 	defer func() {
 		if err != nil {

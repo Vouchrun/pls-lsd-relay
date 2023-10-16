@@ -39,9 +39,10 @@ func (s *Service) distributeWithdrawals() error {
 		return errors.Wrap(err, "calMaxClaimableWithdrawIndex failed")
 	}
 
+	proposalId := utils.DistributeProposalId(utils.DistributeTypeWithdrawals, big.NewInt(int64(targetEth1BlockHeight)),
+		totalUserEthDeci.BigInt(), totalNodeEthDeci.BigInt(), totalPlatformEthDeci.BigInt(), big.NewInt(int64(newMaxClaimableWithdrawIndex)))
 	// check voted
-	hasVoted, err := s.networkProposalContract.HasVoted(nil, utils.DistributeProposalId(utils.DistributeTypeWithdrawals, big.NewInt(int64(targetEth1BlockHeight)),
-		totalUserEthDeci.BigInt(), totalNodeEthDeci.BigInt(), totalPlatformEthDeci.BigInt(), big.NewInt(int64(newMaxClaimableWithdrawIndex))), s.keyPair.CommonAddress())
+	hasVoted, err := s.networkProposalContract.HasVoted(nil, proposalId, s.keyPair.CommonAddress())
 	if err != nil {
 		return fmt.Errorf("networkProposalContract.HasVoted err: %s", err)
 	}
@@ -60,7 +61,7 @@ func (s *Service) distributeWithdrawals() error {
 
 	// -----3 send vote tx
 	return s.sendDistributeTx(utils.DistributeTypeWithdrawals, big.NewInt(int64(targetEth1BlockHeight)),
-		totalUserEthDeci.BigInt(), totalNodeEthDeci.BigInt(), totalPlatformEthDeci.BigInt(), big.NewInt(int64(newMaxClaimableWithdrawIndex)))
+		totalUserEthDeci.BigInt(), totalNodeEthDeci.BigInt(), totalPlatformEthDeci.BigInt(), big.NewInt(int64(newMaxClaimableWithdrawIndex)), proposalId)
 }
 
 // check sync and vote state
@@ -159,7 +160,7 @@ func (s *Service) calMaxClaimableWithdrawIndex(targetEth1BlockHeight uint64, tot
 	return newMaxClaimableWithdrawIndex, nil
 }
 
-func (s *Service) sendDistributeTx(distributeType uint8, targetEth1BlockHeight, totalUserEth, totalNodeEth, totalPlatformEth, newMaxClaimableWithdrawIndex *big.Int) error {
+func (s *Service) sendDistributeTx(distributeType uint8, targetEth1BlockHeight, totalUserEth, totalNodeEth, totalPlatformEth, newMaxClaimableWithdrawIndex *big.Int, proposalId [32]byte) error {
 	err := s.connection.LockAndUpdateTxOpts()
 	if err != nil {
 		return fmt.Errorf("LockAndUpdateTxOpts err: %s", err)
@@ -174,5 +175,5 @@ func (s *Service) sendDistributeTx(distributeType uint8, targetEth1BlockHeight, 
 
 	logrus.Infof("send Distribute tx hash: %s, type: %d", tx.Hash().String(), distributeType)
 
-	return s.waitTxOk(tx.Hash())
+	return s.waitProposalTxOk(tx.Hash(), proposalId)
 }

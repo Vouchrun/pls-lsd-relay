@@ -20,11 +20,45 @@ func init() {
 	decimal.MarshalJSONWithoutQuotes = true
 }
 
-func (s *Service) waitTxOk(txHash common.Hash) error {
+func (s *Service) waitProposalTxOk(txHash common.Hash, proposalId [32]byte) error {
 	_, err := utils.WaitTxOkCommon(s.eth1Client, txHash)
 	if err != nil {
+		p, err := s.networkProposalContract.Proposals(nil, proposalId)
+		if err != nil {
+			return err
+		}
+		// proposal is executed
+		if p.Status == 2 {
+			return nil
+		}
 		return err
 	}
+
+	return nil
+}
+
+func (s *Service) waitProposalsTxOk(txHash common.Hash, proposalIds [][32]byte) error {
+	_, err := utils.WaitTxOkCommon(s.eth1Client, txHash)
+	if err != nil {
+		allProposalsExecuted := true
+		for _, proposalId := range proposalIds {
+			p, err := s.networkProposalContract.Proposals(nil, proposalId)
+			if err != nil {
+				return err
+			}
+			// proposal is executed
+			if p.Status != 2 {
+				allProposalsExecuted = false
+				break
+			}
+		}
+		if allProposalsExecuted {
+			return nil
+		}
+
+		return err
+	}
+
 	return nil
 }
 
