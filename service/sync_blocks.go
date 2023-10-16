@@ -6,6 +6,7 @@ import (
 
 	"github.com/sirupsen/logrus"
 	"github.com/stafiprotocol/eth-lsd-relay/pkg/connection/beacon"
+	"github.com/stafiprotocol/eth-lsd-relay/pkg/utils"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -20,9 +21,13 @@ func (s *Service) syncBlocks() error {
 	if beaconHead.FinalizedSlot <= s.latestSlotOfSyncBlock {
 		return nil
 	}
+	latestSlotOfUpdateValidator := utils.EndSlotOfEpoch(s.eth2Config, s.latestEpochOfUpdateValidator)
 
 	start := uint64(s.latestSlotOfSyncBlock + 1)
 	end := beaconHead.FinalizedSlot
+	if end > latestSlotOfUpdateValidator {
+		end = latestSlotOfUpdateValidator
+	}
 
 	g := new(errgroup.Group)
 	g.SetLimit(int(s.BatchRequestBlocksNumber))
@@ -56,6 +61,8 @@ func (s *Service) syncBlocks() error {
 				if beaconBlock.ExecutionBlockNumber > s.latestBlockOfUpdateValidator {
 					return ErrExceedsValidatorUpdateBlock
 				}
+
+				// ensure validator cached
 				_, isPoolVal := s.getValidatorByIndex(beaconBlock.ProposerIndex)
 				if isPoolVal {
 					fee, err := s.connection.GetELRewardForBlock(beaconBlock.ExecutionBlockNumber)

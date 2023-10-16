@@ -83,6 +83,7 @@ func (s *Service) updateValidatorsFromNetwork() error {
 				ValidatorIndex:        0,
 			}
 
+			// cache validators
 			s.validators[key] = &val
 
 		}
@@ -214,6 +215,15 @@ func (s *Service) updateValidatorsFromBeacon() error {
 
 		}
 	}
+
+	// cache validators by index
+	s.validatorsByIndexMutex.Lock()
+	for _, validator := range s.validators {
+		if validator.ValidatorIndex > 0 {
+			s.validatorsByIndex[validator.ValidatorIndex] = validator
+		}
+	}
+	s.validatorsByIndexMutex.Unlock()
 
 	s.latestEpochOfUpdateValidator = finalEpoch
 

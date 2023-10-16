@@ -262,3 +262,8 @@ func TestConfig(t *testing.T) {
 	slot := utils.SlotAtTimestamp(config, block.Time())
 	t.Log(slot)
 }
+
+func TestGetUserNodePlatformReward(t *testing.T) {
+	user, node, platform := utils.GetUserNodePlatformReward(decimal.NewFromFloat(0.1), decimal.NewFromFloat(0.1), decimal.NewFromBigInt(big.NewInt(1e18), 0), decimal.NewFromBigInt(big.NewInt(100), 0))
+	t.Log(user, node, platform)
+}
