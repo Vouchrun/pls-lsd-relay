@@ -58,23 +58,18 @@ func (s *Service) setMerkleRoot() error {
 		if err != nil {
 			return err
 		}
-		// old file case on dev
-		if s.dev && dealedEpochOnchain == 204525 {
-			preNodeRewardList.Epoch = 204525
-			preNodeRewardList.List = make([]*NodeReward, 0)
-		} else {
-			fileBytes, err := utils.DownloadWeb3File(preCid, utils.NodeRewardsFileNameAtEpoch(dealedEpochOnchain))
-			if err != nil {
-				return err
-			}
 
-			err = json.Unmarshal(fileBytes, &preNodeRewardList)
-			if err != nil {
-				return err
-			}
-			if preNodeRewardList.Epoch != dealedEpochOnchain {
-				return fmt.Errorf("pre node reward file epoch unmatch, cid: %s", preCid)
-			}
+		fileBytes, err := utils.DownloadWeb3File(preCid, utils.NodeRewardsFileNameAtEpoch(dealedEpochOnchain))
+		if err != nil {
+			return err
+		}
+
+		err = json.Unmarshal(fileBytes, &preNodeRewardList)
+		if err != nil {
+			return err
+		}
+		if preNodeRewardList.Epoch != dealedEpochOnchain {
+			return fmt.Errorf("pre node reward file epoch unmatch, cid: %s", preCid)
 		}
 
 		dealedEth1BlockHeight, err = s.getEpochStartBlocknumberWithCheck(dealedEpochOnchain)

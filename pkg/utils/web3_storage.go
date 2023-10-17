@@ -26,7 +26,7 @@ func DownloadWeb3File(cid, fileName string) ([]byte, error) {
 	defer rsp.Body.Close()
 
 	if rsp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("status err %d", rsp.StatusCode)
+		return nil, fmt.Errorf("rsp status err %d", rsp.StatusCode)
 	}
 
 	bodyBytes, err := io.ReadAll(rsp.Body)

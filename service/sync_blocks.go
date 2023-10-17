@@ -99,6 +99,10 @@ func (s *Service) syncBlocks() error {
 			}
 			logrus.Tracef("save block: %d", beaconBlock.ExecutionBlockNumber)
 
+			if beaconBlock.ExecutionBlockNumber%500 == 0 {
+				logrus.Infof("synced block: %d", beaconBlock.ExecutionBlockNumber)
+			}
+
 			cachedWithdrawals := make([]*CachedWithdrawal, len(beaconBlock.Withdrawals))
 			for i, w := range beaconBlock.Withdrawals {
 				cachedWithdrawals[i] = &CachedWithdrawal{
