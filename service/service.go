@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"math"
 	"math/big"
 	"os"
 	"reflect"
@@ -49,7 +50,7 @@ type Service struct {
 	distributePriorityFeeDuEpochs uint64
 	merkleRootDuEpochs            uint64
 
-	BatchRequestBlocksNumber uint64
+	batchRequestBlocksNumber uint64
 
 	// --- need init on start
 	dev bool
@@ -236,7 +237,7 @@ func NewService(cfg *config.Config, keyPair *secp256k1.Keypair) (*Service, error
 		keyPair:                  keyPair,
 		gasLimit:                 gasLimitDeci.BigInt(),
 		maxGasPrice:              maxGasPriceDeci.BigInt(),
-		BatchRequestBlocksNumber: cfg.BatchRequestBlocksNumber,
+		batchRequestBlocksNumber: cfg.BatchRequestBlocksNumber,
 
 		govDeposits:       make(map[string][][]byte),
 		validators:        make(map[string]*Validator),
@@ -370,20 +371,16 @@ func (s *Service) Start() error {
 	s.cycleSeconds = cycleSeconds.Uint64()
 
 	// init latest block and slot number
-	s.latestBlockOfSyncBlock = s.networkCreateBlock
 	s.latestBlockOfUpdateValidator = s.networkCreateBlock
 	s.latestBlockOfSyncEvents = s.networkCreateBlock
 
+	s.latestBlockOfSyncBlock = math.MaxUint64
 	checkAndUpdateLatestBlockOfSyncBlock := func(block uint64) {
-		if block == 0 {
-			s.latestBlockOfSyncBlock = s.networkCreateBlock
-		} else {
-			if block < s.latestBlockOfSyncBlock {
-				s.latestBlockOfSyncBlock = block
-			}
+		logrus.Debugf("checkAndUpdateLatestBlockOfSyncBlock block: %d", block)
+		if block < s.latestBlockOfSyncBlock {
+			s.latestBlockOfSyncBlock = block
 		}
 	}
-
 	latestDistributeWithdrawalsHeight, err := s.networkWithdrawContract.LatestDistributeWithdrawalsHeight(nil)
 	if err != nil {
 		return fmt.Errorf("LatestDistributeWithdrawalsHeight %w", err)
@@ -407,7 +404,10 @@ func (s *Service) Start() error {
 		}
 		checkAndUpdateLatestBlockOfSyncBlock(epochBlockNumber)
 	} else {
-		checkAndUpdateLatestBlockOfSyncBlock(s.networkCreateBlock)
+		checkAndUpdateLatestBlockOfSyncBlock(0)
+	}
+	if s.latestBlockOfSyncBlock < s.networkCreateBlock {
+		s.latestBlockOfSyncBlock = s.networkCreateBlock
 	}
 
 	block, err := s.connection.Eth1Client().BlockByNumber(context.Background(), big.NewInt(int64(s.latestBlockOfSyncBlock)))
@@ -415,6 +415,7 @@ func (s *Service) Start() error {
 		return err
 	}
 	s.latestSlotOfSyncBlock = utils.SlotAtTimestamp(s.eth2Config, block.Time())
+	logrus.Debugf("latestSlotOfSyncBlock: %d, latestBlockOfSyncBlock: %d", s.latestSlotOfSyncBlock, s.latestBlockOfSyncBlock)
 
 	// start services
 	logrus.Info("start services...")

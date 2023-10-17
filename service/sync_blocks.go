@@ -30,18 +30,18 @@ func (s *Service) syncBlocks() error {
 	}
 
 	g := new(errgroup.Group)
-	g.SetLimit(int(s.BatchRequestBlocksNumber))
+	g.SetLimit(int(s.batchRequestBlocksNumber))
 
-	for i := start; i <= end; i += s.BatchRequestBlocksNumber {
+	for i := start; i <= end; i += s.batchRequestBlocksNumber {
 		subStart := i
-		subEnd := i + s.BatchRequestBlocksNumber - 1
-		if end < i+s.BatchRequestBlocksNumber {
+		subEnd := i + s.batchRequestBlocksNumber - 1
+		if end < i+s.batchRequestBlocksNumber {
 			subEnd = end
 		}
 		preLatestSyncBlock := s.latestBlockOfSyncBlock
 		batchRequestStartTime := time.Now().Unix()
 
-		blockReciever := make([]*beacon.BeaconBlock, s.BatchRequestBlocksNumber)
+		blockReciever := make([]*beacon.BeaconBlock, s.batchRequestBlocksNumber)
 		for j := subStart; j <= subEnd; j++ {
 			// notice this
 			slot := j
