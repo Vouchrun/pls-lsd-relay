@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/hex"
 	"errors"
-	"fmt"
 	"math"
 	"math/big"
 	"sort"
@@ -121,13 +120,8 @@ func (m *MerkleTree) buildLeafNodes(nodeHashList NodeHashList) {
 func (m *MerkleTree) GetProof(leafNodeHash NodeHash) ([]NodeHash, error) {
 	proof := make([]NodeHash, 0)
 	if index, ok := m.leafNodeIndex[leafNodeHash.String()]; ok {
-
 		for i := 0; i < len(m.layers)-1; i++ {
-			node, err := m.getPairElement(index, i)
-			if err != nil {
-				index = index / 2
-				continue
-			}
+			node := m.getPairElement(index, i)
 			proof = append(proof, node.Hash)
 			index = index / 2
 		}
@@ -139,7 +133,7 @@ func (m *MerkleTree) GetProof(leafNodeHash NodeHash) ([]NodeHash, error) {
 	}
 }
 
-func (m *MerkleTree) getPairElement(index, layer int) (*Node, error) {
+func (m *MerkleTree) getPairElement(index, layer int) *Node {
 	willUseIndex := 0
 	if index%2 == 0 {
 		willUseIndex = index + 1
@@ -147,9 +141,9 @@ func (m *MerkleTree) getPairElement(index, layer int) (*Node, error) {
 		willUseIndex = index - 1
 	}
 	if willUseIndex <= len(m.layers[layer])-1 {
-		return m.layers[layer][willUseIndex], nil
+		return m.layers[layer][willUseIndex]
 	} else {
-		return nil, fmt.Errorf("no pair index %d ,layer %d", index, layer)
+		return m.layers[layer][len(m.layers[layer])-1]
 	}
 }
 

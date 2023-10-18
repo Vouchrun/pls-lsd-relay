@@ -91,7 +91,6 @@ func (s *Service) setMerkleRoot() error {
 	if err != nil {
 		return err
 	}
-
 	finalNodeRewardsMap := make(NodeRewardsMap, 0)
 	for _, node := range preNodeRewardMap {
 		address := common.HexToAddress(node.Address)
@@ -156,7 +155,7 @@ func (s *Service) setMerkleRoot() error {
 				return errors.Wrap(err, "tree.GetProof failed")
 			}
 			if len(proofList) == 0 {
-				return errors.Wrap(err, "tree.GetProof result empty")
+				return errors.New("tree.GetProof result empty")
 			}
 
 			proofStrList := make([]string, len(proofList))
@@ -167,7 +166,6 @@ func (s *Service) setMerkleRoot() error {
 			nodeReward.Proof = strings.Join(proofStrList, ":")
 		}
 	}
-
 	// upload file
 	fileBts, err := json.Marshal(finalNodeRewardsList)
 	if err != nil {
@@ -237,6 +235,8 @@ func (s *Service) checkStateForSetMerkleRoot() (uint64, uint64, uint64, bool, er
 	logrus.WithFields(logrus.Fields{
 		"targetEth1BlockHeight":  targetEth1BlockHeight,
 		"latestBlockOfSyncBlock": s.latestBlockOfSyncBlock,
+		"dealedEpochOnchain":     dealedEpochOnchain,
+		"targetEpoch":            targetEpoch,
 	}).Debug("setMerkleRoot")
 
 	// wait sync block
