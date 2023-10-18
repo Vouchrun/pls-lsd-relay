@@ -13,6 +13,12 @@ import (
 	"golang.org/x/crypto/sha3"
 )
 
+var (
+	ErrPairNotExist     = errors.New("PairNotExist")
+	ErrLeafNodeNotExist = errors.New("LeafNodeNotExist")
+	ErrInvalidTree      = errors.New("InvalidateTree")
+)
+
 type NodeHash []byte
 
 func (nodeHash *NodeHash) String() string {
@@ -94,12 +100,11 @@ func (m *MerkleTree) GetLayers() [][]*Node {
 	return m.layers
 }
 
-func (m *MerkleTree) GetRootHash() (hash NodeHash, err error) {
+func (m *MerkleTree) GetRootHash() (NodeHash, error) {
 	if (len(m.layers[len(m.layers)-1])) != 1 {
-		err = errors.New("invalidate tree")
+		return NodeHash{}, ErrInvalidTree
 	}
-	hash = m.layers[len(m.layers)-1][0].Hash
-	return
+	return m.layers[len(m.layers)-1][0].Hash, nil
 }
 
 func (m *MerkleTree) buildLeafNodes(nodeHashList NodeHashList) {
@@ -120,20 +125,25 @@ func (m *MerkleTree) buildLeafNodes(nodeHashList NodeHashList) {
 func (m *MerkleTree) GetProof(leafNodeHash NodeHash) ([]NodeHash, error) {
 	proof := make([]NodeHash, 0)
 	if index, ok := m.leafNodeIndex[leafNodeHash.String()]; ok {
-		for i := 0; i < len(m.layers)-1; i++ {
-			node := m.getPairElement(index, i)
-			proof = append(proof, node.Hash)
+		// get path from layer 0 to layer len(m.layers)-2
+		for layer := 0; layer < len(m.layers)-1; layer++ {
+			node, err := m.getPairElement(layer, index)
 			index = index / 2
+			if err != nil {
+				continue // go to next layer
+			}
+
+			proof = append(proof, node.Hash)
 		}
 
 		return proof, nil
 
 	} else {
-		return nil, errors.New("leafnode not exist")
+		return nil, ErrLeafNodeNotExist
 	}
 }
 
-func (m *MerkleTree) getPairElement(index, layer int) *Node {
+func (m *MerkleTree) getPairElement(layer, index int) (*Node, error) {
 	willUseIndex := 0
 	if index%2 == 0 {
 		willUseIndex = index + 1
@@ -141,9 +151,9 @@ func (m *MerkleTree) getPairElement(index, layer int) *Node {
 		willUseIndex = index - 1
 	}
 	if willUseIndex <= len(m.layers[layer])-1 {
-		return m.layers[layer][willUseIndex]
+		return m.layers[layer][willUseIndex], nil
 	} else {
-		return m.layers[layer][len(m.layers[layer])-1]
+		return nil, ErrPairNotExist
 	}
 }
 
@@ -170,6 +180,7 @@ func ConbinedHash(b0, b1 NodeHash) NodeHash {
 }
 
 func GetNodeHash(index *big.Int, account common.Address, rewardAmount, depositAmount *big.Int) NodeHash {
-	hash := crypto.Keccak256Hash(common.LeftPadBytes(index.Bytes(), 32), account.Bytes(), common.LeftPadBytes(rewardAmount.Bytes(), 32), common.LeftPadBytes(depositAmount.Bytes(), 32))
+	hash := crypto.Keccak256Hash(common.LeftPadBytes(index.Bytes(), 32), account.Bytes(),
+		common.LeftPadBytes(rewardAmount.Bytes(), 32), common.LeftPadBytes(depositAmount.Bytes(), 32))
 	return hash[:]
 }

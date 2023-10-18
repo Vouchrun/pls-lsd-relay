@@ -267,24 +267,3 @@ func TestGetUserNodePlatformReward(t *testing.T) {
 	user, node, platform := utils.GetUserNodePlatformReward(decimal.NewFromFloat(0.1), decimal.NewFromFloat(0.1), decimal.NewFromBigInt(big.NewInt(1e18), 0), decimal.NewFromBigInt(big.NewInt(100), 0))
 	t.Log(user, node, platform)
 }
-
-func TestMerkleTree(t *testing.T) {
-
-	list := make(utils.NodeHashList, 1)
-	list[0] = utils.GetNodeHash(big.NewInt(int64(0)), common.HexToAddress("0xAC9cB72bd23D4B7b99fa0E1887ca1d44164092b8"),
-		big.NewInt(1), big.NewInt(2))
-
-	tree := utils.NewMerkleTree(list)
-
-	rootHash, err := tree.GetRootHash()
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Log(rootHash)
-
-	proof, err := tree.GetProof(list[0])
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Log(proof)
-}

@@ -154,9 +154,6 @@ func (s *Service) setMerkleRoot() error {
 			if err != nil {
 				return errors.Wrap(err, "tree.GetProof failed")
 			}
-			if len(proofList) == 0 {
-				return errors.New("tree.GetProof result empty")
-			}
 
 			proofStrList := make([]string, len(proofList))
 			for i, p := range proofList {
