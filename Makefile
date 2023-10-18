@@ -29,6 +29,7 @@ abi:
 	abigen --abi ./bindings/NetworkProposal/networkproposal_abi.json --pkg network_proposal --type NetworkProposal --out ./bindings/NetworkProposal/NetworkProposal.go
 	abigen --abi ./bindings/NetworkBalances/networkbalances_abi.json --pkg network_balances --type NetworkBalances --out ./bindings/NetworkBalances/NetworkBalances.go
 	abigen --abi ./bindings/UserDeposit/userdeposit_abi.json --pkg user_deposit --type UserDeposit --out ./bindings/UserDeposit/UserDeposit.go
+	abigen --abi ./bindings/FeePool/feepool_abi.json --pkg fee_pool --type FeePool --out ./bindings/FeePool/FeePool.go
 
 
 clean:

@@ -23,6 +23,7 @@ import (
 	"github.com/stafiprotocol/chainbridge/utils/crypto/secp256k1"
 	"github.com/stafiprotocol/eth-lsd-relay/bindings/DepositContract"
 	"github.com/stafiprotocol/eth-lsd-relay/bindings/Erc20"
+	"github.com/stafiprotocol/eth-lsd-relay/bindings/FeePool"
 	"github.com/stafiprotocol/eth-lsd-relay/bindings/LsdNetworkFactory"
 	"github.com/stafiprotocol/eth-lsd-relay/bindings/NetworkBalances"
 	"github.com/stafiprotocol/eth-lsd-relay/bindings/NetworkProposal"
@@ -74,6 +75,7 @@ type Service struct {
 	networkBalancesContract   *network_balances.NetworkBalances
 	lsdTokenContract          *erc20.Erc20
 	userDepositContract       *user_deposit.UserDeposit
+	feePoolContract           *fee_pool.FeePool
 
 	nodeCommissionRate     decimal.Decimal
 	platfromCommissionRate decimal.Decimal
@@ -485,6 +487,11 @@ func (s *Service) initContract() error {
 		return err
 	}
 	s.lsdTokenContract, err = erc20.NewErc20(networkContracts.LsdToken, s.eth1Client)
+	if err != nil {
+		return err
+	}
+
+	s.feePoolContract, err = fee_pool.NewFeePool(networkContracts.FeePool, s.eth1Client)
 	if err != nil {
 		return err
 	}

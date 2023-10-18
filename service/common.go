@@ -1,11 +1,12 @@
 package service
 
 import (
-	"bytes"
+	"context"
 	"fmt"
 	"math"
 	"math/big"
 
+	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/pkg/errors"
 	ethpb "github.com/prysmaticlabs/prysm/v3/proto/eth/v1"
@@ -194,20 +195,43 @@ func (s *Service) getUserNodePlatformFromPriorityFee(latestDistributeHeight, tar
 			continue
 		}
 
+		// cal priority fee at this block
 		feeAmountAtThisBlock := decimal.Zero
+
+		preBlockNumber := big.NewInt(int64(i - 1))
+		curBlockNumber := big.NewInt(int64(i))
+		feePoolPreBalance, err := s.eth1Client.BalanceAt(context.Background(), s.feePoolAddress, preBlockNumber)
+		if err != nil {
+			return decimal.Zero, decimal.Zero, decimal.Zero, nil, err
+		}
+		feePoolCurBalance, err := s.eth1Client.BalanceAt(context.Background(), s.feePoolAddress, curBlockNumber)
+		if err != nil {
+			return decimal.Zero, decimal.Zero, decimal.Zero, nil, err
+		}
+
+		decreaseAmount := big.NewInt(0)
+		curBlockNumberUint := curBlockNumber.Uint64()
+		withdrawIter, err := s.feePoolContract.FilterEtherWithdrawn(&bind.FilterOpts{
+			Start:   curBlockNumberUint,
+			End:     &curBlockNumberUint,
+			Context: context.Background(),
+		})
+		if err != nil {
+			return decimal.Zero, decimal.Zero, decimal.Zero, nil, err
+		}
+		for withdrawIter.Next() {
+			decreaseAmount = new(big.Int).Add(decreaseAmount, withdrawIter.Event.Amount)
+		}
+		totalPreBalanceAddDecrease := new(big.Int).Add(feePoolPreBalance, decreaseAmount)
+
 		switch {
-		case bytes.EqualFold(block.FeeRecipient[:], s.feePoolAddress[:]):
-			feeAmountAtThisBlock = decimal.NewFromBigInt(block.PriorityFee, 0)
+		case feePoolCurBalance.Cmp(totalPreBalanceAddDecrease) == 0:
+		case feePoolCurBalance.Cmp(totalPreBalanceAddDecrease) < 0:
+			return decimal.Zero, decimal.Zero, decimal.Zero, nil, fmt.Errorf("should not happend here when cal priority fee, block: %d", i)
+		case feePoolCurBalance.Cmp(totalPreBalanceAddDecrease) > 0:
+			feeAmountAtThisBlock = decimal.NewFromBigInt(new(big.Int).Sub(feePoolCurBalance, totalPreBalanceAddDecrease), 0)
 		default:
-			// maybe mev
-			for _, tx := range block.Transactions {
-				if tx.Recipient != nil {
-					if bytes.EqualFold(tx.Recipient, s.feePoolAddress[:]) {
-						feeAmountAtThisBlock = decimal.NewFromBigInt(new(big.Int).SetBytes(tx.Amount), 0)
-						break
-					}
-				}
-			}
+			return decimal.Zero, decimal.Zero, decimal.Zero, nil, fmt.Errorf("should not happend here when cal priority fee")
 		}
 
 		// cal rewards
