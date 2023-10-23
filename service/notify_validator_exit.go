@@ -123,35 +123,41 @@ func (s *Service) notifyValidatorExit() error {
 		startCycle = int64(notExitElectionList[0].WithdrawCycle)
 	}
 
-	proposalId := utils.NotifyExitProposalId(big.NewInt(willDealCycle), big.NewInt(startCycle), selectVals)
+	// ---- send NotifyValidatorExit tx
+	return s.sendNotifyExitTx(uint64(willDealCycle), uint64(startCycle), selectVals)
+}
+
+func (s *Service) sendNotifyExitTx(withdrawCycle, startCycle uint64, selectVals []*big.Int) error {
+	err := s.connection.LockAndUpdateTxOpts()
+	if err != nil {
+		return fmt.Errorf("LockAndUpdateTxOpts err: %s", err)
+	}
+	defer s.connection.UnlockTxOpts()
+
+	encodeBts, err := s.networkWithdrdawAbi.Pack("distribute", big.NewInt(int64(withdrawCycle)),
+		big.NewInt(int64(startCycle)), selectVals)
+	if err != nil {
+		return err
+	}
+
+	proposalId := utils.ProposalId(s.networkWithdrawAddress, encodeBts, big.NewInt(int64(withdrawCycle)))
+
 	// check voted
 	hasVoted, err := s.networkProposalContract.HasVoted(nil, proposalId, s.keyPair.CommonAddress())
 	if err != nil {
 		return fmt.Errorf("networkProposalContract.HasVoted err: %s", err)
 	}
 	if hasVoted {
-		logrus.Debug("networkProposalContract voted")
 		return nil
 	}
 
 	logrus.WithFields(logrus.Fields{
-		"startCycle":    startCycle,
-		"willDealCycle": willDealCycle,
-		"selectVal":     selectVals,
+		"startCycle":      startCycle,
+		"withdrawalCycle": withdrawCycle,
+		"selectVal":       selectVals,
 	}).Debug("will sendNotifyValidatorExitTx")
 
-	// ---- send NotifyValidatorExit tx
-	return s.sendNotifyExitTx(uint64(willDealCycle), uint64(startCycle), selectVals, proposalId)
-}
-
-func (s *Service) sendNotifyExitTx(preCycle, startCycle uint64, selectVal []*big.Int, proposalId [32]byte) error {
-	err := s.connection.LockAndUpdateTxOpts()
-	if err != nil {
-		return fmt.Errorf("LockAndUpdateTxOpts err: %s", err)
-	}
-	defer s.connection.UnlockTxOpts()
-	tx, err := s.networkWithdrawContract.NotifyValidatorExit(s.connection.TxOpts(), big.NewInt(int64(preCycle)),
-		big.NewInt(int64(startCycle)), selectVal)
+	tx, err := s.networkProposalContract.ExecProposal(s.connection.TxOpts(), s.networkWithdrawAddress, encodeBts, big.NewInt(int64(withdrawCycle)))
 	if err != nil {
 		return err
 	}

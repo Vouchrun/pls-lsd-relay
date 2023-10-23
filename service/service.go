@@ -14,6 +14,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/prysmaticlabs/prysm/v3/beacon-chain/core/signing"
@@ -66,6 +67,13 @@ type Service struct {
 	lsdNetworkFactoryAddress common.Address
 	lsdTokenAddress          common.Address
 	feePoolAddress           common.Address
+	networkWithdrawAddress   common.Address
+	networkBalancesAddress   common.Address
+	nodeDepositAddress       common.Address
+
+	networkWithdrdawAbi abi.ABI
+	networkBalancesAbi  abi.ABI
+	nodeDepositAbi      abi.ABI
 
 	lsdNetworkFactoryContract *lsd_network_factory.LsdNetworkFactory
 	nodeDepositContract       *node_deposit.NodeDeposit
@@ -419,6 +427,20 @@ func (s *Service) Start() error {
 	s.latestSlotOfSyncBlock = utils.SlotAtTimestamp(s.eth2Config, block.Time())
 	logrus.Debugf("latestSlotOfSyncBlock: %d, latestBlockOfSyncBlock: %d", s.latestSlotOfSyncBlock, s.latestBlockOfSyncBlock)
 
+	// init abi
+	s.networkWithdrdawAbi, err = abi.JSON(strings.NewReader(network_withdraw.NetworkWithdrawABI))
+	if err != nil {
+		return err
+	}
+	s.networkBalancesAbi, err = abi.JSON(strings.NewReader(network_balances.NetworkBalancesABI))
+	if err != nil {
+		return err
+	}
+	s.nodeDepositAbi, err = abi.JSON(strings.NewReader(node_deposit.NodeDepositABI))
+	if err != nil {
+		return err
+	}
+
 	// start services
 	logrus.Info("start services...")
 	s.appendSyncHandlers(s.syncBlocks, s.pruneBlocks)
@@ -495,6 +517,10 @@ func (s *Service) initContract() error {
 	if err != nil {
 		return err
 	}
+
+	s.networkWithdrawAddress = networkContracts.NetworkWithdraw
+	s.networkBalancesAddress = networkContracts.NetworkBalances
+	s.nodeDepositAddress = networkContracts.NodeDeposit
 
 	s.networkCreateBlock = networkContracts.Block.Uint64()
 

@@ -2,12 +2,11 @@ package service
 
 import (
 	"fmt"
-	"math/big"
-
 	"github.com/pkg/errors"
 	"github.com/shopspring/decimal"
 	"github.com/sirupsen/logrus"
 	"github.com/stafiprotocol/eth-lsd-relay/pkg/utils"
+	"math/big"
 )
 
 func (s *Service) distributeWithdrawals() error {
@@ -39,29 +38,9 @@ func (s *Service) distributeWithdrawals() error {
 		return errors.Wrap(err, "calMaxClaimableWithdrawIndex failed")
 	}
 
-	proposalId := utils.DistributeProposalId(utils.DistributeTypeWithdrawals, big.NewInt(int64(targetEth1BlockHeight)),
-		totalUserEthDeci.BigInt(), totalNodeEthDeci.BigInt(), totalPlatformEthDeci.BigInt(), big.NewInt(int64(newMaxClaimableWithdrawIndex)))
-	// check voted
-	hasVoted, err := s.networkProposalContract.HasVoted(nil, proposalId, s.keyPair.CommonAddress())
-	if err != nil {
-		return fmt.Errorf("networkProposalContract.HasVoted err: %s", err)
-	}
-	if hasVoted {
-		logrus.Debug("networkProposalContract voted")
-		return nil
-	}
-
-	logrus.WithFields(logrus.Fields{
-		"targetEth1BlockHeight":        targetEth1BlockHeight,
-		"totalUserEthDeci":             totalUserEthDeci.String(),
-		"totalNodeEthDeci":             totalNodeEthDeci.String(),
-		"totalPlatformEthDeci":         totalPlatformEthDeci.String(),
-		"newMaxClaimableWithdrawIndex": newMaxClaimableWithdrawIndex,
-	}).Info("Will DistributeWithdrawals")
-
 	// -----3 send vote tx
 	return s.sendDistributeTx(utils.DistributeTypeWithdrawals, big.NewInt(int64(targetEth1BlockHeight)),
-		totalUserEthDeci.BigInt(), totalNodeEthDeci.BigInt(), totalPlatformEthDeci.BigInt(), big.NewInt(int64(newMaxClaimableWithdrawIndex)), proposalId)
+		totalUserEthDeci.BigInt(), totalNodeEthDeci.BigInt(), totalPlatformEthDeci.BigInt(), big.NewInt(int64(newMaxClaimableWithdrawIndex)))
 }
 
 // check sync and vote state
@@ -160,20 +139,45 @@ func (s *Service) calMaxClaimableWithdrawIndex(targetEth1BlockHeight uint64, tot
 	return newMaxClaimableWithdrawIndex, nil
 }
 
-func (s *Service) sendDistributeTx(distributeType uint8, targetEth1BlockHeight, totalUserEth, totalNodeEth, totalPlatformEth, newMaxClaimableWithdrawIndex *big.Int, proposalId [32]byte) error {
+func (s *Service) sendDistributeTx(distributeType uint8, targetEth1BlockHeight, totalUserEth, totalNodeEth, totalPlatformEth, newMaxClaimableWithdrawIndex *big.Int) error {
 	err := s.connection.LockAndUpdateTxOpts()
 	if err != nil {
 		return fmt.Errorf("LockAndUpdateTxOpts err: %s", err)
 	}
 	defer s.connection.UnlockTxOpts()
 
-	tx, err := s.networkWithdrawContract.Distribute(s.connection.TxOpts(), distributeType, targetEth1BlockHeight,
+	encodeBts, err := s.networkWithdrdawAbi.Pack("distribute", distributeType, targetEth1BlockHeight,
 		totalUserEth, totalNodeEth, totalPlatformEth, newMaxClaimableWithdrawIndex)
 	if err != nil {
 		return err
 	}
 
-	logrus.Infof("send Distribute tx hash: %s, type: %d", tx.Hash().String(), distributeType)
+	proposalId := utils.ProposalId(s.networkWithdrawAddress, encodeBts, targetEth1BlockHeight)
+
+	// check voted
+	hasVoted, err := s.networkProposalContract.HasVoted(nil, proposalId, s.keyPair.CommonAddress())
+	if err != nil {
+		return fmt.Errorf("networkProposalContract.HasVoted err: %s", err)
+	}
+	if hasVoted {
+		return nil
+	}
+
+	logrus.WithFields(logrus.Fields{
+		"distributeType":               distributeType,
+		"targetEth1BlockHeight":        targetEth1BlockHeight,
+		"totalUserEthDeci":             totalUserEth.String(),
+		"totalNodeEthDeci":             totalNodeEth.String(),
+		"totalPlatformEthDeci":         totalPlatformEth.String(),
+		"newMaxClaimableWithdrawIndex": newMaxClaimableWithdrawIndex,
+	}).Info("Will sendDistributeTx")
+
+	tx, err := s.networkProposalContract.ExecProposal(s.connection.TxOpts(), s.networkWithdrawAddress, encodeBts, targetEth1BlockHeight)
+	if err != nil {
+		return err
+	}
+
+	logrus.Infof("send Distribute tx hash: %s", tx.Hash().String())
 
 	return s.waitProposalTxOk(tx.Hash(), proposalId)
 }

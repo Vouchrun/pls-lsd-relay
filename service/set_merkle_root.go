@@ -177,19 +177,7 @@ func (s *Service) setMerkleRoot() error {
 	var merkleTreeRootHash [32]byte
 	copy(merkleTreeRootHash[:], rootHash)
 
-	proposalId := utils.VoteMerkleRootProposalId(big.NewInt(int64(targetEpoch)),
-		merkleTreeRootHash, cid)
-	// check voted
-	hasVoted, err := s.networkProposalContract.HasVoted(nil, proposalId, s.keyPair.CommonAddress())
-	if err != nil {
-		return fmt.Errorf("networkProposalContract.HasVoted err: %s", err)
-	}
-	if hasVoted {
-		logrus.Debug("networkProposalContract voted")
-		return nil
-	}
-
-	return s.sendSetMerkleRootTx(int64(targetEpoch), merkleTreeRootHash, cid, proposalId)
+	return s.sendSetMerkleRootTx(int64(targetEpoch), merkleTreeRootHash, cid)
 }
 
 func buildMerkleTree(nodelist NodeRewardsList) (*utils.MerkleTree, error) {
@@ -245,16 +233,34 @@ func (s *Service) checkStateForSetMerkleRoot() (uint64, uint64, uint64, bool, er
 	return dealedEpochOnchain, targetEpoch, targetEth1BlockHeight, true, nil
 }
 
-func (s *Service) sendSetMerkleRootTx(targetEpoch int64, rootHash [32]byte, cid string, proposalId [32]byte) error {
+func (s *Service) sendSetMerkleRootTx(targetEpoch int64, rootHash [32]byte, cid string) error {
 	err := s.connection.LockAndUpdateTxOpts()
 	if err != nil {
 		return fmt.Errorf("LockAndUpdateTxOpts err: %s", err)
 	}
 	defer s.connection.UnlockTxOpts()
 
-	logrus.Infof("cid: %s", cid)
+	encodeBts, err := s.networkWithdrdawAbi.Pack("distribute", big.NewInt(targetEpoch), rootHash, cid)
+	if err != nil {
+		return err
+	}
 
-	tx, err := s.networkWithdrawContract.SetMerkleRoot(s.connection.TxOpts(), big.NewInt(targetEpoch), rootHash, cid)
+	proposalId := utils.ProposalId(s.networkWithdrawAddress, encodeBts, big.NewInt(targetEpoch))
+
+	// check voted
+	hasVoted, err := s.networkProposalContract.HasVoted(nil, proposalId, s.keyPair.CommonAddress())
+	if err != nil {
+		return fmt.Errorf("networkProposalContract.HasVoted err: %s", err)
+	}
+	if hasVoted {
+		return nil
+	}
+
+	logrus.WithFields(logrus.Fields{
+		"cid": cid,
+	}).Info("will sendSetMerkleRootTx")
+
+	tx, err := s.networkProposalContract.ExecProposal(s.connection.TxOpts(), s.networkWithdrawAddress, encodeBts, big.NewInt(int64(targetEpoch)))
 	if err != nil {
 		return err
 	}

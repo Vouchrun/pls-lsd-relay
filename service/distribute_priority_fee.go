@@ -1,7 +1,6 @@
 package service
 
 import (
-	"fmt"
 	"math/big"
 
 	"github.com/pkg/errors"
@@ -39,29 +38,9 @@ func (s *Service) distributePriorityFee() error {
 		return errors.Wrap(err, "calMaxClaimableWithdrawIndex failed")
 	}
 
-	proposalId := utils.DistributeProposalId(utils.DistributeTypePriorityFee, big.NewInt(int64(targetEth1BlockHeight)),
-		totalUserEthDeci.BigInt(), totalNodeEthDeci.BigInt(), totalPlatformEthDeci.BigInt(), big.NewInt(int64(newMaxClaimableWithdrawIndex)))
-	// check voted
-	hasVoted, err := s.networkProposalContract.HasVoted(nil, proposalId, s.keyPair.CommonAddress())
-	if err != nil {
-		return fmt.Errorf("networkProposalContract.HasVoted err: %s", err)
-	}
-	if hasVoted {
-		logrus.Debug("distributePriorityFee voted")
-		return nil
-	}
-
-	logrus.WithFields(logrus.Fields{
-		"targetEth1BlockHeight":        targetEth1BlockHeight,
-		"totalUserEthDeci":             totalUserEthDeci.String(),
-		"totalNodeEthDeci":             totalNodeEthDeci.String(),
-		"totalPlatformEthDeci":         totalPlatformEthDeci.String(),
-		"newMaxClaimableWithdrawIndex": newMaxClaimableWithdrawIndex,
-	}).Info("Will DistributePriorityFee")
-
 	// -----3 send vote tx
 	return s.sendDistributeTx(utils.DistributeTypePriorityFee, big.NewInt(int64(targetEth1BlockHeight)),
-		totalUserEthDeci.BigInt(), totalNodeEthDeci.BigInt(), totalPlatformEthDeci.BigInt(), big.NewInt(int64(newMaxClaimableWithdrawIndex)), proposalId)
+		totalUserEthDeci.BigInt(), totalNodeEthDeci.BigInt(), totalPlatformEthDeci.BigInt(), big.NewInt(int64(newMaxClaimableWithdrawIndex)))
 }
 
 // check sync and vote state

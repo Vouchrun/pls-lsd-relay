@@ -4,7 +4,9 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
+	"math/big"
 
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/prysmaticlabs/prysm/v3/contracts/deposit"
 	ethpb "github.com/prysmaticlabs/prysm/v3/proto/prysm/v1alpha1"
 	"github.com/sirupsen/logrus"
@@ -24,7 +26,6 @@ func (s *Service) voteWithdrawCredentials() error {
 	}
 	validatorPubkeys := make([][]byte, 0)
 	validatorMatchs := make([]bool, 0)
-	proposalIds := make([][32]byte, 0)
 	for _, validator := range validatorListNeedVote {
 		// skip if not sync to deposit block
 		if validator.DepositBlock > s.latestBlockOfSyncEvents {
@@ -84,23 +85,14 @@ func (s *Service) voteWithdrawCredentials() error {
 			"match":  match,
 		}).Debug("match info")
 
-		proposalId := utils.VoteWithdrawCredentialsProposalId(validator.Pubkey)
-		proposalIds = append(proposalIds, proposalId)
-
-		hasVoted, err := s.networkProposalContract.HasVoted(nil, proposalId, s.keyPair.CommonAddress())
-		if err != nil {
-			return err
-		}
-		if !hasVoted {
-			validatorPubkeys = append(validatorPubkeys, validator.Pubkey)
-			validatorMatchs = append(validatorMatchs, match)
-		}
+		validatorPubkeys = append(validatorPubkeys, validator.Pubkey)
+		validatorMatchs = append(validatorMatchs, match)
 	}
 
-	return s.voteWithdrawCredentialsTx(validatorPubkeys, validatorMatchs, proposalIds)
+	return s.voteWithdrawCredentialsTx(validatorPubkeys, validatorMatchs)
 }
 
-func (s *Service) voteWithdrawCredentialsTx(validatorPubkeys [][]byte, matchs []bool, proposalIds [][32]byte) error {
+func (s *Service) voteWithdrawCredentialsTx(validatorPubkeys [][]byte, matchs []bool) error {
 	if len(validatorPubkeys) == 0 {
 		return nil
 	}
@@ -111,6 +103,39 @@ func (s *Service) voteWithdrawCredentialsTx(validatorPubkeys [][]byte, matchs []
 		"pubkeys": pubkeyToHex(validatorPubkeys),
 		"matchs":  matchs,
 	}).Info("voteForNode")
+
+	tos := make([]common.Address, 0)
+	callDatas := make([][]byte, 0)
+	blocks := make([]*big.Int, 0)
+	proposalIds := make([][32]byte, 0)
+
+	for i := 0; i < len(validatorPubkeys); i++ {
+
+		encodeBts, err := s.nodeDepositAbi.Pack("voteWithdrawCredentials", validatorPubkeys[i], matchs[i])
+		if err != nil {
+			return err
+		}
+
+		proposalId := utils.ProposalId(s.nodeDepositAddress, encodeBts, big.NewInt(0))
+
+		// check voted
+		hasVoted, err := s.networkProposalContract.HasVoted(nil, proposalId, s.keyPair.CommonAddress())
+		if err != nil {
+			return fmt.Errorf("networkProposalContract.HasVoted err: %s", err)
+		}
+		if hasVoted {
+			continue
+		}
+
+		tos = append(tos, s.nodeDepositAddress)
+		callDatas = append(callDatas, encodeBts)
+		blocks = append(blocks, big.NewInt(0))
+		proposalIds = append(proposalIds, proposalId)
+	}
+
+	if len(tos) == 0 {
+		return nil
+	}
 
 	err := s.connection.LockAndUpdateTxOpts()
 	if err != nil {
@@ -123,10 +148,11 @@ func (s *Service) voteWithdrawCredentialsTx(validatorPubkeys [][]byte, matchs []
 		"gasLimit": s.connection.TxOpts().GasLimit,
 	}).Debug("tx opts")
 
-	tx, err := s.nodeDepositContract.VoteWithdrawCredentials(s.connection.TxOpts(), validatorPubkeys, matchs)
+	tx, err := s.networkProposalContract.BatchExecProposals(s.connection.TxOpts(), tos, callDatas, blocks)
 	if err != nil {
-		return fmt.Errorf("lightNodeContract.VoteWithdrawCredentials err: %s", err)
+		return err
 	}
+
 	logrus.Info("send vote tx hash: ", tx.Hash().String())
 
 	return s.waitProposalsTxOk(tx.Hash(), proposalIds)

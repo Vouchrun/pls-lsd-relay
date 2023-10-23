@@ -134,16 +134,6 @@ func (s *Service) submitBalances() error {
 		return fmt.Errorf("exceed rate change limit %s, newExchangeRate %s, oldExchangeRate %s", rateChangeLimit.String(), newExchangeRateDeci.String(), oldExchangeRateDeci.String())
 	}
 
-	proposalId := utils.SubmitBalancesProposalId(big.NewInt(int64(targetBlock)),
-		totalUserEthDeci.BigInt(), lsdTokenTotalSupply)
-	hasVoted, err := s.networkProposalContract.HasVoted(nil, proposalId, s.keyPair.CommonAddress())
-	if err != nil {
-		return err
-	}
-	if hasVoted {
-		return nil
-	}
-
 	logrus.WithFields(logrus.Fields{
 		"targetBlockNumber":                 targetBlock,
 		"targetEpoch":                       targetEpoch,
@@ -158,7 +148,7 @@ func (s *Service) submitBalances() error {
 		"oldExchangeRate":                   oldExchangeRateDeci.StringFixed(0),
 	}).Info("exchangeRateInfo")
 
-	return s.sendSubmitBalancesTx(big.NewInt(int64(targetBlock)), totalUserEthDeci.BigInt(), lsdTokenTotalSupply, proposalId)
+	return s.sendSubmitBalancesTx(big.NewInt(int64(targetBlock)), totalUserEthDeci.BigInt(), lsdTokenTotalSupply)
 
 }
 
@@ -237,18 +227,30 @@ func (s *Service) getUserDepositPlusReward(nodeDepositAmount, validatorBalance d
 	}
 }
 
-func (s *Service) sendSubmitBalancesTx(block, totalUserEth, lsdTokenTotalSupply *big.Int, proposalId [32]byte) error {
+func (s *Service) sendSubmitBalancesTx(block, totalUserEth, lsdTokenTotalSupply *big.Int) error {
 	err := s.connection.LockAndUpdateTxOpts()
 	if err != nil {
 		return fmt.Errorf("LockAndUpdateTxOpts err: %s", err)
 	}
 	defer s.connection.UnlockTxOpts()
 
-	tx, err := s.networkBalancesContract.SubmitBalances(
-		s.connection.TxOpts(),
-		block,
-		totalUserEth,
-		lsdTokenTotalSupply)
+	encodeBts, err := s.networkWithdrdawAbi.Pack("distribute", block, totalUserEth, lsdTokenTotalSupply)
+	if err != nil {
+		return err
+	}
+
+	proposalId := utils.ProposalId(s.networkBalancesAddress, encodeBts, block)
+
+	// check voted
+	hasVoted, err := s.networkProposalContract.HasVoted(nil, proposalId, s.keyPair.CommonAddress())
+	if err != nil {
+		return fmt.Errorf("networkProposalContract.HasVoted err: %s", err)
+	}
+	if hasVoted {
+		return nil
+	}
+
+	tx, err := s.networkProposalContract.ExecProposal(s.connection.TxOpts(), s.networkWithdrawAddress, encodeBts, block)
 	if err != nil {
 		return err
 	}

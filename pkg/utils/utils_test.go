@@ -236,15 +236,8 @@ func TestMarshal(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Log(string(bts))
-	proposalId := utils.DistributeProposalId(utils.DistributeTypeWithdrawals, big.NewInt(9715586), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0))
+	proposalId := utils.ProposalId(common.HexToAddress("0xDAFEA492D9c6733ae3d56b7Ed1ADB60692c98Bc5"), []byte{0x01, 0x12}, big.NewInt(1))
 	t.Log(hex.EncodeToString(proposalId[:]))
-	// 0x0001020000000000000000000000000000000000000000000000000000000000
-	btss, err := hex.DecodeString("0000000000000000000000000000000000000000000000000000000000000000")
-	if err != nil {
-		t.Fatal(err)
-	}
-	p := utils.VoteMerkleRootProposalId(big.NewInt(204300), [32]byte(btss), "bafybeigo3vokmwothiib7iuaq2nygipkbty4jk4xojbne5ibqib6gffmyq")
-	t.Log(hex.EncodeToString(p[:]))
 }
 func TestConfig(t *testing.T) {
 	c, err := connection.NewConnection("https://mainnet.infura.io/v3/4d058381a4d64d31b00a4e15df3ddb94", "https://beacon-lighthouse.stafi.io", nil, nil, nil)
