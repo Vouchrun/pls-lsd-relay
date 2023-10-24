@@ -234,7 +234,7 @@ func (s *Service) sendSubmitBalancesTx(block, totalUserEth, lsdTokenTotalSupply 
 	}
 	defer s.connection.UnlockTxOpts()
 
-	encodeBts, err := s.networkWithdrdawAbi.Pack("distribute", block, totalUserEth, lsdTokenTotalSupply)
+	encodeBts, err := s.networkBalancesAbi.Pack("submitBalances", block, totalUserEth, lsdTokenTotalSupply)
 	if err != nil {
 		return err
 	}
@@ -250,7 +250,7 @@ func (s *Service) sendSubmitBalancesTx(block, totalUserEth, lsdTokenTotalSupply 
 		return nil
 	}
 
-	tx, err := s.networkProposalContract.ExecProposal(s.connection.TxOpts(), s.networkWithdrawAddress, encodeBts, block)
+	tx, err := s.networkProposalContract.ExecProposal(s.connection.TxOpts(), s.networkBalancesAddress, encodeBts, block)
 	if err != nil {
 		return err
 	}

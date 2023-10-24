@@ -134,7 +134,7 @@ func (s *Service) sendNotifyExitTx(withdrawCycle, startCycle uint64, selectVals 
 	}
 	defer s.connection.UnlockTxOpts()
 
-	encodeBts, err := s.networkWithdrdawAbi.Pack("distribute", big.NewInt(int64(withdrawCycle)),
+	encodeBts, err := s.networkWithdrdawAbi.Pack("notifyValidatorExit", big.NewInt(int64(withdrawCycle)),
 		big.NewInt(int64(startCycle)), selectVals)
 	if err != nil {
 		return err

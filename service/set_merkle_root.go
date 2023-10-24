@@ -240,7 +240,7 @@ func (s *Service) sendSetMerkleRootTx(targetEpoch int64, rootHash [32]byte, cid 
 	}
 	defer s.connection.UnlockTxOpts()
 
-	encodeBts, err := s.networkWithdrdawAbi.Pack("distribute", big.NewInt(targetEpoch), rootHash, cid)
+	encodeBts, err := s.networkWithdrdawAbi.Pack("setMerkleRoot", big.NewInt(targetEpoch), rootHash, cid)
 	if err != nil {
 		return err
 	}
