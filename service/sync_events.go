@@ -3,8 +3,10 @@ package service
 import (
 	"context"
 	"encoding/hex"
+	"fmt"
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
+	"github.com/shopspring/decimal"
 	"github.com/sirupsen/logrus"
 )
 
@@ -68,6 +70,15 @@ func (s *Service) syncEvents() error {
 			return err
 		}
 
+		err = s.fetchUnstakeEventAndCache(subStart, subEnd)
+		if err != nil {
+			return err
+		}
+		err = s.fetchWithdrawEventAndUpdate(subStart, subEnd)
+		if err != nil {
+			return err
+		}
+
 		// update
 		s.latestBlockOfSyncEvents = subEnd
 
@@ -120,6 +131,57 @@ func (s *Service) fetchExitElectionEventAndCache(start, end uint64) error {
 		s.exitElections[cycle] = &ExitElection{
 			WithdrawCycle:      cycle,
 			ValidatorIndexList: valList,
+		}
+	}
+
+	return nil
+}
+
+func (s *Service) fetchUnstakeEventAndCache(start, end uint64) error {
+	iter, err := s.networkWithdrawContract.FilterUnstake(&bind.FilterOpts{
+		Start:   start,
+		End:     &end,
+		Context: context.Background(),
+	}, nil)
+	if err != nil {
+		return err
+	}
+
+	for iter.Next() {
+		claimedBlockNumber := uint64(0)
+		if iter.Event.Instantly {
+			claimedBlockNumber = iter.Event.Raw.BlockNumber
+		}
+
+		s.stakerWithdrawals[iter.Event.WithdrawIndex.Uint64()] = &StakerWithdrawal{
+			WithdrawIndex:      iter.Event.WithdrawIndex.Uint64(),
+			Address:            iter.Event.From,
+			EthAmount:          decimal.NewFromBigInt(iter.Event.EthAmount, 0),
+			BlockNumber:        iter.Event.Raw.BlockNumber,
+			ClaimedBlockNumber: claimedBlockNumber,
+		}
+	}
+
+	return nil
+}
+
+func (s *Service) fetchWithdrawEventAndUpdate(start, end uint64) error {
+	iter, err := s.networkWithdrawContract.FilterWithdraw(&bind.FilterOpts{
+		Start:   start,
+		End:     &end,
+		Context: context.Background(),
+	}, nil)
+	if err != nil {
+		return err
+	}
+
+	for iter.Next() {
+		for _, wi := range iter.Event.WithdrawIndexList {
+			sw, exist := s.stakerWithdrawals[wi.Uint64()]
+			if !exist {
+				return fmt.Errorf("withdrawal index: %d, not exist", wi.Uint64())
+			}
+			sw.ClaimedBlockNumber = iter.Event.Raw.BlockNumber
 		}
 	}
 

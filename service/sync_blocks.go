@@ -12,6 +12,7 @@ import (
 
 var ErrExceedsValidatorUpdateBlock = fmt.Errorf("ErrExceedsValidatorUpdateBlock")
 
+// sync beacon and execution block info
 func (s *Service) syncBlocks() error {
 	beaconHead, err := s.connection.Eth2BeaconHead()
 	if err != nil {

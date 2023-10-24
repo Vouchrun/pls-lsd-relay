@@ -129,9 +129,11 @@ func (s *Service) submitBalances() error {
 		return err
 	}
 
-	rateChange := newExchangeRateDeci.Sub(oldExchangeRateDeci).Abs().Div(oldExchangeRateDeci)
+	one18 := decimal.NewFromBigInt(big.NewInt(1), 18)
+	rateChange := newExchangeRateDeci.Sub(oldExchangeRateDeci).Abs().Mul(one18).Div(oldExchangeRateDeci)
 	if rateChange.GreaterThan(decimal.NewFromBigInt(rateChangeLimit, 0)) {
-		return fmt.Errorf("exceed rate change limit %s, newExchangeRate %s, oldExchangeRate %s", rateChangeLimit.String(), newExchangeRateDeci.String(), oldExchangeRateDeci.String())
+		return fmt.Errorf("exceed rate change limit %s, newExchangeRate %s, oldExchangeRate %s",
+			rateChangeLimit.String(), newExchangeRateDeci.String(), oldExchangeRateDeci.String())
 	}
 
 	logrus.WithFields(logrus.Fields{
@@ -153,6 +155,7 @@ func (s *Service) submitBalances() error {
 }
 
 func (task *Service) getUserEthInfoFromValidatorBalance(validator *Validator, targetEpoch uint64) (decimal.Decimal, error) {
+	// todo use status on target epoch
 	switch validator.Status {
 	case utils.ValidatorStatusDeposited, utils.ValidatorStatusWithdrawMatch, utils.ValidatorStatusWithdrawUnmatch:
 		switch validator.NodeType {

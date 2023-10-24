@@ -91,8 +91,9 @@ type Service struct {
 	quenedVoteHandlers []Handler
 	quenedSyncHandlers []Handler
 
-	latestSlotOfSyncBlock        uint64
-	latestBlockOfSyncBlock       uint64
+	latestSlotOfSyncBlock  uint64
+	latestBlockOfSyncBlock uint64
+
 	latestBlockOfSyncEvents      uint64
 	latestBlockOfUpdateValidator uint64
 	latestEpochOfUpdateValidator uint64
@@ -146,11 +147,10 @@ type Validator struct {
 type StakerWithdrawal struct {
 	WithdrawIndex uint64
 
-	Address            string //hex with 0x prefix
-	EthAmount          string
+	Address            common.Address
+	EthAmount          decimal.Decimal
 	BlockNumber        uint64
 	ClaimedBlockNumber uint64
-	Timestamp          uint64 // unstake tx timestamp
 }
 
 type ExitElection struct {

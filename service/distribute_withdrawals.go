@@ -118,11 +118,7 @@ func (s *Service) calMaxClaimableWithdrawIndex(targetEth1BlockHeight uint64, tot
 					continue
 				}
 
-				ethAmountDeci, err := decimal.NewFromString(stakerWithdrawal.EthAmount)
-				if err != nil {
-					return 0, err
-				}
-				latestUsersWaitAmountDeci = latestUsersWaitAmountDeci.Add(ethAmountDeci)
+				latestUsersWaitAmountDeci = latestUsersWaitAmountDeci.Add(stakerWithdrawal.EthAmount)
 				if latestUsersWaitAmountDeci.GreaterThan(willMissingAmountDeci) {
 					if i >= 1 {
 						newMaxClaimableWithdrawIndex = i - 1
