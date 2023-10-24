@@ -1,6 +1,11 @@
 [
     {
         "inputs": [],
+        "stateMutability": "nonpayable",
+        "type": "constructor"
+    },
+    {
+        "inputs": [],
         "name": "AddressNotAllowed",
         "type": "error"
     },
@@ -156,6 +161,11 @@
     },
     {
         "inputs": [],
+        "name": "NotNetworkProposal",
+        "type": "error"
+    },
+    {
+        "inputs": [],
         "name": "NotPubkeyOwner",
         "type": "error"
     },
@@ -167,6 +177,11 @@
     {
         "inputs": [],
         "name": "ProposalAlreadyExecuted",
+        "type": "error"
+    },
+    {
+        "inputs": [],
+        "name": "ProposalExecFailed",
         "type": "error"
     },
     {
@@ -187,6 +202,11 @@
     {
         "inputs": [],
         "name": "RateChangeOverLimit",
+        "type": "error"
+    },
+    {
+        "inputs": [],
+        "name": "RateValueUnmatch",
         "type": "error"
     },
     {
@@ -265,6 +285,38 @@
             {
                 "indexed": false,
                 "internalType": "address",
+                "name": "previousAdmin",
+                "type": "address"
+            },
+            {
+                "indexed": false,
+                "internalType": "address",
+                "name": "newAdmin",
+                "type": "address"
+            }
+        ],
+        "name": "AdminChanged",
+        "type": "event"
+    },
+    {
+        "anonymous": false,
+        "inputs": [
+            {
+                "indexed": true,
+                "internalType": "address",
+                "name": "beacon",
+                "type": "address"
+            }
+        ],
+        "name": "BeaconUpgraded",
+        "type": "event"
+    },
+    {
+        "anonymous": false,
+        "inputs": [
+            {
+                "indexed": false,
+                "internalType": "address",
                 "name": "node",
                 "type": "address"
             },
@@ -326,6 +378,19 @@
         "inputs": [
             {
                 "indexed": false,
+                "internalType": "uint8",
+                "name": "version",
+                "type": "uint8"
+            }
+        ],
+        "name": "Initialized",
+        "type": "event"
+    },
+    {
+        "anonymous": false,
+        "inputs": [
+            {
+                "indexed": false,
                 "internalType": "bytes",
                 "name": "pubkey",
                 "type": "bytes"
@@ -357,6 +422,19 @@
             }
         ],
         "name": "Staked",
+        "type": "event"
+    },
+    {
+        "anonymous": false,
+        "inputs": [
+            {
+                "indexed": true,
+                "internalType": "address",
+                "name": "implementation",
+                "type": "address"
+            }
+        ],
+        "name": "Upgraded",
         "type": "event"
     },
     {
@@ -428,12 +506,12 @@
                 "type": "uint256"
             }
         ],
-        "name": "getPubkeys",
+        "name": "getNodes",
         "outputs": [
             {
-                "internalType": "bytes[]",
-                "name": "pubkeyList",
-                "type": "bytes[]"
+                "internalType": "address[]",
+                "name": "nodeList",
+                "type": "address[]"
             }
         ],
         "stateMutability": "view",
@@ -441,12 +519,31 @@
     },
     {
         "inputs": [],
-        "name": "getPubkeysLength",
+        "name": "getNodesLength",
         "outputs": [
             {
                 "internalType": "uint256",
                 "name": "",
                 "type": "uint256"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "address",
+                "name": "_node",
+                "type": "address"
+            }
+        ],
+        "name": "getPubkeysOfNode",
+        "outputs": [
+            {
+                "internalType": "bytes[]",
+                "name": "",
+                "type": "bytes[]"
             }
         ],
         "stateMutability": "view",
@@ -482,19 +579,6 @@
     },
     {
         "inputs": [],
-        "name": "initialized",
-        "outputs": [
-            {
-                "internalType": "bool",
-                "name": "",
-                "type": "bool"
-            }
-        ],
-        "stateMutability": "view",
-        "type": "function"
-    },
-    {
-        "inputs": [],
         "name": "networkProposalAddress",
         "outputs": [
             {
@@ -525,11 +609,38 @@
                 "internalType": "bool",
                 "name": "_removed",
                 "type": "bool"
-            },
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
             {
                 "internalType": "uint256",
-                "name": "_pubkeyNumber",
+                "name": "",
                 "type": "uint256"
+            }
+        ],
+        "name": "nodes",
+        "outputs": [
+            {
+                "internalType": "address",
+                "name": "",
+                "type": "address"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "proxiableUUID",
+        "outputs": [
+            {
+                "internalType": "bytes32",
+                "name": "",
+                "type": "bytes32"
             }
         ],
         "stateMutability": "view",
@@ -564,11 +675,6 @@
                 "internalType": "uint256",
                 "name": "_depositBlock",
                 "type": "uint256"
-            },
-            {
-                "internalType": "bytes",
-                "name": "_depositSignature",
-                "type": "bytes"
             }
         ],
         "stateMutability": "view",
@@ -577,12 +683,17 @@
     {
         "inputs": [
             {
+                "internalType": "address",
+                "name": "",
+                "type": "address"
+            },
+            {
                 "internalType": "uint256",
                 "name": "",
                 "type": "uint256"
             }
         ],
-        "name": "pubkeys",
+        "name": "pubkeysOfNode",
         "outputs": [
             {
                 "internalType": "bytes",
@@ -591,6 +702,13 @@
             }
         ],
         "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "reinit",
+        "outputs": [],
+        "stateMutability": "nonpayable",
         "type": "function"
     },
     {
@@ -765,6 +883,37 @@
         "type": "function"
     },
     {
+        "inputs": [
+            {
+                "internalType": "address",
+                "name": "newImplementation",
+                "type": "address"
+            }
+        ],
+        "name": "upgradeTo",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "address",
+                "name": "newImplementation",
+                "type": "address"
+            },
+            {
+                "internalType": "bytes",
+                "name": "data",
+                "type": "bytes"
+            }
+        ],
+        "name": "upgradeToAndCall",
+        "outputs": [],
+        "stateMutability": "payable",
+        "type": "function"
+    },
+    {
         "inputs": [],
         "name": "userDepositAddress",
         "outputs": [
@@ -793,14 +942,14 @@
     {
         "inputs": [
             {
-                "internalType": "bytes[]",
-                "name": "_pubkeys",
-                "type": "bytes[]"
+                "internalType": "bytes",
+                "name": "_pubkey",
+                "type": "bytes"
             },
             {
-                "internalType": "bool[]",
-                "name": "_matchs",
-                "type": "bool[]"
+                "internalType": "bool",
+                "name": "_match",
+                "type": "bool"
             }
         ],
         "name": "voteWithdrawCredentials",

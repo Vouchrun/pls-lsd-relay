@@ -1,11 +1,14 @@
 package service
 
 import (
+	"bytes"
+	"context"
 	"encoding/hex"
 	"fmt"
 	"math"
 	"math/big"
 
+	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/pkg/errors"
 	"github.com/shopspring/decimal"
 	"github.com/sirupsen/logrus"
@@ -26,66 +29,62 @@ func (s *Service) updateValidatorsFromNetwork() error {
 	}
 	call := s.connection.CallOpts(big.NewInt(int64(eth1LatestBlock)))
 
-	// 0. fetch new validators
-	pubkeysLen, err := s.nodeDepositContract.GetPubkeysLength(call)
+	// 0. fetch new Nodes
+	nodesLenOnChain, err := s.nodeDepositContract.GetNodesLength(call)
 	if err != nil {
-		return fmt.Errorf("nodeDepositContract.GetPubkeysLength failed: %w", err)
+		return fmt.Errorf("nodeDepositContract.GetNodesLength failed: %w", err)
 	}
-	if len(s.validators) < int(pubkeysLen.Uint64()) {
-		pubkeys, err := s.nodeDepositContract.GetPubkeys(call, big.NewInt(int64(len(s.validators))), pubkeysLen)
+	if len(s.nodes) < int(nodesLenOnChain.Uint64()) {
+		nodes, err := s.nodeDepositContract.GetNodes(call, big.NewInt(int64(len(s.nodes))), nodesLenOnChain)
 		if err != nil {
 			return err
 		}
-
-		for _, pubkey := range pubkeys {
-			key := hex.EncodeToString(pubkey)
-			if _, exist := s.validators[key]; exist {
-				return fmt.Errorf("validator %s duplicate", key)
+		for _, node := range nodes {
+			nodeInfo, err := s.nodeDepositContract.NodeInfoOf(call, node)
+			if err != nil {
+				return err
 			}
-
-			pubkeyInfo, err := s.nodeDepositContract.PubkeyInfoOf(call, pubkey)
+			pubkeys, err := s.nodeDepositContract.GetPubkeysOfNode(call, node)
+			if err != nil {
+				return err
+			}
+			newVals, err := s.fetchNewVals(call, pubkeys)
 			if err != nil {
 				return err
 			}
 
-			nodeLocal, exist := s.nodes[pubkeyInfo.Owner]
-			if !exist {
-				nodeInfo, err := s.nodeDepositContract.NodeInfoOf(call, pubkeyInfo.Owner)
-				if err != nil {
-					return err
-				}
-
-				node := Node{
-					NodeAddress: pubkeyInfo.Owner,
-					NodeType:    nodeInfo.NodeType,
-				}
-
-				s.nodes[node.NodeAddress] = &node
-
-				nodeLocal = &node
+			// cache validators
+			for key, val := range newVals {
+				s.validators[key] = val
 			}
+			// cache node
+			s.nodes[node] = &Node{
+				NodeAddress:  node,
+				NodeType:     nodeInfo.NodeType,
+				PubkeyNumber: uint64(len(newVals)),
+			}
+		}
+	}
 
-			val := Validator{
-				Pubkey:                pubkey,
-				NodeAddress:           pubkeyInfo.Owner,
-				DepositSignature:      pubkeyInfo.DepositSignature,
-				NodeDepositAmountDeci: decimal.NewFromBigInt(pubkeyInfo.NodeDepositAmount, 0),
-				NodeDepositAmount:     new(big.Int).Div(pubkeyInfo.NodeDepositAmount, big.NewInt(1e9)).Uint64(),
-				DepositBlock:          pubkeyInfo.DepositBlock.Uint64(),
-				ActiveEpoch:           0,
-				EligibleEpoch:         0,
-				ExitEpoch:             0,
-				WithdrawableEpoch:     0,
-				Balance:               0,
-				EffectiveBalance:      0,
-				NodeType:              nodeLocal.NodeType,
-				Status:                pubkeyInfo.Status,
-				ValidatorIndex:        0,
+	// 1 fetch node's new pubkey
+	for _, node := range s.nodes {
+		pubkeys, err := s.nodeDepositContract.GetPubkeysOfNode(call, node.NodeAddress)
+		if err != nil {
+			return err
+		}
+		if len(pubkeys) > int(node.PubkeyNumber) {
+			newPubkeys := pubkeys[int(node.PubkeyNumber):]
+			newVals, err := s.fetchNewVals(call, newPubkeys)
+			if err != nil {
+				return err
 			}
 
 			// cache validators
-			s.validators[key] = &val
-
+			for key, val := range newVals {
+				s.validators[key] = val
+			}
+			// cache node
+			node.PubkeyNumber += uint64(len(newVals))
 		}
 	}
 
@@ -228,4 +227,83 @@ func (s *Service) updateValidatorsFromBeacon() error {
 	s.latestEpochOfUpdateValidator = finalEpoch
 
 	return nil
+}
+
+func (s *Service) fetchNewVals(call *bind.CallOpts, pubkeys [][]byte) (map[string]*Validator, error) {
+	newVals := make(map[string]*Validator)
+	for _, pubkey := range pubkeys {
+		key := hex.EncodeToString(pubkey)
+		if _, exist := s.validators[key]; exist {
+			return nil, fmt.Errorf("validator %s duplicate", key)
+		}
+
+		pubkeyInfo, err := s.nodeDepositContract.PubkeyInfoOf(call, pubkey)
+		if err != nil {
+			return nil, err
+		}
+
+		nodeLocal, exist := s.nodes[pubkeyInfo.Owner]
+		if !exist {
+			nodeInfo, err := s.nodeDepositContract.NodeInfoOf(call, pubkeyInfo.Owner)
+			if err != nil {
+				return nil, err
+			}
+
+			node := Node{
+				NodeAddress: pubkeyInfo.Owner,
+				NodeType:    nodeInfo.NodeType,
+			}
+
+			s.nodes[node.NodeAddress] = &node
+
+			nodeLocal = &node
+		}
+
+		filterBlock := pubkeyInfo.DepositBlock.Uint64()
+		depositedIter, err := s.nodeDepositContract.FilterDeposited(&bind.FilterOpts{
+			Start:   filterBlock,
+			End:     &filterBlock,
+			Context: context.Background(),
+		})
+		if err != nil {
+			return nil, err
+		}
+
+		var depositSig []byte
+		for depositedIter.Next() {
+			if bytes.Equal(depositedIter.Event.Pubkey, pubkey) {
+				depositSig = depositedIter.Event.ValidatorSignature
+				break
+			}
+		}
+
+		if len(depositSig) == 0 {
+			return nil, fmt.Errorf("depositSignature empty, val pubkey: %s", key)
+		}
+
+		val := Validator{
+			Pubkey:                pubkey,
+			NodeAddress:           pubkeyInfo.Owner,
+			DepositSignature:      depositSig,
+			NodeDepositAmountDeci: decimal.NewFromBigInt(pubkeyInfo.NodeDepositAmount, 0),
+			NodeDepositAmount:     new(big.Int).Div(pubkeyInfo.NodeDepositAmount, big.NewInt(1e9)).Uint64(),
+			DepositBlock:          pubkeyInfo.DepositBlock.Uint64(),
+			ActiveEpoch:           0,
+			EligibleEpoch:         0,
+			ExitEpoch:             0,
+			WithdrawableEpoch:     0,
+			Balance:               0,
+			EffectiveBalance:      0,
+			NodeType:              nodeLocal.NodeType,
+			Status:                pubkeyInfo.Status,
+			ValidatorIndex:        0,
+		}
+		newVals[key] = &val
+	}
+
+	if len(pubkeys) != len(newVals) {
+		return nil, fmt.Errorf("fetchNewVals, pubkeys length: %d not match newVals length: %d", len(pubkeys), len(newVals))
+	}
+
+	return newVals, nil
 }

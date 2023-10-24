@@ -115,7 +115,7 @@ func (s *Service) notifyValidatorExit() error {
 
 	// cal start cycle
 	startCycle := willDealCycle - 1
-	notExitElectionList := s.notExitElectionListBefore(uint64(willDealCycle))
+	notExitElectionList := s.notExitElectionListBefore(targetEpoch, uint64(willDealCycle))
 	if err != nil {
 		return errors.Wrap(err, "GetAllNotExitElectionList failed")
 	}
@@ -179,15 +179,33 @@ func (s *Service) mustSelectValidatorsForExit(totalMissingAmount decimal.Decimal
 	if err != nil {
 		return nil, err
 	}
+
+	// sort by active epoch
 	sort.SliceStable(vals, func(i, j int) bool {
 		return vals[i].ActiveEpoch < vals[j].ActiveEpoch
 	})
+
+	type ElectedValidator struct {
+		Index         uint64
+		WithdrawCycle uint64
+	}
+
+	electedValidators := make(map[uint64]*ElectedValidator)
+	for _, election := range s.exitElections {
+		for _, valIndex := range election.ValidatorIndexList {
+
+			electedValidators[valIndex] = &ElectedValidator{
+				Index:         valIndex,
+				WithdrawCycle: election.WithdrawCycle,
+			}
+		}
+	}
 
 	selectVal := make([]*big.Int, 0)
 	totalExitAmountDeci := decimal.Zero
 	for _, val := range vals {
 		// skip if exist in election list
-		if election, exist := s.exitElections[val.ValidatorIndex]; exist && election.WithdrawCycle < willDealCycle {
+		if eval, exist := electedValidators[val.ValidatorIndex]; exist && eval.WithdrawCycle < willDealCycle {
 			continue
 		}
 

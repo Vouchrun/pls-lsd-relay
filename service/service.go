@@ -121,8 +121,9 @@ type Service struct {
 }
 
 type Node struct {
-	NodeAddress common.Address
-	NodeType    uint8 // 1 light node 2 trust node
+	NodeAddress  common.Address
+	NodeType     uint8 // 1 light node 2 trust node
+	PubkeyNumber uint64
 }
 type Validator struct {
 	Pubkey []byte
@@ -675,7 +676,7 @@ func (s *Service) exitButNotDistributedValidatorList(epoch uint64) []*Validator 
 	return vals
 }
 
-func (s *Service) notExitElectionListBefore(willDealCycle uint64) []*ExitElection {
+func (s *Service) notExitElectionListBefore(targetEpoch, willDealCycle uint64) []*ExitElection {
 	els := make([]*ExitElection, 0)
 	for cycle, e := range s.exitElections {
 		if cycle >= willDealCycle {
@@ -683,9 +684,16 @@ func (s *Service) notExitElectionListBefore(willDealCycle uint64) []*ExitElectio
 		}
 		for _, valIndex := range e.ValidatorIndexList {
 			val, exist := s.getValidatorByIndex(valIndex)
-			if exist && val.ExitEpoch == 0 {
-				els = append(els, e)
-				break
+			if exist {
+
+				if val.ExitEpoch == 0 {
+					els = append(els, e)
+					break
+				} else {
+					if val.ExitEpoch > targetEpoch {
+						els = append(els, e)
+					}
+				}
 			}
 		}
 	}
