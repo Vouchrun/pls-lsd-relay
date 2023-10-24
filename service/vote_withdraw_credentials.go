@@ -60,7 +60,7 @@ func (s *Service) voteWithdrawCredentials() error {
 		}
 
 		govDepositAmount := uint64(1e9)
-		if validator.NodeType == utils.NodeTypeLight {
+		if validator.NodeType == utils.NodeTypeSolo {
 			govDepositAmount = validator.NodeDepositAmountDeci.Div(utils.GweiDeci).BigInt().Uint64()
 		}
 

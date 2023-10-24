@@ -159,7 +159,7 @@ func (task *Service) getUserEthInfoFromValidatorBalance(validator *Validator, ta
 	switch validator.Status {
 	case utils.ValidatorStatusDeposited, utils.ValidatorStatusWithdrawMatch, utils.ValidatorStatusWithdrawUnmatch:
 		switch validator.NodeType {
-		case utils.NodeTypeLight:
+		case utils.NodeTypeSolo:
 			return decimal.Zero, nil
 		case utils.NodeTypeTrust:
 			return utils.StandardTrustNodeFakeDepositBalance, nil

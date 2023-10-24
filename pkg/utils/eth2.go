@@ -48,9 +48,9 @@ const (
 	ValidatorStatusDistributedSlash = uint8(55) // distribute full withdrawal
 )
 
-// 1 light node 2 trust node
+// 1 Solo node 2 trust node
 const (
-	NodeTypeLight = uint8(1)
+	NodeTypeSolo  = uint8(1)
 	NodeTypeTrust = uint8(2)
 )
 
