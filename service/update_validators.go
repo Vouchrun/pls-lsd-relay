@@ -30,27 +30,30 @@ func (s *Service) updateValidatorsFromNetwork() error {
 	call := s.connection.CallOpts(big.NewInt(int64(eth1LatestBlock)))
 
 	// 0. fetch new Nodes
-	nodesLenOnChain, err := s.nodeDepositContract.GetNodesLength(call)
+	nodesOnChain, err := s.nodeDepositContract.GetNodes(call, big.NewInt(0), big.NewInt(0))
 	if err != nil {
-		return fmt.Errorf("nodeDepositContract.GetNodesLength failed: %w", err)
+		return fmt.Errorf("nodeDepositContract.GetNodes failed: %w", err)
 	}
-	if len(s.nodes) < int(nodesLenOnChain.Uint64()) {
-		nodes, err := s.nodeDepositContract.GetNodes(call, big.NewInt(int64(len(s.nodes))), nodesLenOnChain)
-		if err != nil {
-			return err
-		}
-		for _, node := range nodes {
-			nodeInfo, err := s.nodeDepositContract.NodeInfoOf(call, node)
+
+	logrus.WithFields(logrus.Fields{
+		"eth1LatestBlock": eth1LatestBlock,
+		"nodesLenOnChain": len(nodesOnChain),
+	}).Debug("updateValidatorsFromNetwork")
+
+	if len(s.nodes) < len(nodesOnChain) {
+		newNodes := nodesOnChain[len(s.nodes):]
+		for _, nodeAddress := range newNodes {
+			nodeInfo, err := s.nodeDepositContract.NodeInfoOf(call, nodeAddress)
 			if err != nil {
 				return err
 			}
-			pubkeys, err := s.nodeDepositContract.GetPubkeysOfNode(call, node)
+			pubkeys, err := s.nodeDepositContract.GetPubkeysOfNode(call, nodeAddress)
 			if err != nil {
 				return err
 			}
 			newVals, err := s.fetchNewVals(call, pubkeys)
 			if err != nil {
-				return err
+				return errors.Wrapf(err, "new node fetchNewVals")
 			}
 
 			// cache validators
@@ -58,8 +61,8 @@ func (s *Service) updateValidatorsFromNetwork() error {
 				s.validators[key] = val
 			}
 			// cache node
-			s.nodes[node] = &Node{
-				NodeAddress:  node,
+			s.nodes[nodeAddress] = &Node{
+				NodeAddress:  nodeAddress,
 				NodeType:     nodeInfo.NodeType,
 				PubkeyNumber: uint64(len(newVals)),
 			}
@@ -72,11 +75,17 @@ func (s *Service) updateValidatorsFromNetwork() error {
 		if err != nil {
 			return err
 		}
+
+		logrus.WithFields(logrus.Fields{
+			"node":              node.NodeAddress,
+			"pubkeysLenOnChain": len(pubkeys),
+		}).Debug("updateValidatorsFromNetwork")
+
 		if len(pubkeys) > int(node.PubkeyNumber) {
 			newPubkeys := pubkeys[int(node.PubkeyNumber):]
 			newVals, err := s.fetchNewVals(call, newPubkeys)
 			if err != nil {
-				return err
+				return errors.Wrapf(err, "new pubkey fetchNewVals")
 			}
 
 			// cache validators

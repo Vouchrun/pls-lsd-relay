@@ -99,10 +99,6 @@ func (s *Service) voteWithdrawCredentialsTx(validatorPubkeys [][]byte, matchs []
 	if len(validatorPubkeys) != len(matchs) {
 		return fmt.Errorf("validators and matchs len not match")
 	}
-	logrus.WithFields(logrus.Fields{
-		"pubkeys": pubkeyToHex(validatorPubkeys),
-		"matchs":  matchs,
-	}).Info("voteForNode")
 
 	tos := make([]common.Address, 0)
 	callDatas := make([][]byte, 0)
@@ -147,6 +143,11 @@ func (s *Service) voteWithdrawCredentialsTx(validatorPubkeys [][]byte, matchs []
 		"gasPrice": s.connection.TxOpts().GasPrice.String(),
 		"gasLimit": s.connection.TxOpts().GasLimit,
 	}).Debug("tx opts")
+
+	logrus.WithFields(logrus.Fields{
+		"pubkeys": pubkeyToHex(validatorPubkeys),
+		"matchs":  matchs,
+	}).Info("voteForNode")
 
 	tx, err := s.networkProposalContract.BatchExecProposals(s.connection.TxOpts(), tos, callDatas, blocks)
 	if err != nil {
