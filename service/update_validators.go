@@ -30,7 +30,11 @@ func (s *Service) updateValidatorsFromNetwork() error {
 	call := s.connection.CallOpts(big.NewInt(int64(eth1LatestBlock)))
 
 	// 0. fetch new Nodes
-	nodesOnChain, err := s.nodeDepositContract.GetNodes(call, big.NewInt(0), big.NewInt(0))
+	nodesLength, err := s.nodeDepositContract.GetNodesLength(call)
+	if err != nil {
+		return fmt.Errorf("nodeDepositContract.GetNodesLength failed: %w", err)
+	}
+	nodesOnChain, err := s.nodeDepositContract.GetNodes(call, big.NewInt(0), nodesLength)
 	if err != nil {
 		return fmt.Errorf("nodeDepositContract.GetNodes failed: %w", err)
 	}
@@ -97,7 +101,7 @@ func (s *Service) updateValidatorsFromNetwork() error {
 		}
 	}
 
-	// 1. update validator status on network
+	// 2. update validator status on network
 	for _, val := range s.validators {
 		if val.Status > utils.ValidatorStatusWithdrawUnmatch {
 			continue
