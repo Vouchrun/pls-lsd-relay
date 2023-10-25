@@ -30,7 +30,7 @@ var (
 
 // NetworkBalancesMetaData contains all meta data concerning the NetworkBalances contract.
 var NetworkBalancesMetaData = &bind.MetaData{
-	ABI: "[{\"inputs\":[],\"name\":\"AddressNotAllowed\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"AlreadyClaimed\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"AlreadyDealedEpoch\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"AlreadyDealedHeight\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"AlreadyInitialized\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"AlreadyNotifyCycle\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"AlreadyVoted\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"AmountNotZero\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"AmountUnmatch\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"AmountZero\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"BalanceNotEnough\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"BlockNotMatch\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"CallerNotAllowed\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"ClaimableAmountZero\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"ClaimableDepositZero\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"ClaimableRewardZero\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"CycleNotMatch\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"DepositAmountLTMinAmount\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"EthAmountZero\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"FailedToCall\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"FailedToTransfer\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"InvalidMerkleProof\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"InvalidThreshold\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"LengthNotMatch\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"LsdTokenAmountZero\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"NodeAlreadyExist\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"NodeAlreadyRemoved\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"NodeNotClaimable\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"NotClaimable\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"NotFactoryAdmin\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"NotNetworkAdmin\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"NotPubkeyOwner\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"NotTrustNode\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"ProposalAlreadyExecuted\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"PubkeyAlreadyExist\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"PubkeyNotExist\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"PubkeyStatusUnmatch\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"RateChangeOverLimit\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"ReachCycleWithdrawLimit\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"ReachPubkeyNumberLimit\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"ReachUserWithdrawLimit\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"SecondsZero\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"SoloNodeDepositDisabled\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"SubmitBalancesDisable\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"TrustNodeDepositDisabled\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"UserDepositDisabled\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"VoterNumberOverLimit\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"VotersDuplicate\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"VotersNotEnough\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"VotersNotExist\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"WithdrawIndexEmpty\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"WithdrawIndexOver\",\"type\":\"error\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"address\",\"name\":\"previousAdmin\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"address\",\"name\":\"newAdmin\",\"type\":\"address\"}],\"name\":\"AdminChanged\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"from\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"block\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"totalEth\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"lsdTokenSupply\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"time\",\"type\":\"uint256\"}],\"name\":\"BalancesSubmitted\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"block\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"totalEth\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"lsdTokenSupply\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"time\",\"type\":\"uint256\"}],\"name\":\"BalancesUpdated\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"beacon\",\"type\":\"address\"}],\"name\":\"BeaconUpgraded\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"implementation\",\"type\":\"address\"}],\"name\":\"Upgraded\",\"type\":\"event\"},{\"inputs\":[],\"name\":\"balancesBlock\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"_lsdTokenAmount\",\"type\":\"uint256\"}],\"name\":\"getEthValue\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"getExchangeRate\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"_ethAmount\",\"type\":\"uint256\"}],\"name\":\"getLsdTokenValue\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_networkProposalAddress\",\"type\":\"address\"}],\"name\":\"init\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"initialized\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"networkProposalAddress\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"proxiableUUID\",\"outputs\":[{\"internalType\":\"bytes32\",\"name\":\"\",\"type\":\"bytes32\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"rateChangeLimit\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"_value\",\"type\":\"uint256\"}],\"name\":\"setRateChangeLimit\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"_value\",\"type\":\"uint256\"}],\"name\":\"setUpdateBalancesEpochs\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"_block\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"_totalEth\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"_lsdTokenSupply\",\"type\":\"uint256\"}],\"name\":\"submitBalances\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"submitBalancesEnabled\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"totalEthBalance\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"totalLsdTokenSupply\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"updateBalancesEpochs\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"newImplementation\",\"type\":\"address\"}],\"name\":\"upgradeTo\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"newImplementation\",\"type\":\"address\"},{\"internalType\":\"bytes\",\"name\":\"data\",\"type\":\"bytes\"}],\"name\":\"upgradeToAndCall\",\"outputs\":[],\"stateMutability\":\"payable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"version\",\"outputs\":[{\"internalType\":\"uint8\",\"name\":\"\",\"type\":\"uint8\"}],\"stateMutability\":\"view\",\"type\":\"function\"}]",
+	ABI: "[{\"inputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"constructor\"},{\"inputs\":[],\"name\":\"AddressNotAllowed\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"AlreadyClaimed\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"AlreadyDealedEpoch\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"AlreadyDealedHeight\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"AlreadyInitialized\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"AlreadyNotifiedCycle\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"AlreadyVoted\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"AmountNotZero\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"AmountUnmatch\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"AmountZero\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"BalanceNotEnough\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"BlockNotMatch\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"CallerNotAllowed\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"ClaimableAmountZero\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"ClaimableDepositZero\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"ClaimableRewardZero\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"ClaimableWithdrawIndexOverflow\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"CommissionRateInvalid\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"CycleNotMatch\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"DepositAmountLTMinAmount\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"EthAmountZero\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"FailedToCall\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"InvalidMerkleProof\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"InvalidThreshold\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"LengthNotMatch\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"LsdTokenAmountZero\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"NodeAlreadyExist\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"NodeAlreadyRemoved\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"NodeNotClaimable\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"NotAuthorizedLsdToken\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"NotClaimable\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"NotPubkeyOwner\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"NotTrustNode\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"ProposalExecFailed\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"PubkeyAlreadyExist\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"PubkeyNotExist\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"PubkeyNumberOverLimit\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"PubkeyStatusUnmatch\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"RateChangeOverLimit\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"SecondsZero\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"SoloNodeDepositAmountZero\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"SoloNodeDepositDisabled\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"SubmitBalancesDisabled\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"TrustNodeDepositDisabled\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"UserDepositDisabled\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"VotersDuplicate\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"VotersNotEnough\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"VotersNotExist\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"WithdrawIndexEmpty\",\"type\":\"error\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"address\",\"name\":\"previousAdmin\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"address\",\"name\":\"newAdmin\",\"type\":\"address\"}],\"name\":\"AdminChanged\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"block\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"totalEth\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"lsdTokenSupply\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"time\",\"type\":\"uint256\"}],\"name\":\"BalancesUpdated\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"beacon\",\"type\":\"address\"}],\"name\":\"BeaconUpgraded\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"uint8\",\"name\":\"version\",\"type\":\"uint8\"}],\"name\":\"Initialized\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"implementation\",\"type\":\"address\"}],\"name\":\"Upgraded\",\"type\":\"event\"},{\"inputs\":[],\"name\":\"balancesSnapshot\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"_block\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"_totalEth\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"_totalLsdToken\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"_lsdTokenAmount\",\"type\":\"uint256\"}],\"name\":\"getEthValue\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"getExchangeRate\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"_ethAmount\",\"type\":\"uint256\"}],\"name\":\"getLsdTokenValue\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_networkProposalAddress\",\"type\":\"address\"}],\"name\":\"init\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"networkProposalAddress\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"proxiableUUID\",\"outputs\":[{\"internalType\":\"bytes32\",\"name\":\"\",\"type\":\"bytes32\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"rateChangeLimit\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"reinit\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"_value\",\"type\":\"uint256\"}],\"name\":\"setRateChangeLimit\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"_value\",\"type\":\"uint256\"}],\"name\":\"setUpdateBalancesEpochs\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"_block\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"_totalEth\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"_totalLsdToken\",\"type\":\"uint256\"}],\"name\":\"submitBalances\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"submitBalancesEnabled\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"updateBalancesEpochs\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"newImplementation\",\"type\":\"address\"}],\"name\":\"upgradeTo\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"newImplementation\",\"type\":\"address\"},{\"internalType\":\"bytes\",\"name\":\"data\",\"type\":\"bytes\"}],\"name\":\"upgradeToAndCall\",\"outputs\":[],\"stateMutability\":\"payable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"version\",\"outputs\":[{\"internalType\":\"uint8\",\"name\":\"\",\"type\":\"uint8\"}],\"stateMutability\":\"view\",\"type\":\"function\"}]",
 }
 
 // NetworkBalancesABI is the input ABI used to generate the binding from.
@@ -179,35 +179,54 @@ func (_NetworkBalances *NetworkBalancesTransactorRaw) Transact(opts *bind.Transa
 	return _NetworkBalances.Contract.contract.Transact(opts, method, params...)
 }
 
-// BalancesBlock is a free data retrieval call binding the contract method 0xb1a53601.
+// BalancesSnapshot is a free data retrieval call binding the contract method 0xcc386bf5.
 //
-// Solidity: function balancesBlock() view returns(uint256)
-func (_NetworkBalances *NetworkBalancesCaller) BalancesBlock(opts *bind.CallOpts) (*big.Int, error) {
+// Solidity: function balancesSnapshot() view returns(uint256 _block, uint256 _totalEth, uint256 _totalLsdToken)
+func (_NetworkBalances *NetworkBalancesCaller) BalancesSnapshot(opts *bind.CallOpts) (struct {
+	Block         *big.Int
+	TotalEth      *big.Int
+	TotalLsdToken *big.Int
+}, error) {
 	var out []interface{}
-	err := _NetworkBalances.contract.Call(opts, &out, "balancesBlock")
+	err := _NetworkBalances.contract.Call(opts, &out, "balancesSnapshot")
 
+	outstruct := new(struct {
+		Block         *big.Int
+		TotalEth      *big.Int
+		TotalLsdToken *big.Int
+	})
 	if err != nil {
-		return *new(*big.Int), err
+		return *outstruct, err
 	}
 
-	out0 := *abi.ConvertType(out[0], new(*big.Int)).(**big.Int)
+	outstruct.Block = *abi.ConvertType(out[0], new(*big.Int)).(**big.Int)
+	outstruct.TotalEth = *abi.ConvertType(out[1], new(*big.Int)).(**big.Int)
+	outstruct.TotalLsdToken = *abi.ConvertType(out[2], new(*big.Int)).(**big.Int)
 
-	return out0, err
+	return *outstruct, err
 
 }
 
-// BalancesBlock is a free data retrieval call binding the contract method 0xb1a53601.
+// BalancesSnapshot is a free data retrieval call binding the contract method 0xcc386bf5.
 //
-// Solidity: function balancesBlock() view returns(uint256)
-func (_NetworkBalances *NetworkBalancesSession) BalancesBlock() (*big.Int, error) {
-	return _NetworkBalances.Contract.BalancesBlock(&_NetworkBalances.CallOpts)
+// Solidity: function balancesSnapshot() view returns(uint256 _block, uint256 _totalEth, uint256 _totalLsdToken)
+func (_NetworkBalances *NetworkBalancesSession) BalancesSnapshot() (struct {
+	Block         *big.Int
+	TotalEth      *big.Int
+	TotalLsdToken *big.Int
+}, error) {
+	return _NetworkBalances.Contract.BalancesSnapshot(&_NetworkBalances.CallOpts)
 }
 
-// BalancesBlock is a free data retrieval call binding the contract method 0xb1a53601.
+// BalancesSnapshot is a free data retrieval call binding the contract method 0xcc386bf5.
 //
-// Solidity: function balancesBlock() view returns(uint256)
-func (_NetworkBalances *NetworkBalancesCallerSession) BalancesBlock() (*big.Int, error) {
-	return _NetworkBalances.Contract.BalancesBlock(&_NetworkBalances.CallOpts)
+// Solidity: function balancesSnapshot() view returns(uint256 _block, uint256 _totalEth, uint256 _totalLsdToken)
+func (_NetworkBalances *NetworkBalancesCallerSession) BalancesSnapshot() (struct {
+	Block         *big.Int
+	TotalEth      *big.Int
+	TotalLsdToken *big.Int
+}, error) {
+	return _NetworkBalances.Contract.BalancesSnapshot(&_NetworkBalances.CallOpts)
 }
 
 // GetEthValue is a free data retrieval call binding the contract method 0x8b32fa23.
@@ -301,37 +320,6 @@ func (_NetworkBalances *NetworkBalancesSession) GetLsdTokenValue(_ethAmount *big
 // Solidity: function getLsdTokenValue(uint256 _ethAmount) view returns(uint256)
 func (_NetworkBalances *NetworkBalancesCallerSession) GetLsdTokenValue(_ethAmount *big.Int) (*big.Int, error) {
 	return _NetworkBalances.Contract.GetLsdTokenValue(&_NetworkBalances.CallOpts, _ethAmount)
-}
-
-// Initialized is a free data retrieval call binding the contract method 0x158ef93e.
-//
-// Solidity: function initialized() view returns(bool)
-func (_NetworkBalances *NetworkBalancesCaller) Initialized(opts *bind.CallOpts) (bool, error) {
-	var out []interface{}
-	err := _NetworkBalances.contract.Call(opts, &out, "initialized")
-
-	if err != nil {
-		return *new(bool), err
-	}
-
-	out0 := *abi.ConvertType(out[0], new(bool)).(*bool)
-
-	return out0, err
-
-}
-
-// Initialized is a free data retrieval call binding the contract method 0x158ef93e.
-//
-// Solidity: function initialized() view returns(bool)
-func (_NetworkBalances *NetworkBalancesSession) Initialized() (bool, error) {
-	return _NetworkBalances.Contract.Initialized(&_NetworkBalances.CallOpts)
-}
-
-// Initialized is a free data retrieval call binding the contract method 0x158ef93e.
-//
-// Solidity: function initialized() view returns(bool)
-func (_NetworkBalances *NetworkBalancesCallerSession) Initialized() (bool, error) {
-	return _NetworkBalances.Contract.Initialized(&_NetworkBalances.CallOpts)
 }
 
 // NetworkProposalAddress is a free data retrieval call binding the contract method 0xb4701c09.
@@ -458,68 +446,6 @@ func (_NetworkBalances *NetworkBalancesCallerSession) SubmitBalancesEnabled() (b
 	return _NetworkBalances.Contract.SubmitBalancesEnabled(&_NetworkBalances.CallOpts)
 }
 
-// TotalEthBalance is a free data retrieval call binding the contract method 0x59194d0c.
-//
-// Solidity: function totalEthBalance() view returns(uint256)
-func (_NetworkBalances *NetworkBalancesCaller) TotalEthBalance(opts *bind.CallOpts) (*big.Int, error) {
-	var out []interface{}
-	err := _NetworkBalances.contract.Call(opts, &out, "totalEthBalance")
-
-	if err != nil {
-		return *new(*big.Int), err
-	}
-
-	out0 := *abi.ConvertType(out[0], new(*big.Int)).(**big.Int)
-
-	return out0, err
-
-}
-
-// TotalEthBalance is a free data retrieval call binding the contract method 0x59194d0c.
-//
-// Solidity: function totalEthBalance() view returns(uint256)
-func (_NetworkBalances *NetworkBalancesSession) TotalEthBalance() (*big.Int, error) {
-	return _NetworkBalances.Contract.TotalEthBalance(&_NetworkBalances.CallOpts)
-}
-
-// TotalEthBalance is a free data retrieval call binding the contract method 0x59194d0c.
-//
-// Solidity: function totalEthBalance() view returns(uint256)
-func (_NetworkBalances *NetworkBalancesCallerSession) TotalEthBalance() (*big.Int, error) {
-	return _NetworkBalances.Contract.TotalEthBalance(&_NetworkBalances.CallOpts)
-}
-
-// TotalLsdTokenSupply is a free data retrieval call binding the contract method 0x9b9403d8.
-//
-// Solidity: function totalLsdTokenSupply() view returns(uint256)
-func (_NetworkBalances *NetworkBalancesCaller) TotalLsdTokenSupply(opts *bind.CallOpts) (*big.Int, error) {
-	var out []interface{}
-	err := _NetworkBalances.contract.Call(opts, &out, "totalLsdTokenSupply")
-
-	if err != nil {
-		return *new(*big.Int), err
-	}
-
-	out0 := *abi.ConvertType(out[0], new(*big.Int)).(**big.Int)
-
-	return out0, err
-
-}
-
-// TotalLsdTokenSupply is a free data retrieval call binding the contract method 0x9b9403d8.
-//
-// Solidity: function totalLsdTokenSupply() view returns(uint256)
-func (_NetworkBalances *NetworkBalancesSession) TotalLsdTokenSupply() (*big.Int, error) {
-	return _NetworkBalances.Contract.TotalLsdTokenSupply(&_NetworkBalances.CallOpts)
-}
-
-// TotalLsdTokenSupply is a free data retrieval call binding the contract method 0x9b9403d8.
-//
-// Solidity: function totalLsdTokenSupply() view returns(uint256)
-func (_NetworkBalances *NetworkBalancesCallerSession) TotalLsdTokenSupply() (*big.Int, error) {
-	return _NetworkBalances.Contract.TotalLsdTokenSupply(&_NetworkBalances.CallOpts)
-}
-
 // UpdateBalancesEpochs is a free data retrieval call binding the contract method 0x8fad5ce5.
 //
 // Solidity: function updateBalancesEpochs() view returns(uint256)
@@ -603,6 +529,27 @@ func (_NetworkBalances *NetworkBalancesTransactorSession) Init(_networkProposalA
 	return _NetworkBalances.Contract.Init(&_NetworkBalances.TransactOpts, _networkProposalAddress)
 }
 
+// Reinit is a paid mutator transaction binding the contract method 0xc482ceaf.
+//
+// Solidity: function reinit() returns()
+func (_NetworkBalances *NetworkBalancesTransactor) Reinit(opts *bind.TransactOpts) (*types.Transaction, error) {
+	return _NetworkBalances.contract.Transact(opts, "reinit")
+}
+
+// Reinit is a paid mutator transaction binding the contract method 0xc482ceaf.
+//
+// Solidity: function reinit() returns()
+func (_NetworkBalances *NetworkBalancesSession) Reinit() (*types.Transaction, error) {
+	return _NetworkBalances.Contract.Reinit(&_NetworkBalances.TransactOpts)
+}
+
+// Reinit is a paid mutator transaction binding the contract method 0xc482ceaf.
+//
+// Solidity: function reinit() returns()
+func (_NetworkBalances *NetworkBalancesTransactorSession) Reinit() (*types.Transaction, error) {
+	return _NetworkBalances.Contract.Reinit(&_NetworkBalances.TransactOpts)
+}
+
 // SetRateChangeLimit is a paid mutator transaction binding the contract method 0x19826e71.
 //
 // Solidity: function setRateChangeLimit(uint256 _value) returns()
@@ -647,23 +594,23 @@ func (_NetworkBalances *NetworkBalancesTransactorSession) SetUpdateBalancesEpoch
 
 // SubmitBalances is a paid mutator transaction binding the contract method 0x4c5212a5.
 //
-// Solidity: function submitBalances(uint256 _block, uint256 _totalEth, uint256 _lsdTokenSupply) returns()
-func (_NetworkBalances *NetworkBalancesTransactor) SubmitBalances(opts *bind.TransactOpts, _block *big.Int, _totalEth *big.Int, _lsdTokenSupply *big.Int) (*types.Transaction, error) {
-	return _NetworkBalances.contract.Transact(opts, "submitBalances", _block, _totalEth, _lsdTokenSupply)
+// Solidity: function submitBalances(uint256 _block, uint256 _totalEth, uint256 _totalLsdToken) returns()
+func (_NetworkBalances *NetworkBalancesTransactor) SubmitBalances(opts *bind.TransactOpts, _block *big.Int, _totalEth *big.Int, _totalLsdToken *big.Int) (*types.Transaction, error) {
+	return _NetworkBalances.contract.Transact(opts, "submitBalances", _block, _totalEth, _totalLsdToken)
 }
 
 // SubmitBalances is a paid mutator transaction binding the contract method 0x4c5212a5.
 //
-// Solidity: function submitBalances(uint256 _block, uint256 _totalEth, uint256 _lsdTokenSupply) returns()
-func (_NetworkBalances *NetworkBalancesSession) SubmitBalances(_block *big.Int, _totalEth *big.Int, _lsdTokenSupply *big.Int) (*types.Transaction, error) {
-	return _NetworkBalances.Contract.SubmitBalances(&_NetworkBalances.TransactOpts, _block, _totalEth, _lsdTokenSupply)
+// Solidity: function submitBalances(uint256 _block, uint256 _totalEth, uint256 _totalLsdToken) returns()
+func (_NetworkBalances *NetworkBalancesSession) SubmitBalances(_block *big.Int, _totalEth *big.Int, _totalLsdToken *big.Int) (*types.Transaction, error) {
+	return _NetworkBalances.Contract.SubmitBalances(&_NetworkBalances.TransactOpts, _block, _totalEth, _totalLsdToken)
 }
 
 // SubmitBalances is a paid mutator transaction binding the contract method 0x4c5212a5.
 //
-// Solidity: function submitBalances(uint256 _block, uint256 _totalEth, uint256 _lsdTokenSupply) returns()
-func (_NetworkBalances *NetworkBalancesTransactorSession) SubmitBalances(_block *big.Int, _totalEth *big.Int, _lsdTokenSupply *big.Int) (*types.Transaction, error) {
-	return _NetworkBalances.Contract.SubmitBalances(&_NetworkBalances.TransactOpts, _block, _totalEth, _lsdTokenSupply)
+// Solidity: function submitBalances(uint256 _block, uint256 _totalEth, uint256 _totalLsdToken) returns()
+func (_NetworkBalances *NetworkBalancesTransactorSession) SubmitBalances(_block *big.Int, _totalEth *big.Int, _totalLsdToken *big.Int) (*types.Transaction, error) {
+	return _NetworkBalances.Contract.SubmitBalances(&_NetworkBalances.TransactOpts, _block, _totalEth, _totalLsdToken)
 }
 
 // UpgradeTo is a paid mutator transaction binding the contract method 0x3659cfe6.
@@ -837,154 +784,6 @@ func (_NetworkBalances *NetworkBalancesFilterer) WatchAdminChanged(opts *bind.Wa
 func (_NetworkBalances *NetworkBalancesFilterer) ParseAdminChanged(log types.Log) (*NetworkBalancesAdminChanged, error) {
 	event := new(NetworkBalancesAdminChanged)
 	if err := _NetworkBalances.contract.UnpackLog(event, "AdminChanged", log); err != nil {
-		return nil, err
-	}
-	event.Raw = log
-	return event, nil
-}
-
-// NetworkBalancesBalancesSubmittedIterator is returned from FilterBalancesSubmitted and is used to iterate over the raw logs and unpacked data for BalancesSubmitted events raised by the NetworkBalances contract.
-type NetworkBalancesBalancesSubmittedIterator struct {
-	Event *NetworkBalancesBalancesSubmitted // Event containing the contract specifics and raw log
-
-	contract *bind.BoundContract // Generic contract to use for unpacking event data
-	event    string              // Event name to use for unpacking event data
-
-	logs chan types.Log        // Log channel receiving the found contract events
-	sub  ethereum.Subscription // Subscription for errors, completion and termination
-	done bool                  // Whether the subscription completed delivering logs
-	fail error                 // Occurred error to stop iteration
-}
-
-// Next advances the iterator to the subsequent event, returning whether there
-// are any more events found. In case of a retrieval or parsing error, false is
-// returned and Error() can be queried for the exact failure.
-func (it *NetworkBalancesBalancesSubmittedIterator) Next() bool {
-	// If the iterator failed, stop iterating
-	if it.fail != nil {
-		return false
-	}
-	// If the iterator completed, deliver directly whatever's available
-	if it.done {
-		select {
-		case log := <-it.logs:
-			it.Event = new(NetworkBalancesBalancesSubmitted)
-			if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
-				it.fail = err
-				return false
-			}
-			it.Event.Raw = log
-			return true
-
-		default:
-			return false
-		}
-	}
-	// Iterator still in progress, wait for either a data or an error event
-	select {
-	case log := <-it.logs:
-		it.Event = new(NetworkBalancesBalancesSubmitted)
-		if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
-			it.fail = err
-			return false
-		}
-		it.Event.Raw = log
-		return true
-
-	case err := <-it.sub.Err():
-		it.done = true
-		it.fail = err
-		return it.Next()
-	}
-}
-
-// Error returns any retrieval or parsing error occurred during filtering.
-func (it *NetworkBalancesBalancesSubmittedIterator) Error() error {
-	return it.fail
-}
-
-// Close terminates the iteration process, releasing any pending underlying
-// resources.
-func (it *NetworkBalancesBalancesSubmittedIterator) Close() error {
-	it.sub.Unsubscribe()
-	return nil
-}
-
-// NetworkBalancesBalancesSubmitted represents a BalancesSubmitted event raised by the NetworkBalances contract.
-type NetworkBalancesBalancesSubmitted struct {
-	From           common.Address
-	Block          *big.Int
-	TotalEth       *big.Int
-	LsdTokenSupply *big.Int
-	Time           *big.Int
-	Raw            types.Log // Blockchain specific contextual infos
-}
-
-// FilterBalancesSubmitted is a free log retrieval operation binding the contract event 0x088e3691a0b1ac7b53f6133b98995009bf660751683bb9ec51615b7a60f7cba6.
-//
-// Solidity: event BalancesSubmitted(address indexed from, uint256 block, uint256 totalEth, uint256 lsdTokenSupply, uint256 time)
-func (_NetworkBalances *NetworkBalancesFilterer) FilterBalancesSubmitted(opts *bind.FilterOpts, from []common.Address) (*NetworkBalancesBalancesSubmittedIterator, error) {
-
-	var fromRule []interface{}
-	for _, fromItem := range from {
-		fromRule = append(fromRule, fromItem)
-	}
-
-	logs, sub, err := _NetworkBalances.contract.FilterLogs(opts, "BalancesSubmitted", fromRule)
-	if err != nil {
-		return nil, err
-	}
-	return &NetworkBalancesBalancesSubmittedIterator{contract: _NetworkBalances.contract, event: "BalancesSubmitted", logs: logs, sub: sub}, nil
-}
-
-// WatchBalancesSubmitted is a free log subscription operation binding the contract event 0x088e3691a0b1ac7b53f6133b98995009bf660751683bb9ec51615b7a60f7cba6.
-//
-// Solidity: event BalancesSubmitted(address indexed from, uint256 block, uint256 totalEth, uint256 lsdTokenSupply, uint256 time)
-func (_NetworkBalances *NetworkBalancesFilterer) WatchBalancesSubmitted(opts *bind.WatchOpts, sink chan<- *NetworkBalancesBalancesSubmitted, from []common.Address) (event.Subscription, error) {
-
-	var fromRule []interface{}
-	for _, fromItem := range from {
-		fromRule = append(fromRule, fromItem)
-	}
-
-	logs, sub, err := _NetworkBalances.contract.WatchLogs(opts, "BalancesSubmitted", fromRule)
-	if err != nil {
-		return nil, err
-	}
-	return event.NewSubscription(func(quit <-chan struct{}) error {
-		defer sub.Unsubscribe()
-		for {
-			select {
-			case log := <-logs:
-				// New log arrived, parse the event and forward to the user
-				event := new(NetworkBalancesBalancesSubmitted)
-				if err := _NetworkBalances.contract.UnpackLog(event, "BalancesSubmitted", log); err != nil {
-					return err
-				}
-				event.Raw = log
-
-				select {
-				case sink <- event:
-				case err := <-sub.Err():
-					return err
-				case <-quit:
-					return nil
-				}
-			case err := <-sub.Err():
-				return err
-			case <-quit:
-				return nil
-			}
-		}
-	}), nil
-}
-
-// ParseBalancesSubmitted is a log parse operation binding the contract event 0x088e3691a0b1ac7b53f6133b98995009bf660751683bb9ec51615b7a60f7cba6.
-//
-// Solidity: event BalancesSubmitted(address indexed from, uint256 block, uint256 totalEth, uint256 lsdTokenSupply, uint256 time)
-func (_NetworkBalances *NetworkBalancesFilterer) ParseBalancesSubmitted(log types.Log) (*NetworkBalancesBalancesSubmitted, error) {
-	event := new(NetworkBalancesBalancesSubmitted)
-	if err := _NetworkBalances.contract.UnpackLog(event, "BalancesSubmitted", log); err != nil {
 		return nil, err
 	}
 	event.Raw = log
@@ -1266,6 +1065,140 @@ func (_NetworkBalances *NetworkBalancesFilterer) WatchBeaconUpgraded(opts *bind.
 func (_NetworkBalances *NetworkBalancesFilterer) ParseBeaconUpgraded(log types.Log) (*NetworkBalancesBeaconUpgraded, error) {
 	event := new(NetworkBalancesBeaconUpgraded)
 	if err := _NetworkBalances.contract.UnpackLog(event, "BeaconUpgraded", log); err != nil {
+		return nil, err
+	}
+	event.Raw = log
+	return event, nil
+}
+
+// NetworkBalancesInitializedIterator is returned from FilterInitialized and is used to iterate over the raw logs and unpacked data for Initialized events raised by the NetworkBalances contract.
+type NetworkBalancesInitializedIterator struct {
+	Event *NetworkBalancesInitialized // Event containing the contract specifics and raw log
+
+	contract *bind.BoundContract // Generic contract to use for unpacking event data
+	event    string              // Event name to use for unpacking event data
+
+	logs chan types.Log        // Log channel receiving the found contract events
+	sub  ethereum.Subscription // Subscription for errors, completion and termination
+	done bool                  // Whether the subscription completed delivering logs
+	fail error                 // Occurred error to stop iteration
+}
+
+// Next advances the iterator to the subsequent event, returning whether there
+// are any more events found. In case of a retrieval or parsing error, false is
+// returned and Error() can be queried for the exact failure.
+func (it *NetworkBalancesInitializedIterator) Next() bool {
+	// If the iterator failed, stop iterating
+	if it.fail != nil {
+		return false
+	}
+	// If the iterator completed, deliver directly whatever's available
+	if it.done {
+		select {
+		case log := <-it.logs:
+			it.Event = new(NetworkBalancesInitialized)
+			if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
+				it.fail = err
+				return false
+			}
+			it.Event.Raw = log
+			return true
+
+		default:
+			return false
+		}
+	}
+	// Iterator still in progress, wait for either a data or an error event
+	select {
+	case log := <-it.logs:
+		it.Event = new(NetworkBalancesInitialized)
+		if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
+			it.fail = err
+			return false
+		}
+		it.Event.Raw = log
+		return true
+
+	case err := <-it.sub.Err():
+		it.done = true
+		it.fail = err
+		return it.Next()
+	}
+}
+
+// Error returns any retrieval or parsing error occurred during filtering.
+func (it *NetworkBalancesInitializedIterator) Error() error {
+	return it.fail
+}
+
+// Close terminates the iteration process, releasing any pending underlying
+// resources.
+func (it *NetworkBalancesInitializedIterator) Close() error {
+	it.sub.Unsubscribe()
+	return nil
+}
+
+// NetworkBalancesInitialized represents a Initialized event raised by the NetworkBalances contract.
+type NetworkBalancesInitialized struct {
+	Version uint8
+	Raw     types.Log // Blockchain specific contextual infos
+}
+
+// FilterInitialized is a free log retrieval operation binding the contract event 0x7f26b83ff96e1f2b6a682f133852f6798a09c465da95921460cefb3847402498.
+//
+// Solidity: event Initialized(uint8 version)
+func (_NetworkBalances *NetworkBalancesFilterer) FilterInitialized(opts *bind.FilterOpts) (*NetworkBalancesInitializedIterator, error) {
+
+	logs, sub, err := _NetworkBalances.contract.FilterLogs(opts, "Initialized")
+	if err != nil {
+		return nil, err
+	}
+	return &NetworkBalancesInitializedIterator{contract: _NetworkBalances.contract, event: "Initialized", logs: logs, sub: sub}, nil
+}
+
+// WatchInitialized is a free log subscription operation binding the contract event 0x7f26b83ff96e1f2b6a682f133852f6798a09c465da95921460cefb3847402498.
+//
+// Solidity: event Initialized(uint8 version)
+func (_NetworkBalances *NetworkBalancesFilterer) WatchInitialized(opts *bind.WatchOpts, sink chan<- *NetworkBalancesInitialized) (event.Subscription, error) {
+
+	logs, sub, err := _NetworkBalances.contract.WatchLogs(opts, "Initialized")
+	if err != nil {
+		return nil, err
+	}
+	return event.NewSubscription(func(quit <-chan struct{}) error {
+		defer sub.Unsubscribe()
+		for {
+			select {
+			case log := <-logs:
+				// New log arrived, parse the event and forward to the user
+				event := new(NetworkBalancesInitialized)
+				if err := _NetworkBalances.contract.UnpackLog(event, "Initialized", log); err != nil {
+					return err
+				}
+				event.Raw = log
+
+				select {
+				case sink <- event:
+				case err := <-sub.Err():
+					return err
+				case <-quit:
+					return nil
+				}
+			case err := <-sub.Err():
+				return err
+			case <-quit:
+				return nil
+			}
+		}
+	}), nil
+}
+
+// ParseInitialized is a log parse operation binding the contract event 0x7f26b83ff96e1f2b6a682f133852f6798a09c465da95921460cefb3847402498.
+//
+// Solidity: event Initialized(uint8 version)
+func (_NetworkBalances *NetworkBalancesFilterer) ParseInitialized(log types.Log) (*NetworkBalancesInitialized, error) {
+	event := new(NetworkBalancesInitialized)
+	if err := _NetworkBalances.contract.UnpackLog(event, "Initialized", log); err != nil {
 		return nil, err
 	}
 	event.Raw = log

@@ -19,7 +19,7 @@ func (s *Service) submitBalances() error {
 	}
 	targetEpoch := (beaconHead.FinalizedEpoch / s.submitBalancesDuEpochs) * s.submitBalancesDuEpochs
 
-	balancesBlockOnChain, err := s.networkBalancesContract.BalancesBlock(nil)
+	snapshotOnchain, err := s.networkBalancesContract.BalancesSnapshot(nil)
 	if err != nil {
 		return fmt.Errorf("networkBalancesContract.BalancesBlock err: %s", err)
 	}
@@ -30,7 +30,7 @@ func (s *Service) submitBalances() error {
 	}
 
 	// already update on this block, no need vote
-	if targetBlock <= balancesBlockOnChain.Uint64() {
+	if targetBlock <= snapshotOnchain.Block.Uint64() {
 		return nil
 	}
 
@@ -42,7 +42,7 @@ func (s *Service) submitBalances() error {
 	logrus.WithFields(logrus.Fields{
 		"targetEpoch":          targetEpoch,
 		"targetBlock":          targetBlock,
-		"balancesBlockOnChain": balancesBlockOnChain.String(),
+		"balancesBlockOnChain": snapshotOnchain.Block.Uint64(),
 	}).Debug("epocheInfo")
 
 	targetCallOpts := s.connection.CallOpts(big.NewInt(int64(targetBlock)))

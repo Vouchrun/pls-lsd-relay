@@ -509,7 +509,7 @@ func (s *Service) initContract() error {
 	if err != nil {
 		return err
 	}
-	s.lsdTokenContract, err = erc20.NewErc20(networkContracts.LsdToken, s.eth1Client)
+	s.lsdTokenContract, err = erc20.NewErc20(s.lsdTokenAddress, s.eth1Client)
 	if err != nil {
 		return err
 	}
