@@ -54,7 +54,7 @@ func (s *Service) setMerkleRoot() error {
 		// init case
 		dealedEth1BlockHeight = s.networkCreateBlock
 	} else {
-		preCid, err := s.networkWithdrawContract.NodeRewardsFileCid(nil)
+		preCid, err := s.networkWithdrawalContract.NodeRewardsFileCid(nil)
 		if err != nil {
 			return err
 		}
@@ -240,12 +240,12 @@ func (s *Service) sendSetMerkleRootTx(targetEpoch int64, rootHash [32]byte, cid 
 	}
 	defer s.connection.UnlockTxOpts()
 
-	encodeBts, err := s.networkWithdrdawAbi.Pack("setMerkleRoot", big.NewInt(targetEpoch), rootHash, cid)
+	encodeBts, err := s.networkWithdrdawalAbi.Pack("setMerkleRoot", big.NewInt(targetEpoch), rootHash, cid)
 	if err != nil {
 		return err
 	}
 
-	proposalId := utils.ProposalId(s.networkWithdrawAddress, encodeBts, big.NewInt(targetEpoch))
+	proposalId := utils.ProposalId(s.networkWithdrawalAddress, encodeBts, big.NewInt(targetEpoch))
 
 	// check voted
 	hasVoted, err := s.networkProposalContract.HasVoted(nil, proposalId, s.keyPair.CommonAddress())
@@ -260,7 +260,7 @@ func (s *Service) sendSetMerkleRootTx(targetEpoch int64, rootHash [32]byte, cid 
 		"cid": cid,
 	}).Info("will sendSetMerkleRootTx")
 
-	tx, err := s.networkProposalContract.ExecProposal(s.connection.TxOpts(), s.networkWithdrawAddress, encodeBts, big.NewInt(int64(targetEpoch)))
+	tx, err := s.networkProposalContract.ExecProposal(s.connection.TxOpts(), s.networkWithdrawalAddress, encodeBts, big.NewInt(int64(targetEpoch)))
 	if err != nil {
 		return err
 	}

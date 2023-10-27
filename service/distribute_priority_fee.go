@@ -10,7 +10,7 @@ import (
 
 func (s *Service) distributePriorityFee() error {
 
-	latestDistributeHeight, targetEth1BlockHeight, shouldGoNext, err := s.checkStateForDistributePriorityFee()
+	latestDistributionHeight, targetEth1BlockHeight, shouldGoNext, err := s.checkStateForDistributePriorityFee()
 	if err != nil {
 		return errors.Wrap(err, "distributePriorityFee checkSyncState failed")
 	}
@@ -20,31 +20,31 @@ func (s *Service) distributePriorityFee() error {
 	}
 
 	logrus.WithFields(logrus.Fields{
-		"latestDistributeHeight": latestDistributeHeight,
-		"targetEth1BlockHeight":  targetEth1BlockHeight,
-		"latestBlockOfSyncBlock": s.latestBlockOfSyncBlock,
+		"latestDistributionHeight": latestDistributionHeight,
+		"targetEth1BlockHeight":    targetEth1BlockHeight,
+		"latestBlockOfSyncBlock":   s.latestBlockOfSyncBlock,
 	}).Debug("distributePriorityFee")
 
 	// ----1 cal eth(from withdrawals) of user/node/platform
-	totalUserEthDeci, totalNodeEthDeci, totalPlatformEthDeci, _, err := s.getUserNodePlatformFromPriorityFee(latestDistributeHeight, targetEth1BlockHeight)
+	totalUserEthDeci, totalNodeEthDeci, totalPlatformEthDeci, _, err := s.getUserNodePlatformFromPriorityFee(latestDistributionHeight, targetEth1BlockHeight)
 	if err != nil {
 		return errors.Wrap(err, "getUserNodePlatformFromPriorityFee failed")
 	}
 
-	// -----2 cal maxClaimableWithdrawIndex
+	// -----2 cal maxClaimableWithdrawalIndex
 	// find distribute withdrawals height as target block to cal this
-	newMaxClaimableWithdrawIndex, err := s.calMaxClaimableWithdrawIndex(targetEth1BlockHeight, totalUserEthDeci)
+	newMaxClaimableWithdrawalIndex, err := s.calMaxClaimableWithdrawalIndex(targetEth1BlockHeight, totalUserEthDeci)
 	if err != nil {
-		return errors.Wrap(err, "calMaxClaimableWithdrawIndex failed")
+		return errors.Wrap(err, "calMaxClaimableWithdrawalIndex failed")
 	}
 
 	// -----3 send vote tx
 	return s.sendDistributeTx(utils.DistributeTypePriorityFee, big.NewInt(int64(targetEth1BlockHeight)),
-		totalUserEthDeci.BigInt(), totalNodeEthDeci.BigInt(), totalPlatformEthDeci.BigInt(), big.NewInt(int64(newMaxClaimableWithdrawIndex)))
+		totalUserEthDeci.BigInt(), totalNodeEthDeci.BigInt(), totalPlatformEthDeci.BigInt(), big.NewInt(int64(newMaxClaimableWithdrawalIndex)))
 }
 
 // check sync and vote state
-// return (latestDistributeHeight, targetEth1Blocknumber, shouldGoNext, err)
+// return (latestDistributionHeight, targetEth1Blocknumber, shouldGoNext, err)
 func (s *Service) checkStateForDistributePriorityFee() (uint64, uint64, bool, error) {
 	beaconHead, err := s.connection.Eth2BeaconHead()
 	if err != nil {
@@ -59,14 +59,14 @@ func (s *Service) checkStateForDistributePriorityFee() (uint64, uint64, bool, er
 	}
 	logrus.Debugf("checkStateForDistributePriorityFee targetEth1Block: %d", targetEth1BlockHeight)
 
-	latestDistributeHeight := s.latestDistributePriorityFeeHeight
+	latestDistributionHeight := s.latestDistributionPriorityFeeHeight
 	// init case
-	if latestDistributeHeight == 0 {
-		latestDistributeHeight = s.networkCreateBlock
+	if latestDistributionHeight == 0 {
+		latestDistributionHeight = s.networkCreateBlock
 	}
 
-	if latestDistributeHeight >= targetEth1BlockHeight {
-		logrus.Debugf("latestDistributeHeight: %d  targetEth1BlockHeight: %d", latestDistributeHeight, targetEth1BlockHeight)
+	if latestDistributionHeight >= targetEth1BlockHeight {
+		logrus.Debugf("latestDistributionHeight: %d  targetEth1BlockHeight: %d", latestDistributionHeight, targetEth1BlockHeight)
 		return 0, 0, false, nil
 	}
 
@@ -75,5 +75,5 @@ func (s *Service) checkStateForDistributePriorityFee() (uint64, uint64, bool, er
 		return 0, 0, false, nil
 	}
 
-	return latestDistributeHeight, targetEth1BlockHeight, true, nil
+	return latestDistributionHeight, targetEth1BlockHeight, true, nil
 }

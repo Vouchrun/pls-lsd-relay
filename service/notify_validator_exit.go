@@ -39,18 +39,18 @@ func (s *Service) notifyValidatorExit() error {
 
 	targetCall := s.connection.CallOpts(big.NewInt(int64(targetBlockNumber)))
 
-	totalMissingAmount, err := s.networkWithdrawContract.TotalMissingAmountForWithdraw(targetCall)
+	totalShortages, err := s.networkWithdrawalContract.TotalWithdrawalShortages(targetCall)
 	if err != nil {
 		return fmt.Errorf("TotalMissingAmountForWithdraw failed: %w, target block: %d", err, targetBlockNumber)
 	}
-	totalMissingAmountDeci := decimal.NewFromBigInt(totalMissingAmount, 0)
+	totalShortagesDeci := decimal.NewFromBigInt(totalShortages, 0)
 
 	// no need notify exit election
-	if totalMissingAmount.Cmp(big.NewInt(0)) == 0 {
+	if totalShortages.Cmp(big.NewInt(0)) == 0 {
 		return nil
 	}
 
-	ejectedValidator, err := s.networkWithdrawContract.GetEjectedValidatorsAtCycle(nil, big.NewInt(willDealCycle))
+	ejectedValidator, err := s.networkWithdrawalContract.GetEjectedValidatorsAtCycle(nil, big.NewInt(willDealCycle))
 	if err != nil {
 		return fmt.Errorf("GetEjectedValidatorsAtCycle failed: %w", err)
 	}
@@ -69,7 +69,7 @@ func (s *Service) notifyValidatorExit() error {
 		"currentCycle:":      currentCycle,
 		"targetEpoch":        targetEpoch,
 		"targetBlockNumber":  targetBlockNumber,
-		"totalMissingAmount": totalMissingAmount,
+		"totalMissingAmount": totalShortages,
 		"userDepositBalance": userDepositBalance,
 	}).Debug("notifyValidatorExit")
 
@@ -86,24 +86,24 @@ func (s *Service) notifyValidatorExit() error {
 	}
 
 	// calc partial withdrawal not distributed amount
-	latestDistributeWithdrawalHeight, err := s.networkWithdrawContract.LatestDistributeWithdrawalsHeight(targetCall)
+	latestDistributionWithdrawalHeight, err := s.networkWithdrawalContract.LatestDistributionWithdrawalHeight(targetCall)
 	if err != nil {
 		return err
 	}
 	// should exclude notDistributeValidators, as we has already calc
-	userUndistributedWithdrawalsDeci, _, _, _, err := s.getUserNodePlatformFromWithdrawals(latestDistributeWithdrawalHeight.Uint64(), targetBlockNumber)
+	userUndistributedWithdrawalsDeci, _, _, _, err := s.getUserNodePlatformFromWithdrawals(latestDistributionWithdrawalHeight.Uint64(), targetBlockNumber)
 	if err != nil {
 		return errors.Wrap(err, "getUserNodePlatformFromWithdrawals failed")
 	}
 
 	totalPendingAmountDeci := totalExitedButNotDistributedUserAmount.Add(userUndistributedWithdrawalsDeci)
 	// no need notify exit
-	if totalMissingAmountDeci.LessThanOrEqual(totalPendingAmountDeci) {
+	if totalShortagesDeci.LessThanOrEqual(totalPendingAmountDeci) {
 		return nil
 	}
 
 	// final total missing amount
-	finalTotalMissingAmountDeci := totalMissingAmountDeci.Sub(totalPendingAmountDeci)
+	finalTotalMissingAmountDeci := totalShortagesDeci.Sub(totalPendingAmountDeci)
 
 	selectVals, err := s.mustSelectValidatorsForExit(finalTotalMissingAmountDeci, targetEpoch, uint64(willDealCycle))
 	if err != nil {
@@ -134,13 +134,13 @@ func (s *Service) sendNotifyExitTx(withdrawCycle, startCycle uint64, selectVals 
 	}
 	defer s.connection.UnlockTxOpts()
 
-	encodeBts, err := s.networkWithdrdawAbi.Pack("notifyValidatorExit", big.NewInt(int64(withdrawCycle)),
+	encodeBts, err := s.networkWithdrdawalAbi.Pack("notifyValidatorExit", big.NewInt(int64(withdrawCycle)),
 		big.NewInt(int64(startCycle)), selectVals)
 	if err != nil {
 		return err
 	}
 
-	proposalId := utils.ProposalId(s.networkWithdrawAddress, encodeBts, big.NewInt(int64(withdrawCycle)))
+	proposalId := utils.ProposalId(s.networkWithdrawalAddress, encodeBts, big.NewInt(int64(withdrawCycle)))
 
 	// check voted
 	hasVoted, err := s.networkProposalContract.HasVoted(nil, proposalId, s.keyPair.CommonAddress())
@@ -157,7 +157,7 @@ func (s *Service) sendNotifyExitTx(withdrawCycle, startCycle uint64, selectVals 
 		"selectVal":       selectVals,
 	}).Debug("will sendNotifyValidatorExitTx")
 
-	tx, err := s.networkProposalContract.ExecProposal(s.connection.TxOpts(), s.networkWithdrawAddress, encodeBts, big.NewInt(int64(withdrawCycle)))
+	tx, err := s.networkProposalContract.ExecProposal(s.connection.TxOpts(), s.networkWithdrawalAddress, encodeBts, big.NewInt(int64(withdrawCycle)))
 	if err != nil {
 		return err
 	}

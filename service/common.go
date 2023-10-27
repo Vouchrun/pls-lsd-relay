@@ -101,13 +101,13 @@ func (s *Service) getEpochStartBlocknumber(epoch uint64) (uint64, error) {
 }
 
 // return (user reward, node reward, platform fee) decimals 18
-func (s *Service) getUserNodePlatformFromWithdrawals(latestDistributeHeight, targetEth1BlockHeight uint64) (decimal.Decimal, decimal.Decimal, decimal.Decimal, NodeNewRewardsMap, error) {
+func (s *Service) getUserNodePlatformFromWithdrawals(latestDistributionHeight, targetEth1BlockHeight uint64) (decimal.Decimal, decimal.Decimal, decimal.Decimal, NodeNewRewardsMap, error) {
 	totalUserEthDeci := decimal.Zero
 	totalNodeEthDeci := decimal.Zero
 	totalPlatformEthDeci := decimal.Zero
 	nodeNewRewardsMap := make(NodeNewRewardsMap)
 
-	for i := latestDistributeHeight + 1; i <= targetEth1BlockHeight; i++ {
+	for i := latestDistributionHeight + 1; i <= targetEth1BlockHeight; i++ {
 		block, err := s.getBeaconBlock(i)
 		if err != nil {
 			return decimal.Zero, decimal.Zero, decimal.Zero, nil, err
@@ -179,13 +179,13 @@ func (s *Service) getUserNodePlatformFromWithdrawals(latestDistributeHeight, tar
 }
 
 // return (user reward, node reward, platform fee) decimals 18
-func (s *Service) getUserNodePlatformFromPriorityFee(latestDistributeHeight, targetEth1BlockHeight uint64) (decimal.Decimal, decimal.Decimal, decimal.Decimal, NodeNewRewardsMap, error) {
+func (s *Service) getUserNodePlatformFromPriorityFee(latestDistributionHeight, targetEth1BlockHeight uint64) (decimal.Decimal, decimal.Decimal, decimal.Decimal, NodeNewRewardsMap, error) {
 	totalUserEthDeci := decimal.Zero
 	totalNodeEthDeci := decimal.Zero
 	totalPlatformEthDeci := decimal.Zero
 	nodeNewRewardsMap := make(NodeNewRewardsMap)
 
-	for i := latestDistributeHeight + 1; i <= targetEth1BlockHeight; i++ {
+	for i := latestDistributionHeight + 1; i <= targetEth1BlockHeight; i++ {
 		block, err := s.getBeaconBlock(i)
 		if err != nil {
 			return decimal.Zero, decimal.Zero, decimal.Zero, nil, err
@@ -260,12 +260,12 @@ func (s *Service) getUserNodePlatformFromPriorityFee(latestDistributeHeight, tar
 }
 
 // include withdrawals fee
-func (s *Service) getNodeNewRewardsBetween(latestDistributeHeight, targetEth1BlockHeight uint64) (NodeNewRewardsMap, error) {
-	_, _, _, nodeNewRewardsMapFromWithdrawals, err := s.getUserNodePlatformFromWithdrawals(latestDistributeHeight, targetEth1BlockHeight)
+func (s *Service) getNodeNewRewardsBetween(latestDistributionHeight, targetEth1BlockHeight uint64) (NodeNewRewardsMap, error) {
+	_, _, _, nodeNewRewardsMapFromWithdrawals, err := s.getUserNodePlatformFromWithdrawals(latestDistributionHeight, targetEth1BlockHeight)
 	if err != nil {
 		return nil, err
 	}
-	_, _, _, nodeNewRewardsMapFromPriorityFee, err := s.getUserNodePlatformFromPriorityFee(latestDistributeHeight, targetEth1BlockHeight)
+	_, _, _, nodeNewRewardsMapFromPriorityFee, err := s.getUserNodePlatformFromPriorityFee(latestDistributionHeight, targetEth1BlockHeight)
 	if err != nil {
 		return nil, err
 	}

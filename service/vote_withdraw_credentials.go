@@ -36,7 +36,7 @@ func (s *Service) voteWithdrawCredentials() error {
 
 		match := true
 		for _, l := range govCredentials {
-			if !bytes.Equal(s.withdrawCredentials, l) {
+			if !bytes.Equal(s.withdrawalCredentials, l) {
 				match = false
 			}
 		}
@@ -50,12 +50,12 @@ func (s *Service) voteWithdrawCredentials() error {
 			"status": validatorStatus,
 		}).Debug("validator beacon status")
 
-		if validatorStatus.Exists && bytes.Equal(validatorStatus.WithdrawalCredentials[:], s.withdrawCredentials) {
+		if validatorStatus.Exists && bytes.Equal(validatorStatus.WithdrawalCredentials[:], s.withdrawalCredentials) {
 			match = false
 
 			logrus.WithFields(logrus.Fields{
 				"validatorStatus.WithdrawalCredentials": validatorStatus.WithdrawalCredentials.String(),
-				"task.withdrawCredientials":             hex.EncodeToString(s.withdrawCredentials),
+				"task.withdrawCredientials":             hex.EncodeToString(s.withdrawalCredentials),
 			}).Warn("withdrawalCredentials not match")
 		}
 
@@ -66,7 +66,7 @@ func (s *Service) voteWithdrawCredentials() error {
 
 		dp := ethpb.Deposit_Data{
 			PublicKey:             validatorPubkey.Bytes(),
-			WithdrawalCredentials: s.withdrawCredentials,
+			WithdrawalCredentials: s.withdrawalCredentials,
 			Amount:                govDepositAmount,
 			Signature:             validator.DepositSignature,
 		}
@@ -75,7 +75,7 @@ func (s *Service) voteWithdrawCredentials() error {
 			match = false
 
 			logrus.WithFields(logrus.Fields{
-				"task.withdrawCredientials":             s.withdrawCredentials,
+				"task.withdrawCredientials":             s.withdrawalCredentials,
 				"validatorStatus.WithdrawalCredentials": validatorStatus.WithdrawalCredentials.String(),
 			}).Warn("signature not match")
 		}

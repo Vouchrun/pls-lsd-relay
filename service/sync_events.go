@@ -22,19 +22,19 @@ func (s *Service) syncEvents() error {
 		return err
 	}
 
-	latestDistributeWithdrawalsHeight, err := s.networkWithdrawContract.LatestDistributeWithdrawalsHeight(nil)
+	latestDistributionWithdrawalHeight, err := s.networkWithdrawalContract.LatestDistributionWithdrawalHeight(nil)
 	if err != nil {
 		return err
 	}
-	s.latestDistributeWithdrawalsHeight = latestDistributeWithdrawalsHeight.Uint64()
+	s.latestDistributionWithdrawalHeight = latestDistributionWithdrawalHeight.Uint64()
 
-	latestDistributePriorityFeeHeight, err := s.networkWithdrawContract.LatestDistributePriorityFeeHeight(nil)
+	latestDistributionPriorityFeeHeight, err := s.networkWithdrawalContract.LatestDistributionPriorityFeeHeight(nil)
 	if err != nil {
 		return err
 	}
-	s.latestDistributePriorityFeeHeight = latestDistributePriorityFeeHeight.Uint64()
+	s.latestDistributionPriorityFeeHeight = latestDistributionPriorityFeeHeight.Uint64()
 
-	latestMerkleRootEpoch, err := s.networkWithdrawContract.LatestMerkleRootEpoch(nil)
+	latestMerkleRootEpoch, err := s.networkWithdrawalContract.LatestMerkleRootEpoch(nil)
 	if err != nil {
 		return err
 	}
@@ -111,7 +111,7 @@ func (s *Service) fetchDepositContractEventsAndCache(start, end uint64) error {
 }
 
 func (s *Service) fetchExitElectionEventAndCache(start, end uint64) error {
-	iter, err := s.networkWithdrawContract.FilterNotifyValidatorExit(&bind.FilterOpts{
+	iter, err := s.networkWithdrawalContract.FilterNotifyValidatorExit(&bind.FilterOpts{
 		Start:   start,
 		End:     &end,
 		Context: context.Background(),
@@ -121,7 +121,7 @@ func (s *Service) fetchExitElectionEventAndCache(start, end uint64) error {
 	}
 
 	for iter.Next() {
-		cycle := iter.Event.WithdrawCycle.Uint64()
+		cycle := iter.Event.WithdrawalCycle.Uint64()
 
 		valList := make([]uint64, 0)
 		for _, val := range iter.Event.EjectedValidators {
@@ -138,7 +138,7 @@ func (s *Service) fetchExitElectionEventAndCache(start, end uint64) error {
 }
 
 func (s *Service) fetchUnstakeEventAndCache(start, end uint64) error {
-	iter, err := s.networkWithdrawContract.FilterUnstake(&bind.FilterOpts{
+	iter, err := s.networkWithdrawalContract.FilterUnstake(&bind.FilterOpts{
 		Start:   start,
 		End:     &end,
 		Context: context.Background(),
@@ -166,7 +166,7 @@ func (s *Service) fetchUnstakeEventAndCache(start, end uint64) error {
 }
 
 func (s *Service) fetchWithdrawEventAndUpdate(start, end uint64) error {
-	iter, err := s.networkWithdrawContract.FilterWithdraw(&bind.FilterOpts{
+	iter, err := s.networkWithdrawalContract.FilterWithdraw(&bind.FilterOpts{
 		Start:   start,
 		End:     &end,
 		Context: context.Background(),

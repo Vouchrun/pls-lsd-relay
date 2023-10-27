@@ -22,15 +22,15 @@ import (
 	"github.com/shopspring/decimal"
 	"github.com/sirupsen/logrus"
 	"github.com/stafiprotocol/chainbridge/utils/crypto/secp256k1"
-	"github.com/stafiprotocol/eth-lsd-relay/bindings/DepositContract"
-	"github.com/stafiprotocol/eth-lsd-relay/bindings/Erc20"
-	"github.com/stafiprotocol/eth-lsd-relay/bindings/FeePool"
-	"github.com/stafiprotocol/eth-lsd-relay/bindings/LsdNetworkFactory"
-	"github.com/stafiprotocol/eth-lsd-relay/bindings/NetworkBalances"
-	"github.com/stafiprotocol/eth-lsd-relay/bindings/NetworkProposal"
-	"github.com/stafiprotocol/eth-lsd-relay/bindings/NetworkWithdraw"
-	"github.com/stafiprotocol/eth-lsd-relay/bindings/NodeDeposit"
-	"github.com/stafiprotocol/eth-lsd-relay/bindings/UserDeposit"
+	deposit_contract "github.com/stafiprotocol/eth-lsd-relay/bindings/DepositContract"
+	erc20 "github.com/stafiprotocol/eth-lsd-relay/bindings/Erc20"
+	fee_pool "github.com/stafiprotocol/eth-lsd-relay/bindings/FeePool"
+	lsd_network_factory "github.com/stafiprotocol/eth-lsd-relay/bindings/LsdNetworkFactory"
+	network_balances "github.com/stafiprotocol/eth-lsd-relay/bindings/NetworkBalances"
+	network_proposal "github.com/stafiprotocol/eth-lsd-relay/bindings/NetworkProposal"
+	network_withdrawal "github.com/stafiprotocol/eth-lsd-relay/bindings/NetworkWithdrawal"
+	node_deposit "github.com/stafiprotocol/eth-lsd-relay/bindings/NodeDeposit"
+	user_deposit "github.com/stafiprotocol/eth-lsd-relay/bindings/UserDeposit"
 	"github.com/stafiprotocol/eth-lsd-relay/pkg/config"
 	"github.com/stafiprotocol/eth-lsd-relay/pkg/connection"
 	"github.com/stafiprotocol/eth-lsd-relay/pkg/connection/beacon"
@@ -57,27 +57,27 @@ type Service struct {
 	// --- need init on start
 	dev bool
 
-	connection          *connection.Connection
-	eth1Client          *ethclient.Client
-	web3Client          w3s.Client
-	eth2Config          beacon.Eth2Config
-	withdrawCredentials []byte
-	domain              []byte // for eth2 sigs
+	connection            *connection.Connection
+	eth1Client            *ethclient.Client
+	web3Client            w3s.Client
+	eth2Config            beacon.Eth2Config
+	withdrawalCredentials []byte
+	domain                []byte // for eth2 sigs
 
 	lsdNetworkFactoryAddress common.Address
 	lsdTokenAddress          common.Address
 	feePoolAddress           common.Address
-	networkWithdrawAddress   common.Address
+	networkWithdrawalAddress common.Address
 	networkBalancesAddress   common.Address
 	nodeDepositAddress       common.Address
 
-	networkWithdrdawAbi abi.ABI
-	networkBalancesAbi  abi.ABI
-	nodeDepositAbi      abi.ABI
+	networkWithdrdawalAbi abi.ABI
+	networkBalancesAbi    abi.ABI
+	nodeDepositAbi        abi.ABI
 
 	lsdNetworkFactoryContract *lsd_network_factory.LsdNetworkFactory
 	nodeDepositContract       *node_deposit.NodeDeposit
-	networkWithdrawContract   *network_withdraw.NetworkWithdraw
+	networkWithdrawalContract *network_withdrawal.NetworkWithdrawal
 	govDepositContract        *deposit_contract.DepositContract
 	networkProposalContract   *network_proposal.NetworkProposal
 	networkBalancesContract   *network_balances.NetworkBalances
@@ -99,10 +99,10 @@ type Service struct {
 	latestEpochOfUpdateValidator uint64
 	networkCreateBlock           uint64
 
-	cycleSeconds                      uint64
-	latestDistributeWithdrawalsHeight uint64
-	latestDistributePriorityFeeHeight uint64
-	latestMerkleRootEpoch             uint64
+	cycleSeconds                        uint64
+	latestDistributionWithdrawalHeight  uint64
+	latestDistributionPriorityFeeHeight uint64
+	latestMerkleRootEpoch               uint64
 
 	govDeposits map[string][][]byte // pubkey(hex.encodeToString) -> withdrawalCredentials
 
@@ -340,11 +340,11 @@ func (s *Service) Start() error {
 	}
 	logrus.Debug("init contracts end")
 
-	credentials, err := s.nodeDepositContract.WithdrawCredentials(nil)
+	credentials, err := s.nodeDepositContract.WithdrawalCredentials(nil)
 	if err != nil {
 		return err
 	}
-	s.withdrawCredentials = credentials
+	s.withdrawalCredentials = credentials
 
 	// get updateBalances epochs
 	updateBalancesEpochs, err := s.networkBalancesContract.UpdateBalancesEpochs(nil)
@@ -359,14 +359,20 @@ func (s *Service) Start() error {
 	s.distributeWithdrawalsDuEpochs = updateBalancesEpochs.Uint64()
 	s.distributePriorityFeeDuEpochs = updateBalancesEpochs.Uint64()
 	s.merkleRootDuEpochs = updateBalancesEpochs.Uint64()
+	logrus.WithFields(logrus.Fields{
+		"submitBalancesDuEpochs":        s.submitBalancesDuEpochs,
+		"distributeWithdrawalsDuEpochs": s.distributeWithdrawalsDuEpochs,
+		"distributePriorityFeeDuEpochs": s.distributePriorityFeeDuEpochs,
+		"merkleRootDuEpochs":            s.merkleRootDuEpochs,
+	}).Info("update balances epochs")
 
 	// init commission
-	nodeCommissionRate, err := s.networkWithdrawContract.NodeCommissionRate(nil)
+	nodeCommissionRate, err := s.networkWithdrawalContract.NodeCommissionRate(nil)
 	if err != nil {
 		return err
 	}
 	s.nodeCommissionRate = decimal.NewFromBigInt(nodeCommissionRate, 0).Div(decimal.NewFromInt(1e18))
-	platformCommissionRate, err := s.networkWithdrawContract.PlatformCommissionRate(nil)
+	platformCommissionRate, err := s.networkWithdrawalContract.PlatformCommissionRate(nil)
 	if err != nil {
 		return err
 	}
@@ -375,7 +381,7 @@ func (s *Service) Start() error {
 	logrus.Infof("nodeCommission rate: %s, platformCommission rate: %s", s.nodeCommissionRate.String(), s.platfromCommissionRate.String())
 
 	// init cycle seconds
-	cycleSeconds, err := s.networkWithdrawContract.WithdrawCycleSeconds(nil)
+	cycleSeconds, err := s.networkWithdrawalContract.WithdrawalCycleSeconds(nil)
 	if err != nil {
 		return err
 	}
@@ -392,19 +398,19 @@ func (s *Service) Start() error {
 			s.latestBlockOfSyncBlock = block
 		}
 	}
-	latestDistributeWithdrawalsHeight, err := s.networkWithdrawContract.LatestDistributeWithdrawalsHeight(nil)
+	latestDistributionWithdrawalHeight, err := s.networkWithdrawalContract.LatestDistributionWithdrawalHeight(nil)
 	if err != nil {
-		return fmt.Errorf("LatestDistributeWithdrawalsHeight %w", err)
+		return fmt.Errorf("LatestDistributionWithdrawalHeight %w", err)
 	}
-	checkAndUpdateLatestBlockOfSyncBlock(latestDistributeWithdrawalsHeight.Uint64())
+	checkAndUpdateLatestBlockOfSyncBlock(latestDistributionWithdrawalHeight.Uint64())
 
-	latestDistributePriorityFeeHeight, err := s.networkWithdrawContract.LatestDistributePriorityFeeHeight(nil)
+	latestDistributionPriorityFeeHeight, err := s.networkWithdrawalContract.LatestDistributionPriorityFeeHeight(nil)
 	if err != nil {
 		return err
 	}
-	checkAndUpdateLatestBlockOfSyncBlock(latestDistributePriorityFeeHeight.Uint64())
+	checkAndUpdateLatestBlockOfSyncBlock(latestDistributionPriorityFeeHeight.Uint64())
 
-	merkleRootEpoch, err := s.networkWithdrawContract.LatestMerkleRootEpoch(nil)
+	merkleRootEpoch, err := s.networkWithdrawalContract.LatestMerkleRootEpoch(nil)
 	if err != nil {
 		return err
 	}
@@ -429,7 +435,7 @@ func (s *Service) Start() error {
 	logrus.Debugf("latestSlotOfSyncBlock: %d, latestBlockOfSyncBlock: %d", s.latestSlotOfSyncBlock, s.latestBlockOfSyncBlock)
 
 	// init abi
-	s.networkWithdrdawAbi, err = abi.JSON(strings.NewReader(network_withdraw.NetworkWithdrawABI))
+	s.networkWithdrdawalAbi, err = abi.JSON(strings.NewReader(network_withdrawal.NetworkWithdrawalABI))
 	if err != nil {
 		return err
 	}
@@ -495,7 +501,7 @@ func (s *Service) initContract() error {
 	if err != nil {
 		return err
 	}
-	s.networkWithdrawContract, err = network_withdraw.NewNetworkWithdraw(networkContracts.NetworkWithdraw, s.eth1Client)
+	s.networkWithdrawalContract, err = network_withdrawal.NewNetworkWithdrawal(networkContracts.NetworkWithdrawal, s.eth1Client)
 	if err != nil {
 		return err
 	}
@@ -519,7 +525,7 @@ func (s *Service) initContract() error {
 		return err
 	}
 
-	s.networkWithdrawAddress = networkContracts.NetworkWithdraw
+	s.networkWithdrawalAddress = networkContracts.NetworkWithdrawal
 	s.networkBalancesAddress = networkContracts.NetworkBalances
 	s.nodeDepositAddress = networkContracts.NodeDeposit
 

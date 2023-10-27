@@ -13,9 +13,9 @@ func (s *Service) pruneBlocks() error {
 		latestMerkleRootEpochStartBlock = latestMerkleRootEpochStartBlockRes
 	}
 
-	minHeight := s.latestDistributePriorityFeeHeight
-	if minHeight > s.latestDistributeWithdrawalsHeight {
-		minHeight = s.latestDistributeWithdrawalsHeight
+	minHeight := s.latestDistributionPriorityFeeHeight
+	if minHeight > s.latestDistributionWithdrawalHeight {
+		minHeight = s.latestDistributionWithdrawalHeight
 	}
 	if minHeight > latestMerkleRootEpochStartBlock {
 		minHeight = latestMerkleRootEpochStartBlock
