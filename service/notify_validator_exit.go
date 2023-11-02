@@ -24,6 +24,9 @@ func (s *Service) notifyValidatorExit() error {
 	if err != nil {
 		return fmt.Errorf("getEpochStartBlocknumberWithCheck failed: %w", err)
 	}
+	if targetBlockNumber <= s.networkCreateBlock {
+		return nil
+	}
 
 	// wait validator updated
 	if targetEpoch > s.latestEpochOfUpdateValidator {
