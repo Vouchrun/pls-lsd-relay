@@ -417,10 +417,28 @@ func (s *Service) Start() error {
 	} else {
 		checkAndUpdateLatestBlockOfSyncBlock(0)
 	}
+
+	// latest block should less than LatestDistributeWithdrawalsHeight at cycle snapshot
+	_, targetTimestamp, err := s.currentCycleAndStartTimestamp()
+	if err != nil {
+		return fmt.Errorf("currentCycleAndStartTimestamp failed: %w", err)
+	}
+	targetEpoch := utils.EpochAtTimestamp(s.eth2Config, uint64(targetTimestamp))
+	targetBlockNumber, err := s.getEpochStartBlocknumberWithCheck(targetEpoch)
+	if err != nil {
+		return err
+	}
+	targetCall := s.connection.CallOpts(big.NewInt(int64(targetBlockNumber)))
+	latestDistributeWithdrawalHeight, err := s.networkWithdrawContract.LatestDistributeWithdrawalsHeight(targetCall)
+	if err != nil {
+		return err
+	}
+	checkAndUpdateLatestBlockOfSyncBlock(latestDistributeWithdrawalHeight.Uint64())
+
+	// should greater network create block
 	if s.latestBlockOfSyncBlock < s.networkCreateBlock {
 		s.latestBlockOfSyncBlock = s.networkCreateBlock
 	}
-
 	block, err := s.connection.Eth1Client().BlockByNumber(context.Background(), big.NewInt(int64(s.latestBlockOfSyncBlock)))
 	if err != nil {
 		return err

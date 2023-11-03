@@ -1,6 +1,12 @@
 package service
 
-import "github.com/sirupsen/logrus"
+import (
+	"fmt"
+	"math/big"
+
+	"github.com/sirupsen/logrus"
+	"github.com/stafiprotocol/eth-lsd-relay/pkg/utils"
+)
 
 func (s *Service) pruneBlocks() error {
 
@@ -21,6 +27,26 @@ func (s *Service) pruneBlocks() error {
 		minHeight = latestMerkleRootEpochStartBlock
 	}
 
+	_, targetTimestamp, err := s.currentCycleAndStartTimestamp()
+	if err != nil {
+		return fmt.Errorf("currentCycleAndStartTimestamp failed: %w", err)
+	}
+	targetEpoch := utils.EpochAtTimestamp(s.eth2Config, uint64(targetTimestamp))
+	targetBlockNumber, err := s.getEpochStartBlocknumberWithCheck(targetEpoch)
+	if err != nil {
+		return err
+	}
+	targetCall := s.connection.CallOpts(big.NewInt(int64(targetBlockNumber)))
+	latestDistributeWithdrawalHeightOnCycleSnapshot, err := s.networkWithdrawContract.LatestDistributeWithdrawalsHeight(targetCall)
+	if err != nil {
+		return err
+	}
+	logrus.Debugf("latestDistributeWithdrawalHeight OnCycleSnapshot: %d", latestDistributeWithdrawalHeightOnCycleSnapshot.Uint64())
+
+	if minHeight > latestDistributeWithdrawalHeightOnCycleSnapshot.Uint64() {
+		minHeight = latestDistributeWithdrawalHeightOnCycleSnapshot.Uint64()
+	}
+
 	if minHeight == 0 {
 		return nil
 	}
@@ -31,14 +57,16 @@ func (s *Service) pruneBlocks() error {
 	maxHeight := uint64(0)
 	for blockNumber := range s.cachedBeaconBlock {
 		if blockNumber < minHeight {
+			logrus.Tracef("rm cached block: %d", blockNumber)
 			delete(s.cachedBeaconBlock, blockNumber)
+
 		}
 		if blockNumber > maxHeight {
 			maxHeight = blockNumber
 		}
 	}
 
-	logrus.Debugf("cachedBlocks minHeight: %d, maxHeight: %d", minHeight, maxHeight)
+	logrus.Debugf("prune cachedBlocks, now cached block minHeight: %d, maxHeight: %d", minHeight, maxHeight)
 
 	return nil
 }
