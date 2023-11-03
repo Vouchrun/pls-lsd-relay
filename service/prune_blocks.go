@@ -41,8 +41,10 @@ func (s *Service) pruneBlocks() error {
 	if err != nil {
 		return err
 	}
+	logrus.Debugf("latestDistributeWithdrawalHeight OnCycleSnapshot: %d", latestDistributeWithdrawalHeightOnCycleSnapshot.Uint64())
+
 	if minHeight > latestDistributeWithdrawalHeightOnCycleSnapshot.Uint64() {
-		minHeight = s.latestDistributeWithdrawalsHeight
+		minHeight = latestDistributeWithdrawalHeightOnCycleSnapshot.Uint64()
 	}
 
 	if minHeight == 0 {
@@ -55,14 +57,16 @@ func (s *Service) pruneBlocks() error {
 	maxHeight := uint64(0)
 	for blockNumber := range s.cachedBeaconBlock {
 		if blockNumber < minHeight {
+			logrus.Tracef("rm cached block: %d", blockNumber)
 			delete(s.cachedBeaconBlock, blockNumber)
-		}
-		if blockNumber > maxHeight {
-			maxHeight = blockNumber
+
+			if blockNumber > maxHeight {
+				maxHeight = blockNumber
+			}
 		}
 	}
 
-	logrus.Debugf("cachedBlocks minHeight: %d, maxHeight: %d", minHeight, maxHeight)
+	logrus.Debugf("prune cachedBlocks, now minHeight: %d, maxHeight: %d", minHeight, maxHeight)
 
 	return nil
 }
