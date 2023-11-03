@@ -461,7 +461,7 @@ func (s *Service) Start() error {
 
 	// start services
 	logrus.Info("start services...")
-	s.appendSyncHandlers(s.pruneBlocks, s.syncBlocks, s.pruneBlocks)
+	s.appendSyncHandlers(s.syncBlocks, s.pruneBlocks)
 
 	s.appendVoteHandlers(
 		s.updateValidatorsFromNetwork, s.updateValidatorsFromBeacon, s.syncEvents,

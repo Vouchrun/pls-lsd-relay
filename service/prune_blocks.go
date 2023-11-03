@@ -60,13 +60,13 @@ func (s *Service) pruneBlocks() error {
 			logrus.Tracef("rm cached block: %d", blockNumber)
 			delete(s.cachedBeaconBlock, blockNumber)
 
-			if blockNumber > maxHeight {
-				maxHeight = blockNumber
-			}
+		}
+		if blockNumber > maxHeight {
+			maxHeight = blockNumber
 		}
 	}
 
-	logrus.Debugf("prune cachedBlocks, now minHeight: %d, maxHeight: %d", minHeight, maxHeight)
+	logrus.Debugf("prune cachedBlocks, now cached block minHeight: %d, maxHeight: %d", minHeight, maxHeight)
 
 	return nil
 }
