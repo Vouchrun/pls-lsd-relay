@@ -100,7 +100,7 @@ func (s *Service) getEpochStartBlocknumber(epoch uint64) (uint64, error) {
 	}
 }
 
-// return (user reward, node reward, platform fee) decimals 18
+// return (user reward, node reward, platform fee, nodeRewardMap) decimals 18
 func (s *Service) getUserNodePlatformFromWithdrawals(latestDistributeHeight, targetEth1BlockHeight uint64) (decimal.Decimal, decimal.Decimal, decimal.Decimal, NodeNewRewardsMap, error) {
 	totalUserEthDeci := decimal.Zero
 	totalNodeEthDeci := decimal.Zero

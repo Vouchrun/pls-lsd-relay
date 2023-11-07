@@ -63,7 +63,7 @@ func (s *Service) submitBalances() error {
 	}
 	userDepositPoolBalanceDeci := decimal.NewFromBigInt(userDepositPoolBalance, 0)
 
-	targetValidators := s.GetValidatorDepositedListBefore(targetBlock)
+	targetValidators := s.GetValidatorDepositedListBeforeBlock(targetBlock)
 	logrus.WithFields(logrus.Fields{
 		"validatorDepositedList len": len(targetValidators),
 	}).Debug("validatorDepositedList")

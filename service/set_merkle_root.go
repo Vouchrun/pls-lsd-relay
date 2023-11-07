@@ -25,9 +25,10 @@ type NodeNewRewardsMap map[common.Address]*NodeNewReward // nodeAddress(hex with
 type NodeReward struct {
 	Address                string          `json:"address"` // hex with 0x
 	Index                  uint32          `json:"index"`
-	TotalRewardAmount      decimal.Decimal `json:"totalRewardAmount"`
-	TotalExitDepositAmount decimal.Decimal `json:"totalExitDepositAmount"`
-	Proof                  string          `json:"proof"`
+	TotalRewardAmount      decimal.Decimal `json:"totalRewardAmount"`      // accumulative
+	TotalExitDepositAmount decimal.Decimal `json:"totalExitDepositAmount"` // accumulative
+	Proof                  string          `json:"proof"`                  // proof of {address/index/totalRewardAmount/totalExitDepositAmount}
+	TotalDepositAmount     decimal.Decimal `json:"totalDepositAmount"`     // accumulative, totalDepositAmount >= totalExitDepositAmount
 }
 
 type NodeNewReward struct {
@@ -49,7 +50,6 @@ func (s *Service) setMerkleRoot() error {
 
 	var dealedEth1BlockHeight uint64
 	preNodeRewardList := NodeRewardsList{}
-	preNodeRewardMap := make(NodeRewardsMap)
 	if dealedEpochOnchain == 0 {
 		// init case
 		dealedEth1BlockHeight = s.networkCreateBlock
@@ -78,6 +78,7 @@ func (s *Service) setMerkleRoot() error {
 		}
 	}
 
+	preNodeRewardMap := make(NodeRewardsMap)
 	for _, nodeReward := range preNodeRewardList.List {
 		address := common.HexToAddress(nodeReward.Address)
 		_, exist := preNodeRewardMap[address]
@@ -91,6 +92,8 @@ func (s *Service) setMerkleRoot() error {
 	if err != nil {
 		return err
 	}
+
+	// cal finalNodeRewardsMap
 	finalNodeRewardsMap := make(NodeRewardsMap, 0)
 	for _, node := range preNodeRewardMap {
 		address := common.HexToAddress(node.Address)
@@ -122,9 +125,31 @@ func (s *Service) setMerkleRoot() error {
 		}
 	}
 
-	// got final list
+	// cal node totalDepositAmount
+	depositedValidators := s.GetValidatorDepositedListBeforeBlock(targetEth1BlockHeight)
+	for _, val := range depositedValidators {
+		f, exist := finalNodeRewardsMap[val.NodeAddress]
+		if exist {
+			f.TotalDepositAmount = f.TotalDepositAmount.Add(val.NodeDepositAmountDeci)
+		} else {
+			finalNodeRewardsMap[val.NodeAddress] = &NodeReward{
+				Address:                val.NodeAddress.String(),
+				TotalRewardAmount:      decimal.Zero,
+				TotalExitDepositAmount: decimal.Zero,
+				TotalDepositAmount:     val.NodeDepositAmountDeci,
+			}
+		}
+	}
+
+	// got final reward list
 	finalNodeRewardsList := NodeRewardsList{Epoch: targetEpoch, List: make([]*NodeReward, 0)}
 	for _, node := range finalNodeRewardsMap {
+		// check deposit amount
+		if node.TotalExitDepositAmount.GreaterThan(node.TotalDepositAmount) {
+			return fmt.Errorf("node %s TotalExitDepositAmount %s GreaterThan TotalDepositAmount %s ",
+				node.Address, node.TotalExitDepositAmount.StringFixed(0), node.TotalDepositAmount.StringFixed(0))
+		}
+		// append
 		finalNodeRewardsList.List = append(finalNodeRewardsList.List, node)
 	}
 	sort.SliceStable(finalNodeRewardsList.List, func(i, j int) bool {
@@ -134,6 +159,7 @@ func (s *Service) setMerkleRoot() error {
 		node.Index = uint32(i)
 	}
 
+	// call rootHash
 	rootHash := utils.NodeHash{}
 	if len(finalNodeRewardsList.List) > 0 {
 		// build merkle tree
@@ -163,6 +189,7 @@ func (s *Service) setMerkleRoot() error {
 			nodeReward.Proof = strings.Join(proofStrList, ":")
 		}
 	}
+
 	// upload file
 	fileBts, err := json.Marshal(finalNodeRewardsList)
 	if err != nil {

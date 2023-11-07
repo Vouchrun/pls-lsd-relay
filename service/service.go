@@ -654,7 +654,7 @@ func (s *Service) appendSyncHandlers(handlers ...func() error) {
 	}
 }
 
-func (s *Service) GetValidatorDepositedListBefore(block uint64) []*Validator {
+func (s *Service) GetValidatorDepositedListBeforeBlock(block uint64) []*Validator {
 	selectedValidator := make([]*Validator, 0)
 	for _, v := range s.validators {
 		if v.DepositBlock <= block {
