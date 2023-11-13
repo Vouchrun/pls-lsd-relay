@@ -171,12 +171,12 @@ func (s *Service) updateValidatorsFromBeacon() error {
 				if exitEpoch == math.MaxUint64 {
 					exitEpoch = 0
 				}
+				validator.ExitEpoch = exitEpoch
+
 				withdrawableEpoch := status.WithdrawableEpoch
 				if withdrawableEpoch == math.MaxUint64 {
 					withdrawableEpoch = 0
 				}
-
-				validator.ExitEpoch = exitEpoch
 				validator.WithdrawableEpoch = withdrawableEpoch
 			}
 

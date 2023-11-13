@@ -409,3 +409,114 @@ func (s *Service) getValidatorsOfTargetEpoch(targetEpoch uint64) ([]*Validator, 
 
 	return vals, nil
 }
+
+func (s *Service) exitButNotFullWithdrawedValidatorListAtEpoch(epoch uint64) ([]*Validator, error) {
+	vals := make([]*Validator, 0)
+
+	pubkeys := make([]types.ValidatorPubkey, 0)
+	for _, val := range s.validators {
+		// skip not already actived vals
+		if val.ActiveEpoch == 0 || val.ActiveEpoch > epoch {
+			continue
+		}
+		pubkeys = append(pubkeys, types.ValidatorPubkey(val.Pubkey))
+	}
+	if len(pubkeys) == 0 {
+		return nil, nil
+	}
+
+	validatorStatusMap, err := s.connection.GetValidatorStatuses(pubkeys, &beacon.ValidatorStatusOptions{
+		Epoch: &epoch,
+	})
+	if err != nil {
+		return nil, errors.Wrap(err, "exitButNotFullWithdrawedValidatorListAtEpoch GetValidatorStatuses failed")
+	}
+
+	logrus.WithFields(logrus.Fields{
+		"validatorStatuses len": len(validatorStatusMap),
+	}).Debug("validator statuses")
+
+	for pubkey, status := range validatorStatusMap {
+		pubkeyStr := pubkey.String()
+		if !status.Exists {
+			return nil, fmt.Errorf("validator %s status not exist on beacon", pubkeyStr)
+		}
+
+		// must exist here
+		validatorCached, exist := s.validators[pubkeyStr]
+		if !exist {
+			return nil, fmt.Errorf("validator %s not exist in cached", pubkeyStr)
+		}
+
+		// copy val
+		validator := *validatorCached
+
+		updateBaseInfo := func() {
+			// validator's info may be inited at any status
+			validator.ActiveEpoch = status.ActivationEpoch
+			validator.EligibleEpoch = status.ActivationEligibilityEpoch
+			validator.ValidatorIndex = status.Index
+
+			exitEpoch := status.ExitEpoch
+			if exitEpoch == math.MaxUint64 {
+				exitEpoch = 0
+			}
+			validator.ExitEpoch = exitEpoch
+
+			withdrawableEpoch := status.WithdrawableEpoch
+			if withdrawableEpoch == math.MaxUint64 {
+				withdrawableEpoch = 0
+			}
+			validator.WithdrawableEpoch = withdrawableEpoch
+		}
+
+		updateBalance := func() {
+			validator.Balance = status.Balance
+			validator.EffectiveBalance = status.EffectiveBalance
+		}
+
+		switch status.Status {
+
+		case ethpb.ValidatorStatus_ACTIVE_ONGOING, ethpb.ValidatorStatus_ACTIVE_EXITING, ethpb.ValidatorStatus_ACTIVE_SLASHED: // active
+			validator.Status = utils.ValidatorStatusActive
+			if status.Slashed {
+				validator.Status = utils.ValidatorStatusActiveSlash
+			}
+			updateBaseInfo()
+			updateBalance()
+
+		case ethpb.ValidatorStatus_EXITED_UNSLASHED, ethpb.ValidatorStatus_EXITED_SLASHED: // exited
+			validator.Status = utils.ValidatorStatusExited
+			if status.Slashed {
+				validator.Status = utils.ValidatorStatusExitedSlash
+			}
+			updateBaseInfo()
+			updateBalance()
+		case ethpb.ValidatorStatus_WITHDRAWAL_POSSIBLE: // withdrawable
+			validator.Status = utils.ValidatorStatusWithdrawable
+			if status.Slashed {
+				validator.Status = utils.ValidatorStatusWithdrawableSlash
+			}
+			updateBaseInfo()
+			updateBalance()
+
+		case ethpb.ValidatorStatus_WITHDRAWAL_DONE: // withdrawdone
+			validator.Status = utils.ValidatorStatusWithdrawDone
+			if status.Slashed {
+				validator.Status = utils.ValidatorStatusWithdrawDoneSlash
+			}
+			updateBaseInfo()
+			updateBalance()
+		default:
+			return nil, fmt.Errorf("exitButNotFullWithdrawedValidatorListAtEpoch, unsupported validator: %s status %d", pubkeyStr, status.Status)
+		}
+
+		// filter exited and not full withdrawed
+		if validator.ExitEpoch > 0 && validator.Balance > 0 {
+			vals = append(vals, &validator)
+		}
+
+	}
+
+	return vals, nil
+}

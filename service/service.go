@@ -684,16 +684,6 @@ func (s *Service) getValidatorByIndex(valIndex uint64) (*Validator, bool) {
 	return v, exist
 }
 
-func (s *Service) exitButNotDistributedValidatorList(epoch uint64) []*Validator {
-	vals := make([]*Validator, 0)
-	for _, v := range s.validators {
-		if v.ExitEpoch != 0 && v.ExitEpoch <= epoch && v.WithdrawableEpoch > epoch {
-			vals = append(vals, v)
-		}
-	}
-	return vals
-}
-
 func (s *Service) notExitElectionListBefore(targetEpoch, willDealCycle uint64) []*ExitElection {
 	els := make([]*ExitElection, 0)
 	for cycle, e := range s.exitElections {

@@ -76,30 +76,28 @@ func (s *Service) notifyValidatorExit() error {
 		"userDepositBalance": userDepositBalance,
 	}).Debug("notifyValidatorExit")
 
-	// calc exited but not distributed amount
-	exitButNotDistributedValidatorList := s.exitButNotDistributedValidatorList(targetEpoch)
+	// calc exited but not full withdrawed amount
+	exitButNotFullWithdrawedValidatorList, err := s.exitButNotFullWithdrawedValidatorListAtEpoch(targetEpoch)
 	if err != nil {
-		return errors.Wrap(err, "GetValidatorListWithdrawableEpochAfter failed")
+		return errors.Wrap(err, "exitButNotFullWithdrawedValidatorListAtEpoch failed")
 	}
 	totalExitedButNotDistributedUserAmount := decimal.Zero
-	notDistributeValidators := make(map[uint64]bool)
-	for _, v := range exitButNotDistributedValidatorList {
-		notDistributeValidators[v.ValidatorIndex] = true
+	for _, v := range exitButNotFullWithdrawedValidatorList {
 		totalExitedButNotDistributedUserAmount = totalExitedButNotDistributedUserAmount.Add(utils.StandardEffectiveBalanceDeci.Sub(v.NodeDepositAmountDeci))
 	}
 
-	// calc partial withdrawal not distributed amount
+	// calc withdrawals(partial/full) but not distributed amount
 	latestDistributeWithdrawalHeight, err := s.networkWithdrawContract.LatestDistributeWithdrawalsHeight(targetCall)
 	if err != nil {
 		return err
 	}
-	// should exclude notDistributeValidators, as we has already calc
 	userUndistributedWithdrawalsDeci, _, _, _, err := s.getUserNodePlatformFromWithdrawals(latestDistributeWithdrawalHeight.Uint64(), targetBlockNumber)
 	if err != nil {
 		return errors.Wrap(err, "getUserNodePlatformFromWithdrawals failed")
 	}
 
 	totalPendingAmountDeci := totalExitedButNotDistributedUserAmount.Add(userUndistributedWithdrawalsDeci)
+
 	// no need notify exit
 	if totalMissingAmountDeci.LessThanOrEqual(totalPendingAmountDeci) {
 		return nil
