@@ -14,10 +14,13 @@ get:
 
 build:
 	@echo " > \033[32mBuilding relay...\033[0m "
-	go build -mod readonly $(BUILD_FLAGS) -o build/lsd-relay main.go
+	go build -mod readonly $(BUILD_FLAGS) -o build/eth-lsd-relay main.go
+
+install: build
+	sudo mv build/eth-lsd-relay /usr/local/bin/
 
 build-linux:
-	@GOOS=linux GOARCH=amd64 go build --mod readonly $(BUILD_FLAGS) -o ./build/lsd-relay main.go
+	@GOOS=linux GOARCH=amd64 go build --mod readonly $(BUILD_FLAGS) -o ./build/eth-lsd-relay main.go
 
 abi:
 	@echo " > \033[32mGenabi...\033[0m "
@@ -49,4 +52,4 @@ get-lint:
 lint:
 	golangci-lint run ./... --skip-files ".+_test.go"
 
-.PHONY: all lint test race msan tools clean build
+.PHONY: all lint test race msan tools clean build install
