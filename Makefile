@@ -34,6 +34,15 @@ abi:
 	abigen --abi ./bindings/UserDeposit/userdeposit_abi.json --pkg user_deposit --type UserDeposit --out ./bindings/UserDeposit/UserDeposit.go
 	abigen --abi ./bindings/FeePool/feepool_abi.json --pkg fee_pool --type FeePool --out ./bindings/FeePool/FeePool.go
 
+# make abi_json abi contracts_repo_path=../eth-lsd-contracts
+abi_json:
+	cat $(contracts_repo_path)/artifacts/contracts/LsdNetworkFactory.sol/LsdNetworkFactory.json | jq '.abi' > ./bindings/LsdNetworkFactory/lsdnetworkfactory_abi.json
+	cat $(contracts_repo_path)/artifacts/contracts/NetworkWithdraw.sol/NetworkWithdraw.json | jq '.abi' > ./bindings/NetworkWithdraw/networkwithdraw_abi.json
+	cat $(contracts_repo_path)/artifacts/contracts/NodeDeposit.sol/NodeDeposit.json         | jq '.abi' > ./bindings/NodeDeposit/nodedeposit_abi.json
+	cat $(contracts_repo_path)/artifacts/contracts/NetworkProposal.sol/NetworkProposal.json | jq '.abi' > ./bindings/NetworkProposal/networkproposal_abi.json
+	cat $(contracts_repo_path)/artifacts/contracts/NetworkBalances.sol/NetworkBalances.json | jq '.abi' > ./bindings/NetworkBalances/networkbalances_abi.json
+	cat $(contracts_repo_path)/artifacts/contracts/UserDeposit.sol/UserDeposit.json         | jq '.abi' > ./bindings/UserDeposit/userdeposit_abi.json
+	cat $(contracts_repo_path)/artifacts/contracts/FeePool.sol/FeePool.json                 | jq '.abi' > ./bindings/FeePool/feepool_abi.json
 
 clean:
 	@echo " > \033[32mCleanning build files ...\033[0m "
