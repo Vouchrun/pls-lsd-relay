@@ -22,7 +22,7 @@ func init() {
 }
 
 func (s *Service) waitProposalTxOk(txHash common.Hash, proposalId [32]byte) error {
-	_, err := utils.WaitTxOkCommon(s.eth1Client, txHash)
+	_, err := utils.WaitTxOkCommon(s.connection.Eth1Client(), txHash)
 	if err != nil {
 		p, err := s.networkProposalContract.Proposals(nil, proposalId)
 		if err != nil {
@@ -39,7 +39,7 @@ func (s *Service) waitProposalTxOk(txHash common.Hash, proposalId [32]byte) erro
 }
 
 func (s *Service) waitProposalsTxOk(txHash common.Hash, proposalIds [][32]byte) error {
-	_, err := utils.WaitTxOkCommon(s.eth1Client, txHash)
+	_, err := utils.WaitTxOkCommon(s.connection.Eth1Client(), txHash)
 	if err != nil {
 		allProposalsExecuted := true
 		for _, proposalId := range proposalIds {
@@ -200,11 +200,11 @@ func (s *Service) getUserNodePlatformFromPriorityFee(latestDistributeHeight, tar
 
 		preBlockNumber := big.NewInt(int64(i - 1))
 		curBlockNumber := big.NewInt(int64(i))
-		feePoolPreBalance, err := s.eth1Client.BalanceAt(context.Background(), s.feePoolAddress, preBlockNumber)
+		feePoolPreBalance, err := s.connection.Eth1Client().BalanceAt(context.Background(), s.feePoolAddress, preBlockNumber)
 		if err != nil {
 			return decimal.Zero, decimal.Zero, decimal.Zero, nil, err
 		}
-		feePoolCurBalance, err := s.eth1Client.BalanceAt(context.Background(), s.feePoolAddress, curBlockNumber)
+		feePoolCurBalance, err := s.connection.Eth1Client().BalanceAt(context.Background(), s.feePoolAddress, curBlockNumber)
 		if err != nil {
 			return decimal.Zero, decimal.Zero, decimal.Zero, nil, err
 		}

@@ -16,21 +16,20 @@ import (
 
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/prysmaticlabs/prysm/v3/beacon-chain/core/signing"
 	"github.com/prysmaticlabs/prysm/v3/config/params"
 	"github.com/shopspring/decimal"
 	"github.com/sirupsen/logrus"
 	"github.com/stafiprotocol/chainbridge/utils/crypto/secp256k1"
-	"github.com/stafiprotocol/eth-lsd-relay/bindings/DepositContract"
-	"github.com/stafiprotocol/eth-lsd-relay/bindings/Erc20"
-	"github.com/stafiprotocol/eth-lsd-relay/bindings/FeePool"
-	"github.com/stafiprotocol/eth-lsd-relay/bindings/LsdNetworkFactory"
-	"github.com/stafiprotocol/eth-lsd-relay/bindings/NetworkBalances"
-	"github.com/stafiprotocol/eth-lsd-relay/bindings/NetworkProposal"
-	"github.com/stafiprotocol/eth-lsd-relay/bindings/NetworkWithdraw"
-	"github.com/stafiprotocol/eth-lsd-relay/bindings/NodeDeposit"
-	"github.com/stafiprotocol/eth-lsd-relay/bindings/UserDeposit"
+	deposit_contract "github.com/stafiprotocol/eth-lsd-relay/bindings/DepositContract"
+	erc20 "github.com/stafiprotocol/eth-lsd-relay/bindings/Erc20"
+	fee_pool "github.com/stafiprotocol/eth-lsd-relay/bindings/FeePool"
+	lsd_network_factory "github.com/stafiprotocol/eth-lsd-relay/bindings/LsdNetworkFactory"
+	network_balances "github.com/stafiprotocol/eth-lsd-relay/bindings/NetworkBalances"
+	network_proposal "github.com/stafiprotocol/eth-lsd-relay/bindings/NetworkProposal"
+	network_withdraw "github.com/stafiprotocol/eth-lsd-relay/bindings/NetworkWithdraw"
+	node_deposit "github.com/stafiprotocol/eth-lsd-relay/bindings/NodeDeposit"
+	user_deposit "github.com/stafiprotocol/eth-lsd-relay/bindings/UserDeposit"
 	"github.com/stafiprotocol/eth-lsd-relay/pkg/config"
 	"github.com/stafiprotocol/eth-lsd-relay/pkg/connection"
 	"github.com/stafiprotocol/eth-lsd-relay/pkg/connection/beacon"
@@ -58,7 +57,6 @@ type Service struct {
 	dev bool
 
 	connection          *connection.Connection
-	eth1Client          *ethclient.Client
 	web3Client          w3s.Client
 	eth2Config          beacon.Eth2Config
 	withdrawCredentials []byte
@@ -210,11 +208,6 @@ func NewService(cfg *config.Config, keyPair *secp256k1.Keypair) (*Service, error
 		return nil, fmt.Errorf("max gas price is zero")
 	}
 
-	eth1client, err := ethclient.Dial(cfg.Eth1Endpoint)
-	if err != nil {
-		return nil, err
-	}
-
 	err = os.MkdirAll(cfg.LogFilePath, 0700)
 	if err != nil {
 		return nil, fmt.Errorf("LogFilePath %w", err)
@@ -241,7 +234,6 @@ func NewService(cfg *config.Config, keyPair *secp256k1.Keypair) (*Service, error
 		eth1Endpoint:             cfg.Eth1Endpoint,
 		eth2Endpoint:             cfg.Eth2Endpoint,
 		nodeRewardsFilePath:      cfg.LogFilePath,
-		eth1Client:               eth1client,
 		web3Client:               w3sClient,
 		lsdTokenAddress:          common.HexToAddress(cfg.Contracts.LsdTokenAddress),
 		lsdNetworkFactoryAddress: common.HexToAddress(cfg.Contracts.LsdFactoryAddress),
@@ -270,7 +262,7 @@ func (s *Service) Start() error {
 		return err
 	}
 
-	chainId, err := s.eth1Client.ChainID(context.Background())
+	chainId, err := s.connection.Eth1Client().ChainID(context.Background())
 	if err != nil {
 		return err
 	}
@@ -483,7 +475,7 @@ func (s *Service) Stop() {
 func (s *Service) initContract() error {
 	var err error
 
-	s.lsdNetworkFactoryContract, err = lsd_network_factory.NewLsdNetworkFactory(s.lsdNetworkFactoryAddress, s.eth1Client)
+	s.lsdNetworkFactoryContract, err = lsd_network_factory.NewLsdNetworkFactory(s.lsdNetworkFactoryAddress, s.connection.Eth1Client())
 	if err != nil {
 		return err
 	}
@@ -499,40 +491,40 @@ func (s *Service) initContract() error {
 		return err
 	}
 
-	s.govDepositContract, err = deposit_contract.NewDepositContract(ethDepositAddress, s.eth1Client)
+	s.govDepositContract, err = deposit_contract.NewDepositContract(ethDepositAddress, s.connection.Eth1Client())
 	if err != nil {
 		return err
 	}
 
-	s.nodeDepositContract, err = node_deposit.NewNodeDeposit(networkContracts.NodeDeposit, s.eth1Client)
+	s.nodeDepositContract, err = node_deposit.NewNodeDeposit(networkContracts.NodeDeposit, s.connection.Eth1Client())
 	if err != nil {
 		return err
 	}
 
-	s.userDepositContract, err = user_deposit.NewUserDeposit(networkContracts.UserDeposit, s.eth1Client)
+	s.userDepositContract, err = user_deposit.NewUserDeposit(networkContracts.UserDeposit, s.connection.Eth1Client())
 	if err != nil {
 		return err
 	}
-	s.networkWithdrawContract, err = network_withdraw.NewNetworkWithdraw(networkContracts.NetworkWithdraw, s.eth1Client)
-	if err != nil {
-		return err
-	}
-
-	s.networkProposalContract, err = network_proposal.NewNetworkProposal(networkContracts.NetworkProposal, s.eth1Client)
+	s.networkWithdrawContract, err = network_withdraw.NewNetworkWithdraw(networkContracts.NetworkWithdraw, s.connection.Eth1Client())
 	if err != nil {
 		return err
 	}
 
-	s.networkBalancesContract, err = network_balances.NewNetworkBalances(networkContracts.NetworkBalances, s.eth1Client)
-	if err != nil {
-		return err
-	}
-	s.lsdTokenContract, err = erc20.NewErc20(s.lsdTokenAddress, s.eth1Client)
+	s.networkProposalContract, err = network_proposal.NewNetworkProposal(networkContracts.NetworkProposal, s.connection.Eth1Client())
 	if err != nil {
 		return err
 	}
 
-	s.feePoolContract, err = fee_pool.NewFeePool(networkContracts.FeePool, s.eth1Client)
+	s.networkBalancesContract, err = network_balances.NewNetworkBalances(networkContracts.NetworkBalances, s.connection.Eth1Client())
+	if err != nil {
+		return err
+	}
+	s.lsdTokenContract, err = erc20.NewErc20(s.lsdTokenAddress, s.connection.Eth1Client())
+	if err != nil {
+		return err
+	}
+
+	s.feePoolContract, err = fee_pool.NewFeePool(networkContracts.FeePool, s.connection.Eth1Client())
 	if err != nil {
 		return err
 	}
