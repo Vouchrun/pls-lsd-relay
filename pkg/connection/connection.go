@@ -171,6 +171,12 @@ func (c *Connection) CallOpts(blocknumber *big.Int) *bind.CallOpts {
 	return &newCallOpts
 }
 
+func (c *Connection) CallOptsOn(targetBlockNumber uint64) *bind.CallOpts {
+	newCallOpts := c.callOpts
+	newCallOpts.BlockNumber = big.NewInt(int64(targetBlockNumber))
+	return &newCallOpts
+}
+
 // return suggest gastipcap gasfeecap
 func (c *Connection) SafeEstimateFee(ctx context.Context) (*big.Int, *big.Int, error) {
 	gasTipCap, err := c.eth1Client.SuggestGasTipCap(ctx)

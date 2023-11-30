@@ -4,12 +4,15 @@ go 1.21
 
 require (
 	github.com/BurntSushi/toml v1.2.1
+	github.com/avast/retry-go/v4 v4.5.1
 	github.com/ethereum/go-ethereum v1.13.2
 	github.com/ipfs/go-cid v0.3.2
 	github.com/lestrrat-go/file-rotatelogs v2.4.0+incompatible
 	github.com/pkg/errors v0.9.1
 	github.com/prysmaticlabs/go-bitfield v0.0.0-20210809151128-385d8c5e3fb7
 	github.com/prysmaticlabs/prysm/v3 v3.1.1
+	github.com/puzpuzpuz/xsync/v3 v3.0.2
+	github.com/samber/lo v1.36.0
 	github.com/satori/go.uuid v1.2.0
 	github.com/shopspring/decimal v1.3.1
 	github.com/sirupsen/logrus v1.9.0
