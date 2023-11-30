@@ -46,7 +46,7 @@ func (s *Service) distributePriorityFee() error {
 // check sync and vote state
 // return (latestDistributeHeight, targetEth1Blocknumber, shouldGoNext, err)
 func (s *Service) checkStateForDistributePriorityFee() (uint64, uint64, bool, error) {
-	beaconHead, err := s.connection.Eth2BeaconHead()
+	beaconHead, err := s.connection.BeaconHead()
 	if err != nil {
 		return 0, 0, false, err
 	}

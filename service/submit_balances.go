@@ -13,7 +13,7 @@ import (
 )
 
 func (s *Service) submitBalances() error {
-	beaconHead, err := s.connection.Eth2BeaconHead()
+	beaconHead, err := s.connection.BeaconHead()
 	if err != nil {
 		return err
 	}

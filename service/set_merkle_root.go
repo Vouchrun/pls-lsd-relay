@@ -223,7 +223,7 @@ func buildMerkleTree(nodelist NodeRewardsList) (*utils.MerkleTree, error) {
 // check sync and vote state
 // return (dealedEpoch,targetEpoch, targetEth1Blocknumber, shouldGoNext, err)
 func (s *Service) checkStateForSetMerkleRoot() (uint64, uint64, uint64, bool, error) {
-	beaconHead, err := s.connection.Eth2BeaconHead()
+	beaconHead, err := s.connection.BeaconHead()
 	if err != nil {
 		return 0, 0, 0, false, err
 	}

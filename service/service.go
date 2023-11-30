@@ -56,7 +56,7 @@ type Service struct {
 	// --- need init on start
 	dev bool
 
-	connection          *connection.Connection
+	connection          *connection.CachedConnection
 	web3Client          w3s.Client
 	eth2Config          beacon.Eth2Config
 	withdrawCredentials []byte
@@ -184,7 +184,11 @@ type Handler struct {
 	name   string
 }
 
-func NewService(cfg *config.Config, keyPair *secp256k1.Keypair) (*Service, error) {
+func NewService(
+	cfg *config.Config,
+	conn *connection.CachedConnection,
+	keyPair *secp256k1.Keypair,
+) (*Service, error) {
 	if !common.IsHexAddress(cfg.Contracts.LsdTokenAddress) {
 		return nil, fmt.Errorf("LsdTokenAddress contract address fmt err")
 	}
@@ -231,6 +235,7 @@ func NewService(cfg *config.Config, keyPair *secp256k1.Keypair) (*Service, error
 
 	s := &Service{
 		stop:                     make(chan struct{}),
+		connection:               conn,
 		eth1Endpoint:             cfg.Eth1Endpoint,
 		eth2Endpoint:             cfg.Eth2Endpoint,
 		nodeRewardsFilePath:      cfg.LogFilePath,
@@ -255,19 +260,12 @@ func NewService(cfg *config.Config, keyPair *secp256k1.Keypair) (*Service, error
 }
 
 func (s *Service) Start() error {
-	var err error
-	s.connection, err = connection.NewConnection(s.eth1Endpoint, s.eth2Endpoint, s.keyPair,
-		s.gasLimit, s.maxGasPrice)
+	chainId, err := s.connection.ChainID()
 	if err != nil {
 		return err
 	}
 
-	chainId, err := s.connection.Eth1Client().ChainID(context.Background())
-	if err != nil {
-		return err
-	}
-
-	s.eth2Config, err = s.connection.Eth2Client().GetEth2Config()
+	s.eth2Config, err = s.connection.Eth2Config()
 	if err != nil {
 		return err
 	}

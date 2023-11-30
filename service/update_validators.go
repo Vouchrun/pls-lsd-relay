@@ -123,7 +123,7 @@ func (s *Service) updateValidatorsFromNetwork() error {
 }
 
 func (s *Service) updateValidatorsFromBeacon() error {
-	beaconHead, err := s.connection.Eth2BeaconHead()
+	beaconHead, err := s.connection.BeaconHead()
 	if err != nil {
 		return err
 	}
