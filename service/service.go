@@ -20,7 +20,6 @@ import (
 	"github.com/prysmaticlabs/prysm/v3/config/params"
 	"github.com/shopspring/decimal"
 	"github.com/sirupsen/logrus"
-	"github.com/stafiprotocol/chainbridge/utils/crypto/secp256k1"
 	deposit_contract "github.com/stafiprotocol/eth-lsd-relay/bindings/DepositContract"
 	erc20 "github.com/stafiprotocol/eth-lsd-relay/bindings/Erc20"
 	fee_pool "github.com/stafiprotocol/eth-lsd-relay/bindings/FeePool"
@@ -42,9 +41,6 @@ type Service struct {
 	eth1Endpoint        string
 	eth2Endpoint        string
 	nodeRewardsFilePath string
-	keyPair             *secp256k1.Keypair
-	gasLimit            *big.Int
-	maxGasPrice         *big.Int
 
 	submitBalancesDuEpochs        uint64
 	distributeWithdrawalsDuEpochs uint64
@@ -187,7 +183,6 @@ type Handler struct {
 func NewService(
 	cfg *config.Config,
 	conn *connection.CachedConnection,
-	keyPair *secp256k1.Keypair,
 ) (*Service, error) {
 	if !common.IsHexAddress(cfg.Contracts.LsdTokenAddress) {
 		return nil, fmt.Errorf("LsdTokenAddress contract address fmt err")
@@ -196,23 +191,7 @@ func NewService(
 		return nil, fmt.Errorf("LsdFactoryAddress contract address fmt err")
 	}
 
-	gasLimitDeci, err := decimal.NewFromString(cfg.GasLimit)
-	if err != nil {
-		return nil, err
-	}
-
-	if gasLimitDeci.LessThanOrEqual(decimal.Zero) {
-		return nil, fmt.Errorf("gas limit is zero")
-	}
-	maxGasPriceDeci, err := decimal.NewFromString(cfg.MaxGasPrice)
-	if err != nil {
-		return nil, err
-	}
-	if maxGasPriceDeci.LessThanOrEqual(decimal.Zero) {
-		return nil, fmt.Errorf("max gas price is zero")
-	}
-
-	err = os.MkdirAll(cfg.LogFilePath, 0700)
+	err := os.MkdirAll(cfg.LogFilePath, 0700)
 	if err != nil {
 		return nil, fmt.Errorf("LogFilePath %w", err)
 	}
@@ -242,9 +221,6 @@ func NewService(
 		web3Client:               w3sClient,
 		lsdTokenAddress:          common.HexToAddress(cfg.Contracts.LsdTokenAddress),
 		lsdNetworkFactoryAddress: common.HexToAddress(cfg.Contracts.LsdFactoryAddress),
-		keyPair:                  keyPair,
-		gasLimit:                 gasLimitDeci.BigInt(),
-		maxGasPrice:              maxGasPriceDeci.BigInt(),
 		batchRequestBlocksNumber: cfg.BatchRequestBlocksNumber,
 
 		govDeposits:       make(map[string][][]byte),

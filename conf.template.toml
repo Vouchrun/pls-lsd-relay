@@ -7,6 +7,7 @@ gasLimit = "3000000"
 keystorePath = "./keys"
 maxGasPrice = "60000000000"                            #wei
 batchRequestBlocksNumber = 32
+runForEntrustedLsdNetwork = false
 
 [contracts]
 lsdTokenAddress = ""

@@ -26,12 +26,13 @@ type CachedConnection struct {
 	beaconBlockMutex *utils.KeyedMutex[uint64]
 }
 
-func NewCachedConnection() (*CachedConnection, error) {
+func NewCachedConnection(conn *Connection) (*CachedConnection, error) {
 	beaconBlockCache, err := lru.New[uint64, beacon.BeaconBlock](1024 * 1000)
 	if err != nil {
 		return nil, err
 	}
 	cc := CachedConnection{
+		Connection:       conn,
 		beaconBlockCache: beaconBlockCache,
 	}
 	return &cc, nil

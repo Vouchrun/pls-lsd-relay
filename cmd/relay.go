@@ -48,11 +48,13 @@ func startRelayCmd() *cobra.Command {
   eth1Endpoint: %s
   eth2Endpoint: %s
   account: %s
+  runForEntrustedLsdNetwork: %s
   lsdTokenAddress: %s
   factoryAddress: %s
   batchRequestBlocksNumber: %d`,
 				cfg.LogFilePath, logLevelStr, cfg.Eth1Endpoint, cfg.Eth2Endpoint, cfg.Account,
-				cfg.Contracts.LsdTokenAddress, cfg.Contracts.LsdFactoryAddress, cfg.BatchRequestBlocksNumber)
+				cfg.RunForEntrustedLsdNetwork, cfg.Contracts.LsdTokenAddress, cfg.Contracts.LsdFactoryAddress,
+				cfg.BatchRequestBlocksNumber)
 
 			err = log.InitLogFile(cfg.LogFilePath + "/relay")
 			if err != nil {
@@ -71,20 +73,18 @@ func startRelayCmd() *cobra.Command {
 			if !ok {
 				return fmt.Errorf(" keypair err")
 			}
-
-			t, err := service.NewService(cfg, kp)
+			srvManager, err := service.NewServiceManager(cfg, kp)
 			if err != nil {
-				return fmt.Errorf("NewService err: %w", err)
+				return fmt.Errorf("NewServiceManager err: %w", err)
 			}
-
-			err = t.Start()
-			if err != nil {
-				logrus.Errorf("start err: %s", err)
+			if err = srvManager.Start(); err != nil {
+				logrus.Errorf("start service manager err: %s", err)
 				return err
 			}
+
 			defer func() {
 				logrus.Infof("shutting down task ...")
-				t.Stop()
+				srvManager.Stop()
 			}()
 
 			<-ctx.Done()

@@ -245,7 +245,7 @@ func (s *Service) sendSubmitBalancesTx(block, totalUserEth, lsdTokenTotalSupply 
 	proposalId := utils.ProposalId(s.networkBalancesAddress, encodeBts, block)
 
 	// check voted
-	hasVoted, err := s.networkProposalContract.HasVoted(nil, proposalId, s.keyPair.CommonAddress())
+	hasVoted, err := s.networkProposalContract.HasVoted(nil, proposalId, s.connection.Keypair().CommonAddress())
 	if err != nil {
 		return fmt.Errorf("networkProposalContract.HasVoted err: %s", err)
 	}

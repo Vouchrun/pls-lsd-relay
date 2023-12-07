@@ -275,7 +275,7 @@ func (s *Service) sendSetMerkleRootTx(targetEpoch int64, rootHash [32]byte, cid 
 	proposalId := utils.ProposalId(s.networkWithdrawAddress, encodeBts, big.NewInt(targetEpoch))
 
 	// check voted
-	hasVoted, err := s.networkProposalContract.HasVoted(nil, proposalId, s.keyPair.CommonAddress())
+	hasVoted, err := s.networkProposalContract.HasVoted(nil, proposalId, s.connection.Keypair().CommonAddress())
 	if err != nil {
 		return fmt.Errorf("networkProposalContract.HasVoted err: %s", err)
 	}

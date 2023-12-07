@@ -21,6 +21,8 @@ type Config struct {
 	MaxGasPrice              string
 	BatchRequestBlocksNumber uint64
 
+	RunForEntrustedLsdNetwork bool
+
 	Contracts Contracts
 }
 

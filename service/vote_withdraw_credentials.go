@@ -115,7 +115,7 @@ func (s *Service) voteWithdrawCredentialsTx(validatorPubkeys [][]byte, matchs []
 		proposalId := utils.ProposalId(s.nodeDepositAddress, encodeBts, big.NewInt(0))
 
 		// check voted
-		hasVoted, err := s.networkProposalContract.HasVoted(nil, proposalId, s.keyPair.CommonAddress())
+		hasVoted, err := s.networkProposalContract.HasVoted(nil, proposalId, s.connection.Keypair().CommonAddress())
 		if err != nil {
 			return fmt.Errorf("networkProposalContract.HasVoted err: %s", err)
 		}
