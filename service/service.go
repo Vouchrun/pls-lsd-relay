@@ -89,11 +89,11 @@ type Service struct {
 	quenedVoteHandlers []Handler
 	quenedSyncHandlers []Handler
 
-	latestSlotOfSyncBlock     uint64
-	latestBlockOfSyncBlock    uint64
-	waitFirstNodeDepositEvent bool
-	localSyncedBlockHeight    uint64
-	localStore                *local_store.LocalStore
+	latestSlotOfSyncBlock   uint64
+	latestBlockOfSyncBlock  uint64
+	waitFirstNodeStakeEvent bool
+	localSyncedBlockHeight  uint64
+	localStore              *local_store.LocalStore
 
 	latestBlockOfSyncEvents      uint64
 	latestBlockOfUpdateValidator uint64
@@ -392,9 +392,20 @@ func (s *Service) Start() error {
 
 	// start services
 	logrus.Info("start services...")
-	if s.waitFirstNodeDepositEvent {
+	if s.waitFirstNodeStakeEvent {
 		// start service to fetch first node deposit event
-		s.seekFirstNodeDepositEvent()
+		for {
+			if err = s.seekFirstNodeStakeEvent(); err == nil {
+				// first node stake event has been found
+				break
+			}
+			logrus.WithFields(logrus.Fields{
+				"lsdToken": s.lsdTokenAddress.Hex(),
+				"err":      err,
+				"retry_in": time.Minute,
+			}).Error("seek first node stake event error")
+			time.Sleep(time.Minute)
+		}
 	} else {
 		s.startHandlers()
 	}
@@ -402,7 +413,7 @@ func (s *Service) Start() error {
 	return nil
 }
 
-func (s *Service) seekFirstNodeDepositEvent() error {
+func (s *Service) seekFirstNodeStakeEvent() error {
 	for {
 		latestBlock, err := s.connection.Eth1LatestBlock()
 		if err != nil {
@@ -424,8 +435,9 @@ func (s *Service) seekFirstNodeDepositEvent() error {
 		hasEvent := iter.Next()
 		iter.Close()
 		if hasEvent {
-			// found the first node deposit event
+			// found the first node stake event
 			s.latestBlockOfSyncBlock = iter.Event.Raw.BlockNumber - 1
+			s.waitFirstNodeStakeEvent = false
 			s.startHandlers()
 			return nil
 		}
@@ -577,12 +589,12 @@ func (s *Service) initLatestBlockOfSyncBlock() error {
 	// should greater network create block
 	if s.latestBlockOfSyncBlock < s.networkCreateBlock {
 		s.latestBlockOfSyncBlock = s.networkCreateBlock
-		s.waitFirstNodeDepositEvent = true
+		s.waitFirstNodeStakeEvent = true
 	}
 	// should be greater than local synced block height
 	if s.latestBlockOfSyncBlock < s.localSyncedBlockHeight {
 		s.latestBlockOfSyncBlock = s.localSyncedBlockHeight
-		s.waitFirstNodeDepositEvent = true
+		s.waitFirstNodeStakeEvent = true
 	}
 
 	return nil

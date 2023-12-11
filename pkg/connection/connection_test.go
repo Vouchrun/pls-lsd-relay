@@ -299,12 +299,17 @@ func TestBalance(t *testing.T) {
 }
 
 func TestGettingFirstNodeStakeEvent(t *testing.T) {
-	c, err := connection.NewConnection("https://eth-mainnet.g.alchemy.com/v2/3whje5yFZZxg9BqsldHTRku-VXWuf88E", "https://beacon-lighthouse.stafi.io", nil, nil, nil)
+	c, err := connection.NewConnection("https://eth-goerli.g.alchemy.com/v2/ttJ0x4Zlxb_b7bdiX151hKUiYBdjYduG", "https://beacon-lighthouse-goerli.stafi.io", nil, nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	var start = uint64(0)
+	latestBlock, err := c.Eth1LatestBlock()
+	if err != nil {
+		t.Fatal(err)
+	}
+	end := latestBlock
 
 	nodeDeposits := []string{
 		"0x179386303fC2B51c306Ae9D961C73Ea9a9EA0C8d",
@@ -321,13 +326,18 @@ func TestGettingFirstNodeStakeEvent(t *testing.T) {
 		iter, err := retry.DoWithData(func() (*node_deposit.NodeDepositStakedIterator, error) {
 			return nodeDepositContract.FilterStaked(&bind.FilterOpts{
 				Start:   start,
-				End:     nil,
+				End:     &end,
 				Context: context.Background(),
 			})
 		}, retry.Delay(time.Second*2), retry.Attempts(150))
 		if err != nil {
 			t.Fatal(err)
 		}
+
+		// for iter.Next() {
+		// 	fmt.Println("stake event at:", iter.Event.Raw.BlockNumber)
+		// }
+
 		hasEvent := iter.Next()
 		iter.Close()
 		if hasEvent {
