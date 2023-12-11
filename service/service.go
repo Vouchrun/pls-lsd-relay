@@ -393,6 +393,9 @@ func (s *Service) Start() error {
 	// start services
 	logrus.Info("start services...")
 	if s.waitFirstNodeStakeEvent {
+		logrus.WithFields(logrus.Fields{
+			"lsdToken": s.lsdTokenAddress.Hex(),
+		}).Info("start seeking first node stake event")
 		// start service to fetch first node deposit event
 		for {
 			if err = s.seekFirstNodeStakeEvent(); err == nil {
@@ -455,6 +458,11 @@ func (s *Service) seekFirstNodeStakeEvent() error {
 
 func (s *Service) startHandlers() {
 	s.startServiceOnce.Do(func() {
+		logrus.WithFields(logrus.Fields{
+			"lsdToken":               s.lsdTokenAddress.Hex(),
+			"latestBlockOfSyncBlock": s.latestBlockOfSyncBlock,
+		}).Info("start voting handlers")
+
 		s.appendSyncHandlers(s.syncBlocks, s.pruneBlocks)
 
 		s.appendVoteHandlers(
