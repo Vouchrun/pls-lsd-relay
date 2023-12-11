@@ -6,6 +6,7 @@ package config
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/BurntSushi/toml"
 )
@@ -14,9 +15,11 @@ type Config struct {
 	Eth1Endpoint             string // url for eth1 rpc endpoint
 	Eth2Endpoint             string // url for eth2 rpc endpoint
 	Web3StorageApiToken      string //
+	DirPath                  string
 	LogFilePath              string
 	Account                  string
 	KeystorePath             string
+	BlockstoreFilePath       string
 	GasLimit                 string
 	MaxGasPrice              string
 	BatchRequestBlocksNumber uint64
@@ -36,9 +39,13 @@ func Load(configFilePath string) (*Config, error) {
 	if err := loadSysConfig(configFilePath, &cfg); err != nil {
 		return nil, err
 	}
-	if len(cfg.LogFilePath) == 0 {
-		cfg.LogFilePath = "./log_data"
+	cfg.DirPath = strings.TrimSuffix(cfg.DirPath, "/")
+	if cfg.DirPath == "" {
+		return nil, fmt.Errorf("dirPath must be set")
 	}
+	cfg.LogFilePath = cfg.DirPath + "/log_data/"
+	cfg.KeystorePath = cfg.DirPath + "/keystore/"
+	cfg.BlockstoreFilePath = cfg.DirPath + "/blockstore"
 
 	return &cfg, nil
 }

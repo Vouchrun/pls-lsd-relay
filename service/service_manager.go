@@ -55,7 +55,7 @@ func NewServiceManager(cfg *config.Config, keyPair *secp256k1.Keypair) (*Service
 	if err = cachedConn.Start(); err != nil {
 		return nil, err
 	}
-	localStore, err := local_store.NewLocalStore("")
+	localStore, err := local_store.NewLocalStore(cfg.BlockstoreFilePath)
 	if err != nil {
 		return nil, err
 	}
