@@ -34,6 +34,10 @@ func (s *Service) updateValidatorsFromNetwork() error {
 	if err != nil {
 		return fmt.Errorf("nodeDepositContract.GetNodesLength failed: %w", err)
 	}
+	if nodesLength.Uint64() == 0 {
+		return nil
+	}
+
 	nodesOnChain, err := s.nodeDepositContract.GetNodes(call, big.NewInt(0), nodesLength)
 	if err != nil {
 		return fmt.Errorf("nodeDepositContract.GetNodes failed: %w", err)

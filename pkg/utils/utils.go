@@ -297,3 +297,12 @@ func IsDir(path string) (bool, error) {
 
 	return fileInfo.IsDir(), err
 }
+
+func ExecuteFns(fns ...func() error) (err error) {
+	for _, fn := range fns {
+		if err = fn(); err != nil {
+			return err
+		}
+	}
+	return
+}

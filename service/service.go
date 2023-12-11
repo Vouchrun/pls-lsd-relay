@@ -14,7 +14,9 @@ import (
 	"sync"
 	"time"
 
+	"github.com/avast/retry-go/v4"
 	"github.com/ethereum/go-ethereum/accounts/abi"
+	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/prysmaticlabs/prysm/v3/beacon-chain/core/signing"
 	"github.com/prysmaticlabs/prysm/v3/config/params"
@@ -32,12 +34,14 @@ import (
 	"github.com/stafiprotocol/eth-lsd-relay/pkg/config"
 	"github.com/stafiprotocol/eth-lsd-relay/pkg/connection"
 	"github.com/stafiprotocol/eth-lsd-relay/pkg/connection/beacon"
+	"github.com/stafiprotocol/eth-lsd-relay/pkg/local_store"
 	"github.com/stafiprotocol/eth-lsd-relay/pkg/utils"
 	"github.com/web3-storage/go-w3s-client"
 )
 
 type Service struct {
 	stop                chan struct{}
+	startServiceOnce    sync.Once
 	eth1Endpoint        string
 	eth2Endpoint        string
 	nodeRewardsFilePath string
@@ -85,8 +89,11 @@ type Service struct {
 	quenedVoteHandlers []Handler
 	quenedSyncHandlers []Handler
 
-	latestSlotOfSyncBlock  uint64
-	latestBlockOfSyncBlock uint64
+	latestSlotOfSyncBlock     uint64
+	latestBlockOfSyncBlock    uint64
+	waitFirstNodeDepositEvent bool
+	localSyncedBlockHeight    uint64
+	localStore                *local_store.LocalStore
 
 	latestBlockOfSyncEvents      uint64
 	latestBlockOfUpdateValidator uint64
@@ -183,6 +190,7 @@ type Handler struct {
 func NewService(
 	cfg *config.Config,
 	conn *connection.CachedConnection,
+	localStore *local_store.LocalStore,
 ) (*Service, error) {
 	if !common.IsHexAddress(cfg.Contracts.LsdTokenAddress) {
 		return nil, fmt.Errorf("LsdTokenAddress contract address fmt err")
@@ -212,6 +220,11 @@ func NewService(
 		return nil, fmt.Errorf("BatchRequestBlocksNumber is zero")
 	}
 
+	info, err := localStore.Read(cfg.Contracts.LsdTokenAddress)
+	if err != nil {
+		return nil, err
+	}
+
 	s := &Service{
 		stop:                     make(chan struct{}),
 		connection:               conn,
@@ -222,6 +235,8 @@ func NewService(
 		lsdTokenAddress:          common.HexToAddress(cfg.Contracts.LsdTokenAddress),
 		lsdNetworkFactoryAddress: common.HexToAddress(cfg.Contracts.LsdFactoryAddress),
 		batchRequestBlocksNumber: cfg.BatchRequestBlocksNumber,
+		localSyncedBlockHeight:   info.SyncedHeight,
+		localStore:               localStore,
 
 		govDeposits:       make(map[string][][]byte),
 		validators:        make(map[string]*Validator),
@@ -350,61 +365,10 @@ func (s *Service) Start() error {
 	// init latest block and slot number
 	s.latestBlockOfUpdateValidator = s.networkCreateBlock
 	s.latestBlockOfSyncEvents = s.networkCreateBlock
-
-	s.latestBlockOfSyncBlock = math.MaxUint64
-	checkAndUpdateLatestBlockOfSyncBlock := func(block uint64) {
-		logrus.Debugf("checkAndUpdateLatestBlockOfSyncBlock block: %d", block)
-		if block < s.latestBlockOfSyncBlock {
-			s.latestBlockOfSyncBlock = block
-		}
-	}
-	latestDistributeWithdrawalsHeight, err := s.networkWithdrawContract.LatestDistributeWithdrawalsHeight(nil)
-	if err != nil {
-		return fmt.Errorf("LatestDistributeWithdrawalsHeight %w", err)
-	}
-	checkAndUpdateLatestBlockOfSyncBlock(latestDistributeWithdrawalsHeight.Uint64())
-
-	latestDistributePriorityFeeHeight, err := s.networkWithdrawContract.LatestDistributePriorityFeeHeight(nil)
-	if err != nil {
+	if err = s.initLatestBlockOfSyncBlock(); err != nil {
 		return err
 	}
-	checkAndUpdateLatestBlockOfSyncBlock(latestDistributePriorityFeeHeight.Uint64())
 
-	merkleRootEpoch, err := s.networkWithdrawContract.LatestMerkleRootEpoch(nil)
-	if err != nil {
-		return err
-	}
-	if merkleRootEpoch.Uint64() > 0 {
-		epochBlockNumber, err := s.getEpochStartBlocknumberWithCheck(merkleRootEpoch.Uint64())
-		if err != nil {
-			return err
-		}
-		checkAndUpdateLatestBlockOfSyncBlock(epochBlockNumber)
-	} else {
-		checkAndUpdateLatestBlockOfSyncBlock(0)
-	}
-
-	// latest block should less than LatestDistributeWithdrawalsHeight at cycle snapshot
-	_, targetTimestamp, err := s.currentCycleAndStartTimestamp()
-	if err != nil {
-		return fmt.Errorf("currentCycleAndStartTimestamp failed: %w", err)
-	}
-	targetEpoch := utils.EpochAtTimestamp(s.eth2Config, uint64(targetTimestamp))
-	targetBlockNumber, err := s.getEpochStartBlocknumberWithCheck(targetEpoch)
-	if err != nil {
-		return err
-	}
-	targetCall := s.connection.CallOpts(big.NewInt(int64(targetBlockNumber)))
-	latestDistributeWithdrawalHeight, err := s.networkWithdrawContract.LatestDistributeWithdrawalsHeight(targetCall)
-	if err != nil {
-		return err
-	}
-	checkAndUpdateLatestBlockOfSyncBlock(latestDistributeWithdrawalHeight.Uint64())
-
-	// should greater network create block
-	if s.latestBlockOfSyncBlock < s.networkCreateBlock {
-		s.latestBlockOfSyncBlock = s.networkCreateBlock
-	}
 	block, err := s.connection.Eth1Client().BlockByNumber(context.Background(), big.NewInt(int64(s.latestBlockOfSyncBlock)))
 	if err != nil {
 		return err
@@ -428,18 +392,68 @@ func (s *Service) Start() error {
 
 	// start services
 	logrus.Info("start services...")
-	s.appendSyncHandlers(s.syncBlocks, s.pruneBlocks)
-
-	s.appendVoteHandlers(
-		s.updateValidatorsFromNetwork, s.updateValidatorsFromBeacon, s.syncEvents,
-		s.voteWithdrawCredentials,
-		s.submitBalances, s.distributeWithdrawals, s.distributePriorityFee,
-		s.setMerkleRoot, s.notifyValidatorExit)
-
-	utils.SafeGo(s.syncService)
-	utils.SafeGo(s.voteService)
+	if s.waitFirstNodeDepositEvent {
+		// start service to fetch first node deposit event
+		s.seekFirstNodeDepositEvent()
+	} else {
+		s.startHandlers()
+	}
 
 	return nil
+}
+
+func (s *Service) seekFirstNodeDepositEvent() error {
+	for {
+		latestBlock, err := s.connection.Eth1LatestBlock()
+		if err != nil {
+			return err
+		}
+		start := s.latestBlockOfSyncBlock + 1
+		end := latestBlock
+
+		iter, err := retry.DoWithData(func() (*node_deposit.NodeDepositStakedIterator, error) {
+			return s.nodeDepositContract.FilterStaked(&bind.FilterOpts{
+				Start:   start,
+				End:     &end,
+				Context: context.Background(),
+			})
+		}, retry.Delay(time.Second*2), retry.Attempts(150))
+		if err != nil {
+			return err
+		}
+		hasEvent := iter.Next()
+		iter.Close()
+		if hasEvent {
+			// found the first node deposit event
+			s.latestBlockOfSyncBlock = iter.Event.Raw.BlockNumber - 1
+			s.startHandlers()
+			return nil
+		}
+
+		if err = s.localStore.Update(local_store.Info{
+			SyncedHeight: start,
+			Address:      s.lsdTokenAddress.Hex(),
+		}); err != nil {
+			return err
+		}
+		s.latestBlockOfSyncBlock = start
+		time.Sleep(time.Hour)
+	}
+}
+
+func (s *Service) startHandlers() {
+	s.startServiceOnce.Do(func() {
+		s.appendSyncHandlers(s.syncBlocks, s.pruneBlocks)
+
+		s.appendVoteHandlers(
+			s.updateValidatorsFromNetwork, s.updateValidatorsFromBeacon, s.syncEvents,
+			s.voteWithdrawCredentials,
+			s.submitBalances, s.distributeWithdrawals, s.distributePriorityFee,
+			s.setMerkleRoot, s.notifyValidatorExit)
+
+		utils.SafeGo(s.syncService)
+		utils.SafeGo(s.voteService)
+	})
 }
 
 func (s *Service) Stop() {
@@ -510,6 +524,66 @@ func (s *Service) initContract() error {
 	s.networkCreateBlock = networkContracts.Block.Uint64()
 
 	s.feePoolAddress = networkContracts.FeePool
+
+	return nil
+}
+
+func (s *Service) initLatestBlockOfSyncBlock() error {
+	s.latestBlockOfSyncBlock = math.MaxUint64
+	checkAndUpdateLatestBlockOfSyncBlock := func(block uint64) {
+		logrus.Debugf("checkAndUpdateLatestBlockOfSyncBlock block: %d", block)
+		if block < s.latestBlockOfSyncBlock {
+			s.latestBlockOfSyncBlock = block
+		}
+	}
+
+	latestDistributePriorityFeeHeight, err := s.networkWithdrawContract.LatestDistributePriorityFeeHeight(nil)
+	if err != nil {
+		return err
+	}
+	checkAndUpdateLatestBlockOfSyncBlock(latestDistributePriorityFeeHeight.Uint64())
+
+	merkleRootEpoch, err := s.networkWithdrawContract.LatestMerkleRootEpoch(nil)
+	if err != nil {
+		return err
+	}
+	if merkleRootEpoch.Uint64() > 0 {
+		epochBlockNumber, err := s.getEpochStartBlocknumberWithCheck(merkleRootEpoch.Uint64())
+		if err != nil {
+			return err
+		}
+		checkAndUpdateLatestBlockOfSyncBlock(epochBlockNumber)
+	} else {
+		checkAndUpdateLatestBlockOfSyncBlock(0)
+	}
+
+	// latest block should less than LatestDistributeWithdrawalsHeight at cycle snapshot
+	_, targetTimestamp, err := s.currentCycleAndStartTimestamp()
+	if err != nil {
+		return fmt.Errorf("currentCycleAndStartTimestamp failed: %w", err)
+	}
+	targetEpoch := utils.EpochAtTimestamp(s.eth2Config, uint64(targetTimestamp))
+	targetBlockNumber, err := s.getEpochStartBlocknumberWithCheck(targetEpoch)
+	if err != nil {
+		return err
+	}
+	targetCall := s.connection.CallOpts(big.NewInt(int64(targetBlockNumber)))
+	latestDistributeWithdrawalHeight, err := s.networkWithdrawContract.LatestDistributeWithdrawalsHeight(targetCall)
+	if err != nil {
+		return err
+	}
+	checkAndUpdateLatestBlockOfSyncBlock(latestDistributeWithdrawalHeight.Uint64())
+
+	// should greater network create block
+	if s.latestBlockOfSyncBlock < s.networkCreateBlock {
+		s.latestBlockOfSyncBlock = s.networkCreateBlock
+		s.waitFirstNodeDepositEvent = true
+	}
+	// should be greater than local synced block height
+	if s.latestBlockOfSyncBlock < s.localSyncedBlockHeight {
+		s.latestBlockOfSyncBlock = s.localSyncedBlockHeight
+		s.waitFirstNodeDepositEvent = true
+	}
 
 	return nil
 }

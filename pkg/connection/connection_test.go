@@ -8,11 +8,15 @@ import (
 	"sort"
 	"strings"
 	"testing"
+	"time"
 
 	// "github.com/ethereum/go-ethereum/common"
+	"github.com/avast/retry-go/v4"
+	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/sirupsen/logrus"
+	node_deposit "github.com/stafiprotocol/eth-lsd-relay/bindings/NodeDeposit"
 	"github.com/stafiprotocol/eth-lsd-relay/pkg/connection"
 	"github.com/stafiprotocol/eth-lsd-relay/pkg/connection/beacon"
 	"github.com/stafiprotocol/eth-lsd-relay/pkg/connection/beacon/client"
@@ -292,4 +296,47 @@ func TestBalance(t *testing.T) {
 	}
 	t.Log(proposers)
 
+}
+
+func TestGettingFirstNodeStakeEvent(t *testing.T) {
+	c, err := connection.NewConnection("https://eth-mainnet.g.alchemy.com/v2/3whje5yFZZxg9BqsldHTRku-VXWuf88E", "https://beacon-lighthouse.stafi.io", nil, nil, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	var start = uint64(0)
+
+	nodeDeposits := []string{
+		"0x179386303fC2B51c306Ae9D961C73Ea9a9EA0C8d",
+		"0x8A57bC7fB1237f9fBF075A261Ed28F04105Cd89d",
+	}
+
+	for _, nodeDepositAddr := range nodeDeposits {
+		fmt.Println("nodeDepositAddr:", nodeDepositAddr)
+
+		nodeDepositContract, err := node_deposit.NewNodeDeposit(common.HexToAddress(nodeDepositAddr), c.Eth1Client())
+		if err != nil {
+			t.Fatal(err)
+		}
+		iter, err := retry.DoWithData(func() (*node_deposit.NodeDepositStakedIterator, error) {
+			return nodeDepositContract.FilterStaked(&bind.FilterOpts{
+				Start:   start,
+				End:     nil,
+				Context: context.Background(),
+			})
+		}, retry.Delay(time.Second*2), retry.Attempts(150))
+		if err != nil {
+			t.Fatal(err)
+		}
+		hasEvent := iter.Next()
+		iter.Close()
+		if hasEvent {
+			// found the first node deposit event
+			fmt.Println("first stake event", iter.Event.Raw.BlockNumber)
+		} else {
+			fmt.Println("no node stake event")
+		}
+	}
+	// lsdTokens: 0x37a7BF277f9b1F32296aB595600eA30c55F6eE4B
+	// lsdTokens: 0xD2a1e6931e8a41043cE80C4F7EB0F7083E64Bfb8 ( created by robert)
 }

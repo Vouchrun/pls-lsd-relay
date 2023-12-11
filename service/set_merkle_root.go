@@ -39,7 +39,7 @@ type NodeNewReward struct {
 
 // ensure withdraw and fee already distribute on target epoch
 func (s *Service) setMerkleRoot() error {
-	dealedEpochOnchain, targetEpoch, targetEth1BlockHeight, shouldGoNext, err := s.checkStateForSetMerkleRoot()
+	dealtEpochOnchain, targetEpoch, targetEth1BlockHeight, shouldGoNext, err := s.checkStateForSetMerkleRoot()
 	if err != nil {
 		return errors.Wrap(err, "setMerkleRoot checkSyncState failed")
 	}
@@ -48,18 +48,18 @@ func (s *Service) setMerkleRoot() error {
 		return nil
 	}
 
-	var dealedEth1BlockHeight uint64
+	var dealtEth1BlockHeight uint64
 	preNodeRewardList := NodeRewardsList{}
-	if dealedEpochOnchain == 0 {
+	if dealtEpochOnchain == 0 {
 		// init case
-		dealedEth1BlockHeight = s.networkCreateBlock
+		dealtEth1BlockHeight = s.networkCreateBlock
 	} else {
 		preCid, err := s.networkWithdrawContract.NodeRewardsFileCid(nil)
 		if err != nil {
 			return err
 		}
 
-		fileBytes, err := utils.DownloadWeb3File(preCid, utils.NodeRewardsFileNameAtEpoch(dealedEpochOnchain))
+		fileBytes, err := utils.DownloadWeb3File(preCid, utils.NodeRewardsFileNameAtEpoch(dealtEpochOnchain))
 		if err != nil {
 			return err
 		}
@@ -68,11 +68,11 @@ func (s *Service) setMerkleRoot() error {
 		if err != nil {
 			return err
 		}
-		if preNodeRewardList.Epoch != dealedEpochOnchain {
+		if preNodeRewardList.Epoch != dealtEpochOnchain {
 			return fmt.Errorf("pre node reward file epoch unmatch, cid: %s", preCid)
 		}
 
-		dealedEth1BlockHeight, err = s.getEpochStartBlocknumberWithCheck(dealedEpochOnchain)
+		dealtEth1BlockHeight, err = s.getEpochStartBlocknumberWithCheck(dealtEpochOnchain)
 		if err != nil {
 			return err
 		}
@@ -88,7 +88,7 @@ func (s *Service) setMerkleRoot() error {
 		preNodeRewardMap[address] = nodeReward
 	}
 
-	newNodeRewardsMap, err := s.getNodeNewRewardsBetween(dealedEth1BlockHeight, targetEth1BlockHeight)
+	newNodeRewardsMap, err := s.getNodeNewRewardsBetween(dealtEth1BlockHeight, targetEth1BlockHeight)
 	if err != nil {
 		return err
 	}
@@ -230,12 +230,12 @@ func (s *Service) checkStateForSetMerkleRoot() (uint64, uint64, uint64, bool, er
 
 	targetEpoch := (beaconHead.FinalizedEpoch / s.merkleRootDuEpochs) * s.merkleRootDuEpochs
 
-	dealedEpochOnchain := s.latestMerkleRootEpoch
+	dealtEpochOnchain := s.latestMerkleRootEpoch
 	if err != nil {
 		return 0, 0, 0, false, err
 	}
-	if targetEpoch <= dealedEpochOnchain {
-		logrus.Debugf("targetEpoch: %d  dealedEpochOnchain: %d", targetEpoch, dealedEpochOnchain)
+	if targetEpoch <= dealtEpochOnchain {
+		logrus.Debugf("targetEpoch: %d  dealtEpochOnchain: %d", targetEpoch, dealtEpochOnchain)
 		return 0, 0, 0, false, nil
 	}
 
@@ -247,7 +247,7 @@ func (s *Service) checkStateForSetMerkleRoot() (uint64, uint64, uint64, bool, er
 	logrus.WithFields(logrus.Fields{
 		"targetEth1BlockHeight":  targetEth1BlockHeight,
 		"latestBlockOfSyncBlock": s.latestBlockOfSyncBlock,
-		"dealedEpochOnchain":     dealedEpochOnchain,
+		"dealtEpochOnchain":      dealtEpochOnchain,
 		"targetEpoch":            targetEpoch,
 	}).Debug("setMerkleRoot")
 
@@ -257,7 +257,7 @@ func (s *Service) checkStateForSetMerkleRoot() (uint64, uint64, uint64, bool, er
 		return 0, 0, 0, false, nil
 	}
 
-	return dealedEpochOnchain, targetEpoch, targetEth1BlockHeight, true, nil
+	return dealtEpochOnchain, targetEpoch, targetEth1BlockHeight, true, nil
 }
 
 func (s *Service) sendSetMerkleRootTx(targetEpoch int64, rootHash [32]byte, cid string) error {

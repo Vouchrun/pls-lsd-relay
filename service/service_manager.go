@@ -14,6 +14,7 @@ import (
 	lsd_network_factory "github.com/stafiprotocol/eth-lsd-relay/bindings/LsdNetworkFactory"
 	"github.com/stafiprotocol/eth-lsd-relay/pkg/config"
 	"github.com/stafiprotocol/eth-lsd-relay/pkg/connection"
+	"github.com/stafiprotocol/eth-lsd-relay/pkg/local_store"
 	"github.com/stafiprotocol/eth-lsd-relay/pkg/utils"
 )
 
@@ -22,6 +23,7 @@ type ServiceManager struct {
 	cfg        *config.Config
 	connection *connection.CachedConnection
 	srvs       *xsync.MapOf[string, *Service]
+	localStore *local_store.LocalStore
 }
 
 func NewServiceManager(cfg *config.Config, keyPair *secp256k1.Keypair) (*ServiceManager, error) {
@@ -53,12 +55,17 @@ func NewServiceManager(cfg *config.Config, keyPair *secp256k1.Keypair) (*Service
 	if err = cachedConn.Start(); err != nil {
 		return nil, err
 	}
+	localStore, err := local_store.NewLocalStore("")
+	if err != nil {
+		return nil, err
+	}
 
 	return &ServiceManager{
 		stop:       make(chan struct{}),
 		cfg:        cfg,
 		connection: cachedConn,
 		srvs:       xsync.NewMapOf[string, *Service](),
+		localStore: localStore,
 	}, nil
 }
 
@@ -147,7 +154,7 @@ func (m *ServiceManager) syncEntrustedLsdTokens() error {
 func (m *ServiceManager) newAndStartServiceFor(lsdToken string) (*Service, error) {
 	srvConfig := *m.cfg
 	srvConfig.Contracts.LsdTokenAddress = lsdToken
-	srv, err := NewService(&srvConfig, m.connection)
+	srv, err := NewService(&srvConfig, m.connection, m.localStore)
 	if err != nil {
 		return nil, fmt.Errorf("new service for lsd token %s err %s", lsdToken, err.Error())
 	}

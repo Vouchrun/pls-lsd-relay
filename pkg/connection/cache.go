@@ -16,8 +16,10 @@ type CachedConnection struct {
 	stop chan struct{}
 
 	// cache data
-	beaconHead    beacon.BeaconHead
-	beaconHeadErr error
+	beaconHead               beacon.BeaconHead
+	beaconHeadErr            error
+	eth1LatestBlockNumber    uint64
+	eth1LatestBlockNumberErr error
 
 	chainId    *big.Int
 	eth2Config *beacon.Eth2Config
@@ -44,8 +46,15 @@ func (c *CachedConnection) Start() error {
 		return err
 	}
 
-	c.syncBeaconHead()
+	if err = utils.ExecuteFns(
+		c.syncBeaconHead,
+		c.syncEth1LatestBlockNumber,
+	); err != nil {
+		return err
+	}
+
 	utils.SafeGo(c.syncBeaconHeadService)
+	utils.SafeGo(c.syncEth1LatestBlockService)
 
 	return nil
 }
@@ -88,9 +97,33 @@ func (c *CachedConnection) syncBeaconHeadService() {
 	}
 }
 
-func (c *CachedConnection) syncBeaconHead() {
+func (c *CachedConnection) syncBeaconHead() error {
 	c.beaconHead, c.beaconHeadErr = retry.DoWithData(c.eth2Client.GetBeaconHead,
 		retry.Delay(time.Second*2), retry.Attempts(150))
+	return c.beaconHeadErr
+}
+
+func (c *CachedConnection) Eth1LatestBlock() (uint64, error) {
+	return c.eth1LatestBlockNumber, c.eth1LatestBlockNumberErr
+}
+
+func (c *CachedConnection) syncEth1LatestBlockService() {
+	for {
+		select {
+		case <-c.stop:
+			return
+		default:
+			c.syncEth1LatestBlockNumber()
+		}
+		time.Sleep(12 * time.Second)
+	}
+}
+
+// LatestBlock returns the latest block from the current chain
+func (c *CachedConnection) syncEth1LatestBlockNumber() error {
+	c.eth1LatestBlockNumber, c.eth1LatestBlockNumberErr = retry.DoWithData(c.Connection.Eth1LatestBlock,
+		retry.Delay(time.Second*2), retry.Attempts(150))
+	return c.eth1LatestBlockNumberErr
 }
 
 func (c *CachedConnection) cacheChainID() (err error) {
