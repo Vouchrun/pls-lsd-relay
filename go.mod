@@ -19,6 +19,7 @@ require (
 	github.com/sirupsen/logrus v1.9.0
 	github.com/spf13/cobra v1.7.0
 	github.com/stafiprotocol/chainbridge v0.0.0-20201204032253-9b92852c8d66
+	github.com/stretchr/testify v1.8.4
 	github.com/wealdtech/go-eth2-types/v2 v2.8.1
 	github.com/web3-storage/go-w3s-client v0.0.7
 	golang.org/x/crypto v0.12.0
@@ -39,6 +40,7 @@ require (
 	github.com/consensys/gnark-crypto v0.10.0 // indirect
 	github.com/crackcomm/go-gitignore v0.0.0-20170627025303-887ab5e44cc3 // indirect
 	github.com/crate-crypto/go-kzg-4844 v0.3.0 // indirect
+	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/deckarep/golang-set/v2 v2.1.0 // indirect
 	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.1.0 // indirect
 	github.com/ethereum/c-kzg-4844 v0.3.1 // indirect
@@ -120,6 +122,7 @@ require (
 	github.com/opentracing/opentracing-go v1.2.0 // indirect
 	github.com/petar/GoLLRB v0.0.0-20210522233825-ae3b015fd3e9 // indirect
 	github.com/pierrec/xxHash v0.1.5 // indirect
+	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/polydawn/refmt v0.0.0-20201211092308-30ac6d18308e // indirect
 	github.com/prometheus/client_golang v1.14.0 // indirect
 	github.com/prometheus/client_model v0.3.0 // indirect
@@ -157,6 +160,7 @@ require (
 	google.golang.org/genproto v0.0.0-20210624195500-8bfb893ecb84 // indirect
 	google.golang.org/grpc v1.45.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
+	gopkg.in/yaml.v3 v3.0.1 // indirect
 	lukechampine.com/blake3 v1.1.7 // indirect
 	rsc.io/tmplfunc v0.0.3 // indirect
 )

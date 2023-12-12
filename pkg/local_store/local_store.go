@@ -1,6 +1,7 @@
 package local_store
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -40,7 +41,7 @@ func (s *LocalStore) Read(addr string) (*Info, error) {
 		return nil, err
 	}
 	info, ok := content[addr]
-	if ok {
+	if !ok {
 		return nil, nil // address info does not exist
 	}
 	info.Address = addr
@@ -69,7 +70,11 @@ func (s *LocalStore) readContent() (map[string]Info, error) {
 	if err != nil {
 		return nil, err
 	}
+	content = bytes.TrimSpace(content)
 	info := map[string]Info{}
+	if len(content) == 0 {
+		return info, nil
+	}
 	if err = json.Unmarshal(content, &info); err != nil {
 		return nil, err
 	}
