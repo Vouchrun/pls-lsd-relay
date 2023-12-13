@@ -43,8 +43,8 @@ func Load(configFilePath string) (*Config, error) {
 	if cfg.DirPath == "" {
 		return nil, fmt.Errorf("dirPath must be set")
 	}
-	cfg.LogFilePath = cfg.DirPath + "/log_data/"
-	cfg.KeystorePath = cfg.DirPath + "/keystore/"
+	cfg.LogFilePath = cfg.DirPath + "/log_data"
+	cfg.KeystorePath = cfg.DirPath + "/keystore"
 	cfg.BlockstoreFilePath = cfg.DirPath + "/blockstore"
 
 	return &cfg, nil

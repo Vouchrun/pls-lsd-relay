@@ -48,7 +48,7 @@ func startRelayCmd() *cobra.Command {
   eth1Endpoint: %s
   eth2Endpoint: %s
   account: %s
-  runForEntrustedLsdNetwork: %s
+  runForEntrustedLsdNetwork: %v
   lsdTokenAddress: %s
   factoryAddress: %s
   batchRequestBlocksNumber: %d`,

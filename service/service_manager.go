@@ -27,6 +27,10 @@ type ServiceManager struct {
 }
 
 func NewServiceManager(cfg *config.Config, keyPair *secp256k1.Keypair) (*ServiceManager, error) {
+	if !common.IsHexAddress(cfg.Contracts.LsdFactoryAddress) {
+		return nil, fmt.Errorf("LsdFactoryAddress contract address fmt err")
+	}
+
 	gasLimitDeci, err := decimal.NewFromString(cfg.GasLimit)
 	if err != nil {
 		return nil, err
@@ -78,7 +82,7 @@ func (m *ServiceManager) Start() error {
 	}
 
 	// for entrusted lsd network
-	err := retry.Do(m.syncEntrustedLsdTokens, retry.Attempts(utils.RetryLimit))
+	err := retry.Do(m.syncEntrustedLsdTokens, retry.Attempts(3))
 	if err != nil {
 		return err
 	}
@@ -100,27 +104,38 @@ func (m *ServiceManager) Stop() {
 func (m *ServiceManager) startSyncService() {
 	logrus.Info("start listening new entrusted lsd token service")
 
+	retry := 0
+
+Out:
 	for {
+		if retry > utils.RetryLimit {
+			utils.ShutdownRequestChannel <- struct{}{}
+			return
+		}
+
 		select {
 		case <-m.stop:
 			logrus.Info("sync entrusted lsd token task has stopped")
 			return
 		default:
-			// sync new entrusted lsd tokens
-			err := retry.Do(m.syncEntrustedLsdTokens, retry.Attempts(utils.RetryLimit))
+
+			err := m.syncEntrustedLsdTokens()
 			if err != nil {
-				logrus.Error("task has stopped")
-				utils.ShutdownRequestChannel <- struct{}{}
-				return
+				logrus.Errorf("fail to sync entrusted toksn: %w", err)
+				time.Sleep(utils.RetryInterval * 4)
+				retry++
+				continue Out
 			}
 
-			time.Sleep(12 * time.Second)
+			retry = 0
 		}
+
+		time.Sleep(12 * time.Second)
 	}
 }
 
 func (m *ServiceManager) syncEntrustedLsdTokens() error {
-	lsdNetworkFactoryContract, err := lsd_network_factory.NewLsdNetworkFactory(common.Address{}, m.connection.Eth1Client())
+	lsdNetworkFactoryContract, err := lsd_network_factory.NewLsdNetworkFactory(common.HexToAddress(m.cfg.Contracts.LsdFactoryAddress), m.connection.Eth1Client())
 	if err != nil {
 		return err
 	}
@@ -142,8 +157,13 @@ func (m *ServiceManager) syncEntrustedLsdTokens() error {
 	m.srvs.Range(func(token string, srv *Service) bool {
 		if !lo.Contains(tokenList, token) {
 			// remove entrusted lsd token
+			log := logrus.WithFields(logrus.Fields{
+				"lsdToken": token,
+			})
+			log.Info("stopping service")
 			srv.Stop()
 			m.srvs.Delete(token)
+			log.Warn("stopped service")
 		}
 		return true
 	})
@@ -152,6 +172,10 @@ func (m *ServiceManager) syncEntrustedLsdTokens() error {
 }
 
 func (m *ServiceManager) newAndStartServiceFor(lsdToken string) (*Service, error) {
+	log := logrus.WithFields(logrus.Fields{
+		"lsdToken": lsdToken,
+	})
+	log.Debug("new service instance")
 	srvConfig := *m.cfg
 	srvConfig.Contracts.LsdTokenAddress = lsdToken
 	srv, err := NewService(&srvConfig, m.connection, m.localStore)
@@ -162,5 +186,6 @@ func (m *ServiceManager) newAndStartServiceFor(lsdToken string) (*Service, error
 		return nil, fmt.Errorf("start service for lsd token %s err %s", lsdToken, err.Error())
 	}
 	m.srvs.Store(lsdToken, srv)
+	log.Warn("started service")
 	return srv, nil
 }

@@ -35,7 +35,9 @@ func NewCachedConnection(conn *Connection) (*CachedConnection, error) {
 	}
 	cc := CachedConnection{
 		Connection:       conn,
+		stop:             make(chan struct{}),
 		beaconBlockCache: beaconBlockCache,
+		beaconBlockMutex: &utils.KeyedMutex[uint64]{},
 	}
 	return &cc, nil
 }
@@ -99,7 +101,7 @@ func (c *CachedConnection) syncBeaconHeadService() {
 
 func (c *CachedConnection) syncBeaconHead() error {
 	c.beaconHead, c.beaconHeadErr = retry.DoWithData(c.eth2Client.GetBeaconHead,
-		retry.Delay(time.Second*2), retry.Attempts(150))
+		retry.Delay(time.Second*2), retry.Attempts(5))
 	return c.beaconHeadErr
 }
 
@@ -122,7 +124,7 @@ func (c *CachedConnection) syncEth1LatestBlockService() {
 // LatestBlock returns the latest block from the current chain
 func (c *CachedConnection) syncEth1LatestBlockNumber() error {
 	c.eth1LatestBlockNumber, c.eth1LatestBlockNumberErr = retry.DoWithData(c.Connection.Eth1LatestBlock,
-		retry.Delay(time.Second*2), retry.Attempts(150))
+		retry.Delay(time.Second*2), retry.Attempts(5))
 	return c.eth1LatestBlockNumberErr
 }
 

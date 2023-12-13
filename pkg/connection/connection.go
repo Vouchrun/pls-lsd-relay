@@ -12,6 +12,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/avast/retry-go/v4"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
@@ -64,7 +65,8 @@ func NewConnection(eth1Endpoint, eth2Endpoint string, kp *secp256k1.Keypair, gas
 		gasLimit:     gasLimit,
 		maxGasPrice:  maxGasPrice,
 	}
-	err := c.connect()
+
+	err := retry.Do(c.connect, retry.Delay(time.Second), retry.Attempts(3))
 	if err != nil {
 		return nil, err
 	}

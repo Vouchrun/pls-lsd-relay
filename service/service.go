@@ -224,6 +224,10 @@ func NewService(
 	if err != nil {
 		return nil, err
 	}
+	var localSyncedBlockHeight uint64 = 0
+	if info != nil {
+		localSyncedBlockHeight = info.SyncedHeight
+	}
 
 	s := &Service{
 		stop:                     make(chan struct{}),
@@ -235,7 +239,7 @@ func NewService(
 		lsdTokenAddress:          common.HexToAddress(cfg.Contracts.LsdTokenAddress),
 		lsdNetworkFactoryAddress: common.HexToAddress(cfg.Contracts.LsdFactoryAddress),
 		batchRequestBlocksNumber: cfg.BatchRequestBlocksNumber,
-		localSyncedBlockHeight:   info.SyncedHeight,
+		localSyncedBlockHeight:   localSyncedBlockHeight,
 		localStore:               localStore,
 
 		govDeposits:       make(map[string][][]byte),
@@ -393,22 +397,7 @@ func (s *Service) Start() error {
 	// start services
 	logrus.Info("start services...")
 	if s.waitFirstNodeStakeEvent {
-		logrus.WithFields(logrus.Fields{
-			"lsdToken": s.lsdTokenAddress.Hex(),
-		}).Info("start seeking first node stake event")
-		// start service to fetch first node deposit event
-		for {
-			if err = s.seekFirstNodeStakeEvent(); err == nil {
-				// first node stake event has been found
-				break
-			}
-			logrus.WithFields(logrus.Fields{
-				"lsdToken": s.lsdTokenAddress.Hex(),
-				"err":      err,
-				"retry_in": time.Minute,
-			}).Error("seek first node stake event error")
-			time.Sleep(time.Minute)
-		}
+		s.startSeekFirstNodeStakeEvent()
 	} else {
 		s.startHandlers()
 	}
@@ -416,44 +405,70 @@ func (s *Service) Start() error {
 	return nil
 }
 
-func (s *Service) seekFirstNodeStakeEvent() error {
-	for {
-		latestBlock, err := s.connection.Eth1LatestBlock()
-		if err != nil {
-			return err
+func (s *Service) startSeekFirstNodeStakeEvent() {
+	log := logrus.WithFields(logrus.Fields{
+		"lsdToken": s.lsdTokenAddress.Hex(),
+		"service":  "seekingFirstNodeStake",
+	})
+	utils.SafeGo(func() {
+		log.Info("start service")
+		defer log.Info("service stopped")
+		for {
+			select {
+			case <-s.stop:
+				return
+			default:
+				found, err := s.seekFirstNodeStakeEvent()
+				if found {
+					// first node stake event has been found
+					log.Info("found first node stake event")
+					break
+				}
+				if err != nil {
+					log.WithFields(logrus.Fields{
+						"err": err,
+					}).Warn("seek first node stake event error")
+				}
+				time.Sleep(time.Minute)
+			}
 		}
-		start := s.latestBlockOfSyncBlock + 1
-		end := latestBlock
-
-		iter, err := retry.DoWithData(func() (*node_deposit.NodeDepositStakedIterator, error) {
-			return s.nodeDepositContract.FilterStaked(&bind.FilterOpts{
-				Start:   start,
-				End:     &end,
-				Context: context.Background(),
-			})
-		}, retry.Delay(time.Second*2), retry.Attempts(150))
-		if err != nil {
-			return err
-		}
-		hasEvent := iter.Next()
-		iter.Close()
-		if hasEvent {
-			// found the first node stake event
-			s.latestBlockOfSyncBlock = iter.Event.Raw.BlockNumber - 1
-			s.waitFirstNodeStakeEvent = false
-			s.startHandlers()
-			return nil
-		}
-
-		if err = s.localStore.Update(local_store.Info{
-			SyncedHeight: start,
-			Address:      s.lsdTokenAddress.Hex(),
-		}); err != nil {
-			return err
-		}
-		s.latestBlockOfSyncBlock = start
-		time.Sleep(time.Hour)
+	})
+}
+func (s *Service) seekFirstNodeStakeEvent() (bool, error) {
+	latestBlock, err := s.connection.Eth1LatestBlock()
+	if err != nil {
+		return false, err
 	}
+	start := s.latestBlockOfSyncBlock + 1
+
+	iter, err := retry.DoWithData(func() (*node_deposit.NodeDepositStakedIterator, error) {
+		return s.nodeDepositContract.FilterStaked(&bind.FilterOpts{
+			Start:   start,
+			End:     &latestBlock,
+			Context: context.Background(),
+		})
+	}, retry.Delay(time.Second*2), retry.Attempts(150))
+	if err != nil {
+		return false, err
+	}
+	hasEvent := iter.Next()
+	iter.Close()
+	if hasEvent {
+		// found the first node stake event
+		s.latestBlockOfSyncBlock = iter.Event.Raw.BlockNumber - 1
+		s.waitFirstNodeStakeEvent = false
+		s.startHandlers()
+		return true, nil
+	}
+
+	if err = s.localStore.Update(local_store.Info{
+		SyncedHeight: start,
+		Address:      s.lsdTokenAddress.Hex(),
+	}); err != nil {
+		return false, err
+	}
+	s.latestBlockOfSyncBlock = latestBlock
+	return false, nil
 }
 
 func (s *Service) startHandlers() {
