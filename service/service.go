@@ -429,7 +429,7 @@ func (s *Service) startSeekFirstNodeStakeEvent() {
 						"err": err,
 					}).Warn("seek first node stake event error")
 				}
-				time.Sleep(time.Minute)
+				utils.Sleep(s.stop, time.Minute*30)
 			}
 		}
 	})
@@ -447,7 +447,7 @@ func (s *Service) seekFirstNodeStakeEvent() (bool, error) {
 			End:     &latestBlock,
 			Context: context.Background(),
 		})
-	}, retry.Delay(time.Second*2), retry.Attempts(150))
+	}, retry.Delay(time.Second*2), retry.Attempts(5))
 	if err != nil {
 		return false, err
 	}
