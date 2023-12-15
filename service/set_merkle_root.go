@@ -59,7 +59,7 @@ func (s *Service) setMerkleRoot() error {
 			return err
 		}
 
-		fileBytes, err := utils.DownloadWeb3File(preCid, utils.NodeRewardsFileNameAtEpoch(dealtEpochOnchain))
+		fileBytes, err := utils.DownloadWeb3File(preCid, utils.NodeRewardsFileNameAtEpoch(s.lsdTokenAddress.String(), dealtEpochOnchain))
 		if err != nil {
 			return err
 		}
@@ -195,7 +195,7 @@ func (s *Service) setMerkleRoot() error {
 	if err != nil {
 		return err
 	}
-	filePath := path.Join(s.nodeRewardsFilePath, utils.NodeRewardsFileNameAtEpoch(targetEpoch))
+	filePath := path.Join(s.nodeRewardsFilePath, utils.NodeRewardsFileNameAtEpoch(s.lsdTokenAddress.String(), targetEpoch))
 	cid, err := utils.UploadFileToWeb3Storage(s.web3Client, fileBts, filePath)
 	if err != nil {
 		return err

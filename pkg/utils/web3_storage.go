@@ -11,10 +11,10 @@ import (
 )
 
 var nodeRewardsFileUrlRaw string = "https://%s.ipfs.dweb.link/%s"
-var nodeRewardsFileNameRaw string = "nodeRewards-%d.json"
+var nodeRewardsFileNameRaw string = "%s-nodeRewards-%d.json"
 
-func NodeRewardsFileNameAtEpoch(epoch uint64) string {
-	return fmt.Sprintf(nodeRewardsFileNameRaw, epoch)
+func NodeRewardsFileNameAtEpoch(lsdToken string, epoch uint64) string {
+	return fmt.Sprintf(nodeRewardsFileNameRaw, lsdToken, epoch)
 }
 
 func DownloadWeb3File(cid, fileName string) ([]byte, error) {
