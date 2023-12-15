@@ -7,6 +7,7 @@ import (
 
 	"github.com/avast/retry-go/v4"
 	lru "github.com/hashicorp/golang-lru/v2"
+	"github.com/sirupsen/logrus"
 	"github.com/stafiprotocol/eth-lsd-relay/pkg/connection/beacon"
 	"github.com/stafiprotocol/eth-lsd-relay/pkg/utils"
 )
@@ -93,7 +94,9 @@ func (c *CachedConnection) syncBeaconHeadService() {
 		case <-c.stop:
 			return
 		default:
-			c.syncBeaconHead()
+			if err := c.syncBeaconHead(); err != nil {
+				logrus.Errorf("connection cache: fail to sync beacon head: %s", err.Error())
+			}
 		}
 		time.Sleep(12 * time.Second)
 	}
@@ -115,7 +118,9 @@ func (c *CachedConnection) syncEth1LatestBlockService() {
 		case <-c.stop:
 			return
 		default:
-			c.syncEth1LatestBlockNumber()
+			if err := c.syncEth1LatestBlockNumber(); err != nil {
+				logrus.Errorf("connection cache: fail to sync eth1 latest block number: %s", err.Error())
+			}
 		}
 		time.Sleep(12 * time.Second)
 	}
