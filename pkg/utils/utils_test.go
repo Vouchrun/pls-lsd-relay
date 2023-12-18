@@ -12,7 +12,6 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
-	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/ipfs/go-cid"
 	"github.com/shopspring/decimal"
 	"github.com/stafiprotocol/eth-lsd-relay/pkg/connection"

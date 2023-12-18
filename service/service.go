@@ -18,8 +18,8 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/prysmaticlabs/prysm/v3/beacon-chain/core/signing"
-	"github.com/prysmaticlabs/prysm/v3/config/params"
+	"github.com/prysmaticlabs/prysm/v4/beacon-chain/core/signing"
+	"github.com/prysmaticlabs/prysm/v4/config/params"
 	"github.com/shopspring/decimal"
 	"github.com/sirupsen/logrus"
 	deposit_contract "github.com/stafiprotocol/eth-lsd-relay/bindings/DepositContract"
@@ -52,9 +52,6 @@ type Service struct {
 	merkleRootDuEpochs            uint64
 
 	batchRequestBlocksNumber uint64
-
-	// --- need init on start
-	dev bool
 
 	connection          *connection.CachedConnection
 	web3Client          w3s.Client
@@ -267,7 +264,6 @@ func (s *Service) Start() error {
 
 	switch chainId.Uint64() {
 	case 1: //mainnet
-		s.dev = false
 		if !bytes.Equal(s.eth2Config.GenesisForkVersion, params.MainnetConfig().GenesisForkVersion) {
 			return fmt.Errorf("endpoint network not match")
 		}
@@ -283,7 +279,6 @@ func (s *Service) Start() error {
 		s.domain = domain
 
 	case 11155111: // sepolia
-		s.dev = true
 		if !bytes.Equal(s.eth2Config.GenesisForkVersion, params.SepoliaConfig().GenesisForkVersion) {
 			return fmt.Errorf("endpoint network not match")
 		}
@@ -297,8 +292,21 @@ func (s *Service) Start() error {
 			return err
 		}
 		s.domain = domain
+	case 17000: // holesky
+		chainCfg := params.HoleskyConfig()
+		if !bytes.Equal(s.eth2Config.GenesisForkVersion, chainCfg.GenesisForkVersion) {
+			return fmt.Errorf("endpoint network not match")
+		}
+		domain, err := signing.ComputeDomain(
+			chainCfg.DomainDeposit,
+			chainCfg.GenesisForkVersion,
+			chainCfg.ZeroHash[:],
+		)
+		if err != nil {
+			return err
+		}
+		s.domain = domain
 	case 5: // goerli
-		s.dev = true
 		if !bytes.Equal(s.eth2Config.GenesisForkVersion, params.PraterConfig().GenesisForkVersion) {
 			return fmt.Errorf("endpoint network not match")
 		}
