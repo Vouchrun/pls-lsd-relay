@@ -430,7 +430,7 @@ func (s *Service) startSeekFirstNodeStakeEvent() {
 				if found {
 					// first node stake event has been found
 					log.Info("found first node stake event")
-					break
+					return
 				}
 				if err != nil {
 					log.WithFields(logrus.Fields{
@@ -449,8 +449,8 @@ func (s *Service) seekFirstNodeStakeEvent() (bool, error) {
 	}
 	start := s.latestBlockOfSyncBlock + 1
 
-	iter, err := retry.DoWithData(func() (*node_deposit.NodeDepositStakedIterator, error) {
-		return s.nodeDepositContract.FilterStaked(&bind.FilterOpts{
+	iter, err := retry.DoWithData(func() (*node_deposit.NodeDepositDepositedIterator, error) {
+		return s.nodeDepositContract.FilterDeposited(&bind.FilterOpts{
 			Start:   start,
 			End:     &latestBlock,
 			Context: context.Background(),
