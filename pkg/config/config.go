@@ -15,7 +15,6 @@ type Config struct {
 	Eth1Endpoint             string // url for eth1 rpc endpoint
 	Eth2Endpoint             string // url for eth2 rpc endpoint
 	Web3StorageApiToken      string //
-	BasePath                 string
 	LogFilePath              string
 	Account                  string
 	KeystorePath             string
@@ -34,20 +33,25 @@ type Contracts struct {
 	LsdFactoryAddress string
 }
 
-func Load(configFilePath string) (*Config, error) {
+func Load(basePath string) (*Config, error) {
+	basePath = strings.TrimSuffix(basePath, "/")
+	configFilePath := basePath + "/config.toml"
+	fmt.Printf("config path: %s\n", configFilePath)
+
 	var cfg = Config{}
 	if err := loadSysConfig(configFilePath, &cfg); err != nil {
 		return nil, err
 	}
-	cfg.BasePath = strings.TrimSuffix(cfg.BasePath, "/")
-	if cfg.BasePath == "" {
-		return nil, fmt.Errorf("basePath must be set")
-	}
-	cfg.LogFilePath = cfg.BasePath + "/log_data"
-	cfg.KeystorePath = cfg.BasePath + "/keystore"
-	cfg.BlockstoreFilePath = cfg.BasePath + "/blockstore"
+	cfg.LogFilePath = basePath + "/log_data"
+	cfg.KeystorePath = KeyStoreFilePath(basePath)
+	cfg.BlockstoreFilePath = basePath + "/blockstore"
 
 	return &cfg, nil
+}
+
+func KeyStoreFilePath(basePath string) string {
+	basePath = strings.TrimSuffix(basePath, "/")
+	return basePath + "/keystore"
 }
 
 func loadSysConfig(path string, config *Config) error {

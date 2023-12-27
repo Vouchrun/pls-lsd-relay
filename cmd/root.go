@@ -8,16 +8,14 @@ import (
 )
 
 var (
-	appName = "lsd-relay"
+	appName = "eth-lsd-relay"
 )
 
 const (
-	flagKeystorePath = "keystore_path"
-	flagLogLevel     = "log_level"
-	flagConfigPath   = "config"
+	flagLogLevel = "log-level"
+	flagBasePath = "base-path"
 
-	defaultKeystorePath = "./keys"
-	defaultConfigPath   = "./config.toml"
+	defaultBasePath = "~/eth-stack"
 )
 
 // NewRootCmd returns the root command.
@@ -25,11 +23,10 @@ func NewRootCmd() *cobra.Command {
 	// RootCmd represents the base command when called without any subcommands
 	var rootCmd = &cobra.Command{
 		Use:   appName,
-		Short: "lsd-relay",
+		Short: appName,
 	}
 
 	rootCmd.PersistentPreRunE = func(cmd *cobra.Command, _ []string) error {
-
 		return nil
 	}
 

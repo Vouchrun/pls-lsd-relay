@@ -21,11 +21,15 @@ func startRelayCmd() *cobra.Command {
 		Use:   "start",
 		Short: "Start lsd relay",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			configPath, err := cmd.Flags().GetString(flagConfigPath)
+			basePath, err := cmd.Flags().GetString(flagBasePath)
 			if err != nil {
 				return err
 			}
-			fmt.Printf("config path: %s\n", configPath)
+			cfg, err := config.Load(basePath)
+			if err != nil {
+				return err
+			}
+			fmt.Printf("keystore path: %s\n", cfg.KeystorePath)
 
 			logLevelStr, err := cmd.Flags().GetString(flagLogLevel)
 			if err != nil {
@@ -37,10 +41,6 @@ func startRelayCmd() *cobra.Command {
 			}
 			logrus.SetLevel(logLevel)
 
-			cfg, err := config.Load(configPath)
-			if err != nil {
-				return err
-			}
 			logrus.Infof(
 				`config info:
   logFilePath: %s
@@ -92,7 +92,7 @@ func startRelayCmd() *cobra.Command {
 		},
 	}
 
-	cmd.Flags().String(flagConfigPath, defaultConfigPath, "Config file path")
+	cmd.Flags().String(flagBasePath, defaultBasePath, "base path a directory where your config.toml resids")
 	cmd.Flags().String(flagLogLevel, logrus.InfoLevel.String(), "The logging level (trace|debug|info|warn|error|fatal|panic)")
 
 	return cmd
