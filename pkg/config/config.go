@@ -15,7 +15,7 @@ type Config struct {
 	Eth1Endpoint             string // url for eth1 rpc endpoint
 	Eth2Endpoint             string // url for eth2 rpc endpoint
 	Web3StorageApiToken      string //
-	DirPath                  string
+	BasePath                 string
 	LogFilePath              string
 	Account                  string
 	KeystorePath             string
@@ -39,13 +39,13 @@ func Load(configFilePath string) (*Config, error) {
 	if err := loadSysConfig(configFilePath, &cfg); err != nil {
 		return nil, err
 	}
-	cfg.DirPath = strings.TrimSuffix(cfg.DirPath, "/")
-	if cfg.DirPath == "" {
-		return nil, fmt.Errorf("dirPath must be set")
+	cfg.BasePath = strings.TrimSuffix(cfg.BasePath, "/")
+	if cfg.BasePath == "" {
+		return nil, fmt.Errorf("basePath must be set")
 	}
-	cfg.LogFilePath = cfg.DirPath + "/log_data"
-	cfg.KeystorePath = cfg.DirPath + "/keystore"
-	cfg.BlockstoreFilePath = cfg.DirPath + "/blockstore"
+	cfg.LogFilePath = cfg.BasePath + "/log_data"
+	cfg.KeystorePath = cfg.BasePath + "/keystore"
+	cfg.BlockstoreFilePath = cfg.BasePath + "/blockstore"
 
 	return &cfg, nil
 }
