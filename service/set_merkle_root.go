@@ -52,7 +52,7 @@ func (s *Service) setMerkleRoot() error {
 	preNodeRewardList := NodeRewardsList{}
 	if dealtEpochOnchain == 0 {
 		// init case
-		dealtEth1BlockHeight = s.networkCreateBlock
+		dealtEth1BlockHeight = s.startAtBlock
 	} else {
 		preCid, err := s.networkWithdrawContract.NodeRewardsFileCid(nil)
 		if err != nil {

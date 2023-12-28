@@ -91,7 +91,7 @@ func (s *Service) submitBalances() error {
 		return err
 	}
 	if latestDistributeWithdrawalsHeight.Cmp(big.NewInt(0)) == 0 {
-		latestDistributeWithdrawalsHeight = big.NewInt(int64(s.networkCreateBlock))
+		latestDistributeWithdrawalsHeight = big.NewInt(int64(s.startAtBlock))
 	}
 	userEthFromWithdrawDeci, _, _, _, err := s.getUserNodePlatformFromWithdrawals(latestDistributeWithdrawalsHeight.Uint64(), targetBlock)
 	if err != nil {
@@ -104,7 +104,7 @@ func (s *Service) submitBalances() error {
 		return err
 	}
 	if latestDistributePriorityFeeHeight.Cmp(big.NewInt(0)) == 0 {
-		latestDistributePriorityFeeHeight = big.NewInt(int64(s.networkCreateBlock))
+		latestDistributePriorityFeeHeight = big.NewInt(int64(s.startAtBlock))
 	}
 	userEthFromPriorityFeeDeci, _, _, _, err := s.getUserNodePlatformFromPriorityFee(latestDistributePriorityFeeHeight.Uint64(), targetBlock)
 	if err != nil {

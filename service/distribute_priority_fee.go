@@ -62,7 +62,7 @@ func (s *Service) checkStateForDistributePriorityFee() (uint64, uint64, bool, er
 	latestDistributeHeight := s.latestDistributePriorityFeeHeight
 	// init case
 	if latestDistributeHeight == 0 {
-		latestDistributeHeight = s.networkCreateBlock
+		latestDistributeHeight = s.startAtBlock
 	}
 
 	if latestDistributeHeight >= targetEth1BlockHeight {

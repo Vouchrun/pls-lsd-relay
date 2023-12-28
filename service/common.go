@@ -69,8 +69,8 @@ func (s *Service) getEpochStartBlocknumberWithCheck(epoch uint64) (uint64, error
 		return 0, err
 	}
 
-	if targetBlock < s.networkCreateBlock {
-		targetBlock = s.networkCreateBlock + 1
+	if targetBlock < s.startAtBlock {
+		targetBlock = s.startAtBlock + 1
 	}
 	return targetBlock, nil
 }

@@ -95,7 +95,7 @@ type Service struct {
 	latestBlockOfSyncEvents      uint64
 	latestBlockOfUpdateValidator uint64
 	latestEpochOfUpdateValidator uint64
-	networkCreateBlock           uint64
+	startAtBlock                 uint64
 
 	cycleSeconds                      uint64
 	latestDistributeWithdrawalsHeight uint64
@@ -375,8 +375,8 @@ func (s *Service) Start() error {
 	s.cycleSeconds = cycleSeconds.Uint64()
 
 	// init latest block and slot number
-	s.latestBlockOfUpdateValidator = s.networkCreateBlock
-	s.latestBlockOfSyncEvents = s.networkCreateBlock
+	s.latestBlockOfUpdateValidator = s.startAtBlock
+	s.latestBlockOfSyncEvents = s.startAtBlock
 	if err = s.initLatestBlockOfSyncBlock(); err != nil {
 		return err
 	}
@@ -472,8 +472,18 @@ func (s *Service) seekFirstNodeStakeEvent() (bool, error) {
 		iter.Close()
 		if hasEvent {
 			// found the first node stake event
-			s.latestBlockOfSyncBlock = iter.Event.Raw.BlockNumber - 1
 			s.waitFirstNodeStakeEvent = false
+			s.startAtBlock = iter.Event.Raw.BlockNumber - 1
+			s.latestBlockOfSyncBlock = s.startAtBlock
+			s.latestBlockOfUpdateValidator = s.latestBlockOfSyncBlock
+			s.latestBlockOfSyncEvents = s.latestBlockOfSyncBlock
+
+			block, err := s.connection.Eth1Client().BlockByNumber(context.Background(), big.NewInt(int64(s.latestBlockOfSyncBlock)))
+			if err != nil {
+				return false, err
+			}
+			s.latestSlotOfSyncBlock = utils.SlotAtTimestamp(s.eth2Config, block.Time())
+
 			s.startHandlers()
 			return true, nil
 		}
@@ -574,7 +584,7 @@ func (s *Service) initContract() error {
 	s.networkBalancesAddress = networkContracts.NetworkBalances
 	s.nodeDepositAddress = networkContracts.NodeDeposit
 
-	s.networkCreateBlock = networkContracts.Block.Uint64()
+	s.startAtBlock = networkContracts.Block.Uint64()
 
 	s.feePoolAddress = networkContracts.FeePool
 
@@ -628,8 +638,8 @@ func (s *Service) initLatestBlockOfSyncBlock() error {
 	checkAndUpdateLatestBlockOfSyncBlock(latestDistributeWithdrawalHeight.Uint64())
 
 	// should greater network create block
-	if s.latestBlockOfSyncBlock < s.networkCreateBlock {
-		s.latestBlockOfSyncBlock = s.networkCreateBlock
+	if s.latestBlockOfSyncBlock < s.startAtBlock {
+		s.latestBlockOfSyncBlock = s.startAtBlock
 		s.waitFirstNodeStakeEvent = true
 	}
 	// should be greater than local synced block height
