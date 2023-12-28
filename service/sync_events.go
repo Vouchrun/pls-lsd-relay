@@ -11,7 +11,7 @@ import (
 )
 
 const (
-	fetchEventBlockLimit      = uint64(4900)
+	fetchEventBlockLimit      = uint64(3000)
 	fetchEth1WaitBlockNumbers = uint64(2)
 	depositEventPreBlocks     = 14400 // 2days
 )
