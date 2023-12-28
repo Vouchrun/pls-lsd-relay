@@ -448,34 +448,44 @@ func (s *Service) seekFirstNodeStakeEvent() (bool, error) {
 		return false, err
 	}
 	start := s.latestBlockOfSyncBlock + 1
+	end := latestBlock
 
-	iter, err := retry.DoWithData(func() (*node_deposit.NodeDepositDepositedIterator, error) {
-		return s.nodeDepositContract.FilterDeposited(&bind.FilterOpts{
-			Start:   start,
-			End:     &latestBlock,
-			Context: context.Background(),
-		})
-	}, retry.Delay(time.Second*2), retry.Attempts(5))
-	if err != nil {
-		return false, err
-	}
-	hasEvent := iter.Next()
-	iter.Close()
-	if hasEvent {
-		// found the first node stake event
-		s.latestBlockOfSyncBlock = iter.Event.Raw.BlockNumber - 1
-		s.waitFirstNodeStakeEvent = false
-		s.startHandlers()
-		return true, nil
+	for i := start; i <= end; i += fetchEventBlockLimit {
+		subStart := i
+		subEnd := i + fetchEventBlockLimit - 1
+		if end < i+fetchEventBlockLimit {
+			subEnd = end
+		}
+
+		iter, err := retry.DoWithData(func() (*node_deposit.NodeDepositDepositedIterator, error) {
+			return s.nodeDepositContract.FilterDeposited(&bind.FilterOpts{
+				Start:   subStart,
+				End:     &subEnd,
+				Context: context.Background(),
+			})
+		}, retry.Delay(time.Second*2), retry.Attempts(5))
+		if err != nil {
+			return false, err
+		}
+
+		hasEvent := iter.Next()
+		iter.Close()
+		if hasEvent {
+			// found the first node stake event
+			s.latestBlockOfSyncBlock = iter.Event.Raw.BlockNumber - 1
+			s.waitFirstNodeStakeEvent = false
+			s.startHandlers()
+			return true, nil
+		}
 	}
 
 	if err = s.localStore.Update(local_store.Info{
-		SyncedHeight: start,
+		SyncedHeight: end,
 		Address:      s.lsdTokenAddress.Hex(),
 	}); err != nil {
 		return false, err
 	}
-	s.latestBlockOfSyncBlock = latestBlock
+	s.latestBlockOfSyncBlock = end
 	return false, nil
 }
 
