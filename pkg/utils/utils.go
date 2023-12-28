@@ -19,6 +19,7 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
+	"golang.org/x/exp/constraints"
 )
 
 var location *time.Location
@@ -305,4 +306,11 @@ func ExecuteFns(fns ...func() error) (err error) {
 		}
 	}
 	return
+}
+
+func Max[T constraints.Ordered](a, b T) T {
+	if a > b {
+		return a
+	}
+	return b
 }

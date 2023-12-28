@@ -473,7 +473,7 @@ func (s *Service) seekFirstNodeStakeEvent() (bool, error) {
 		if hasEvent {
 			// found the first node stake event
 			s.waitFirstNodeStakeEvent = false
-			s.startAtBlock = iter.Event.Raw.BlockNumber - 1
+			s.startAtBlock = utils.Max(iter.Event.Raw.BlockNumber-2, s.startAtBlock)
 			s.latestBlockOfSyncBlock = s.startAtBlock
 			s.latestBlockOfUpdateValidator = s.latestBlockOfSyncBlock
 			s.latestBlockOfSyncEvents = s.latestBlockOfSyncBlock
