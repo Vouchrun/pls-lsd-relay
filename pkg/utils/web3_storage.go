@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"strings"
 
 	"github.com/web3-storage/go-w3s-client"
 )
@@ -14,7 +15,7 @@ var nodeRewardsFileUrlRaw string = "https://%s.ipfs.dweb.link/%s"
 var nodeRewardsFileNameRaw string = "%s-nodeRewards-%d.json"
 
 func NodeRewardsFileNameAtEpoch(lsdToken string, epoch uint64) string {
-	return fmt.Sprintf(nodeRewardsFileNameRaw, lsdToken, epoch)
+	return fmt.Sprintf(nodeRewardsFileNameRaw, strings.ToLower(lsdToken), epoch)
 }
 
 func DownloadWeb3File(cid, fileName string) ([]byte, error) {
