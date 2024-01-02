@@ -8,6 +8,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/sirupsen/logrus"
 	"github.com/web3-storage/go-w3s-client"
 )
 
@@ -18,8 +19,15 @@ func NodeRewardsFileNameAtEpoch(lsdToken string, epoch uint64) string {
 	return fmt.Sprintf(nodeRewardsFileNameRaw, strings.ToLower(lsdToken), epoch)
 }
 
+func NodeRewardsFileNameAtEpochOld(lsdToken string, epoch uint64) string {
+	return fmt.Sprintf(nodeRewardsFileNameRaw, lsdToken, epoch)
+}
+
 func DownloadWeb3File(cid, fileName string) ([]byte, error) {
 	url := fmt.Sprintf(nodeRewardsFileUrlRaw, cid, fileName)
+	logrus.WithFields(logrus.Fields{
+		"url": url,
+	}).Debug("DownloadWeb3File")
 	rsp, err := http.Get(url)
 	if err != nil {
 		return nil, err

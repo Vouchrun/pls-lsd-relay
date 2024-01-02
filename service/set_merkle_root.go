@@ -61,7 +61,14 @@ func (s *Service) setMerkleRoot() error {
 
 		fileBytes, err := utils.DownloadWeb3File(preCid, utils.NodeRewardsFileNameAtEpoch(s.lsdTokenAddress.String(), dealtEpochOnchain))
 		if err != nil {
-			return err
+			if strings.Contains(err.Error(), "404") {
+				// try old
+				if fileBytes, err = utils.DownloadWeb3File(preCid, utils.NodeRewardsFileNameAtEpochOld(s.lsdTokenAddress.String(), dealtEpochOnchain)); err != nil {
+					return err
+				}
+			} else {
+				return err
+			}
 		}
 
 		err = json.Unmarshal(fileBytes, &preNodeRewardList)
