@@ -321,7 +321,7 @@ func (s *Service) getValidatorsOfTargetEpoch(targetEpoch uint64) ([]*Validator, 
 		return nil, errors.Wrap(err, "syncValidatorLatestInfo GetValidatorStatuses failed")
 	}
 
-	logrus.WithFields(logrus.Fields{
+	s.log.WithFields(logrus.Fields{
 		"validatorStatuses len": len(validatorStatusMap),
 	}).Debug("validator statuses")
 
@@ -432,7 +432,7 @@ func (s *Service) exitButNotFullWithdrawedValidatorListAtEpoch(epoch uint64) ([]
 		return nil, errors.Wrap(err, "exitButNotFullWithdrawedValidatorListAtEpoch GetValidatorStatuses failed")
 	}
 
-	logrus.WithFields(logrus.Fields{
+	s.log.WithFields(logrus.Fields{
 		"validatorStatuses len": len(validatorStatusMap),
 	}).Debug("validator statuses")
 

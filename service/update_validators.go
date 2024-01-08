@@ -43,7 +43,7 @@ func (s *Service) updateValidatorsFromNetwork() error {
 		return fmt.Errorf("nodeDepositContract.GetNodes failed: %w", err)
 	}
 
-	logrus.WithFields(logrus.Fields{
+	s.log.WithFields(logrus.Fields{
 		"eth1LatestBlock": eth1LatestBlock,
 		"nodesLenOnChain": len(nodesOnChain),
 	}).Debug("updateValidatorsFromNetwork")
@@ -84,7 +84,7 @@ func (s *Service) updateValidatorsFromNetwork() error {
 			return err
 		}
 
-		logrus.WithFields(logrus.Fields{
+		s.log.WithFields(logrus.Fields{
 			"node":              node.NodeAddress,
 			"pubkeysLenOnChain": len(pubkeys),
 		}).Debug("updateValidatorsFromNetwork")
@@ -152,7 +152,7 @@ func (s *Service) updateValidatorsFromBeacon() error {
 		return errors.Wrap(err, "syncValidatorLatestInfo GetValidatorStatuses failed")
 	}
 
-	logrus.WithFields(logrus.Fields{
+	s.log.WithFields(logrus.Fields{
 		"validatorStatuses len": len(validatorStatusMap),
 	}).Debug("validator statuses")
 

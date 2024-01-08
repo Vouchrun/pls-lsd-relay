@@ -45,6 +45,7 @@ type Service struct {
 	eth1Endpoint        string
 	eth2Endpoint        string
 	nodeRewardsFilePath string
+	log                 *logrus.Entry
 
 	submitBalancesDuEpochs        uint64
 	distributeWithdrawalsDuEpochs uint64
@@ -225,6 +226,9 @@ func NewService(
 	if info != nil {
 		localSyncedBlockHeight = info.SyncedHeight
 	}
+	log := logrus.WithFields(logrus.Fields{
+		"lsdToken": cfg.Contracts.LsdTokenAddress,
+	})
 
 	s := &Service{
 		stop:                     make(chan struct{}),
@@ -232,6 +236,7 @@ func NewService(
 		eth1Endpoint:             cfg.Eth1Endpoint,
 		eth2Endpoint:             cfg.Eth2Endpoint,
 		nodeRewardsFilePath:      cfg.LogFilePath,
+		log:                      log,
 		web3Client:               w3sClient,
 		lsdTokenAddress:          common.HexToAddress(cfg.Contracts.LsdTokenAddress),
 		lsdNetworkFactoryAddress: common.HexToAddress(cfg.Contracts.LsdFactoryAddress),
@@ -326,12 +331,12 @@ func (s *Service) Start() error {
 		return err
 	}
 
-	logrus.Info("init contracts...")
+	s.log.Info("init contracts...")
 	err = s.initContract()
 	if err != nil {
 		return err
 	}
-	logrus.Debug("init contracts end")
+	s.log.Debug("init contracts end")
 
 	credentials, err := s.nodeDepositContract.WithdrawCredentials(nil)
 	if err != nil {
@@ -365,7 +370,7 @@ func (s *Service) Start() error {
 	}
 	s.platfromCommissionRate = decimal.NewFromBigInt(platformCommissionRate, 0).Div(decimal.NewFromInt(1e18))
 
-	logrus.Infof("nodeCommission rate: %s, platformCommission rate: %s", s.nodeCommissionRate.String(), s.platfromCommissionRate.String())
+	s.log.Infof("nodeCommission rate: %s, platformCommission rate: %s", s.nodeCommissionRate.String(), s.platfromCommissionRate.String())
 
 	// init cycle seconds
 	cycleSeconds, err := s.networkWithdrawContract.WithdrawCycleSeconds(nil)
@@ -386,7 +391,7 @@ func (s *Service) Start() error {
 		return err
 	}
 	s.latestSlotOfSyncBlock = utils.SlotAtTimestamp(s.eth2Config, block.Time())
-	logrus.Debugf("latestSlotOfSyncBlock: %d, latestBlockOfSyncBlock: %d", s.latestSlotOfSyncBlock, s.latestBlockOfSyncBlock)
+	s.log.Debugf("latestSlotOfSyncBlock: %d, latestBlockOfSyncBlock: %d", s.latestSlotOfSyncBlock, s.latestBlockOfSyncBlock)
 
 	// init abi
 	s.networkWithdrdawAbi, err = abi.JSON(strings.NewReader(network_withdraw.NetworkWithdrawABI))
@@ -403,7 +408,7 @@ func (s *Service) Start() error {
 	}
 
 	// start services
-	logrus.Info("start services...")
+	s.log.Info("start services...")
 	if s.waitFirstNodeStakeEvent {
 		s.startSeekFirstNodeStakeEvent()
 	} else {
@@ -414,9 +419,8 @@ func (s *Service) Start() error {
 }
 
 func (s *Service) startSeekFirstNodeStakeEvent() {
-	log := logrus.WithFields(logrus.Fields{
-		"lsdToken": s.lsdTokenAddress.Hex(),
-		"service":  "seekingFirstNodeStake",
+	log := s.log.WithFields(logrus.Fields{
+		"service": "seekingFirstNodeStake",
 	})
 	utils.SafeGo(func() {
 		log.Info("start service")
@@ -501,8 +505,7 @@ func (s *Service) seekFirstNodeStakeEvent() (bool, error) {
 
 func (s *Service) startHandlers() {
 	s.startServiceOnce.Do(func() {
-		logrus.WithFields(logrus.Fields{
-			"lsdToken":               s.lsdTokenAddress.Hex(),
+		s.log.WithFields(logrus.Fields{
 			"latestBlockOfSyncBlock": s.latestBlockOfSyncBlock,
 		}).Info("start voting handlers")
 
@@ -535,7 +538,7 @@ func (s *Service) initContract() error {
 	if err != nil {
 		return err
 	}
-	logrus.Infof("networkContracts: %+v", networkContracts)
+	s.log.Infof("networkContracts: %+v", networkContracts)
 
 	ethDepositAddress, err := s.lsdNetworkFactoryContract.EthDepositAddress(nil)
 	if err != nil {
@@ -594,7 +597,7 @@ func (s *Service) initContract() error {
 func (s *Service) initLatestBlockOfSyncBlock() error {
 	s.latestBlockOfSyncBlock = math.MaxUint64
 	checkAndUpdateLatestBlockOfSyncBlock := func(block uint64) {
-		logrus.Debugf("checkAndUpdateLatestBlockOfSyncBlock block: %d", block)
+		s.log.Debugf("checkAndUpdateLatestBlockOfSyncBlock block: %d", block)
 		if block < s.latestBlockOfSyncBlock {
 			s.latestBlockOfSyncBlock = block
 		}
@@ -652,7 +655,7 @@ func (s *Service) initLatestBlockOfSyncBlock() error {
 }
 
 func (s *Service) voteService() {
-	logrus.Info("start vote service")
+	s.log.Info("start vote service")
 	retry := 0
 
 Out:
@@ -664,22 +667,22 @@ Out:
 
 		select {
 		case <-s.stop:
-			logrus.Info("task has stopped")
+			s.log.Info("task has stopped")
 			return
 		default:
 
 			for _, handler := range s.quenedVoteHandlers {
 				funcName := handler.name
-				logrus.Debugf("handler %s start...", funcName)
+				s.log.Debugf("handler %s start...", funcName)
 
 				err := handler.method()
 				if err != nil {
-					logrus.Warnf("handler %s failed: %s, will retry.", funcName, err)
+					s.log.Warnf("handler %s failed: %s, will retry.", funcName, err)
 					time.Sleep(utils.RetryInterval * 4)
 					retry++
 					continue Out
 				}
-				logrus.Debugf("handler %s end", funcName)
+				s.log.Debugf("handler %s end", funcName)
 			}
 
 			retry = 0
@@ -690,7 +693,7 @@ Out:
 }
 
 func (s *Service) syncService() {
-	logrus.Info("start sync service")
+	s.log.Info("start sync service")
 	retry := 0
 
 Out:
@@ -702,22 +705,22 @@ Out:
 
 		select {
 		case <-s.stop:
-			logrus.Info("task has stopped")
+			s.log.Info("task has stopped")
 			return
 		default:
 
 			for _, handler := range s.quenedSyncHandlers {
 				funcName := handler.name
-				logrus.Debugf("handler %s start...", funcName)
+				s.log.Debugf("handler %s start...", funcName)
 
 				err := handler.method()
 				if err != nil {
-					logrus.Warnf("handler %s failed: %s, will retry.", funcName, err)
+					s.log.Warnf("handler %s failed: %s, will retry.", funcName, err)
 					time.Sleep(utils.RetryInterval * 4)
 					retry++
 					continue Out
 				}
-				logrus.Debugf("handler %s end", funcName)
+				s.log.Debugf("handler %s end", funcName)
 			}
 
 			retry = 0

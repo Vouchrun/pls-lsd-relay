@@ -30,13 +30,13 @@ func (s *Service) notifyValidatorExit() error {
 
 	// wait validator updated
 	if targetEpoch > s.latestEpochOfUpdateValidator {
-		logrus.Debugf("targetEpoch: %d  latestEpochOfUpdateValidator: %d", targetEpoch, s.latestEpochOfUpdateValidator)
+		s.log.Debugf("targetEpoch: %d  latestEpochOfUpdateValidator: %d", targetEpoch, s.latestEpochOfUpdateValidator)
 		return nil
 	}
 
 	// wait sync block
 	if targetBlockNumber > s.latestBlockOfSyncBlock {
-		logrus.Debugf("targetBlockNumber: %d  latestBlockOfSyncBlock: %d", targetBlockNumber, s.latestBlockOfSyncBlock)
+		s.log.Debugf("targetBlockNumber: %d  latestBlockOfSyncBlock: %d", targetBlockNumber, s.latestBlockOfSyncBlock)
 		return nil
 	}
 
@@ -57,9 +57,9 @@ func (s *Service) notifyValidatorExit() error {
 	if err != nil {
 		return fmt.Errorf("GetEjectedValidatorsAtCycle failed: %w", err)
 	}
-	// return if already dealed
+	// return if already dealt
 	if len(ejectedValidator) != 0 {
-		logrus.Debugf("ejectedValidator %d at cycle %d", len(ejectedValidator), willDealCycle)
+		s.log.Debugf("ejectedValidator %d at cycle %d", len(ejectedValidator), willDealCycle)
 		return nil
 	}
 
@@ -68,7 +68,7 @@ func (s *Service) notifyValidatorExit() error {
 		return err
 	}
 
-	logrus.WithFields(logrus.Fields{
+	s.log.WithFields(logrus.Fields{
 		"currentCycle:":      currentCycle,
 		"targetEpoch":        targetEpoch,
 		"targetBlockNumber":  targetBlockNumber,
@@ -152,7 +152,7 @@ func (s *Service) sendNotifyExitTx(withdrawCycle, startCycle uint64, selectVals 
 		return nil
 	}
 
-	logrus.WithFields(logrus.Fields{
+	s.log.WithFields(logrus.Fields{
 		"startCycle":      startCycle,
 		"withdrawalCycle": withdrawCycle,
 		"selectVal":       selectVals,
@@ -163,7 +163,7 @@ func (s *Service) sendNotifyExitTx(withdrawCycle, startCycle uint64, selectVals 
 		return err
 	}
 
-	logrus.Info("send NotifyValidatorExit tx hash: ", tx.Hash().String())
+	s.log.Info("send NotifyValidatorExit tx hash: ", tx.Hash().String())
 
 	return s.waitProposalTxOk(tx.Hash(), proposalId)
 }

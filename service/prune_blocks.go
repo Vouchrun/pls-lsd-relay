@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/sirupsen/logrus"
 	"github.com/stafiprotocol/eth-lsd-relay/pkg/utils"
 )
 
@@ -41,7 +40,7 @@ func (s *Service) pruneBlocks() error {
 	if err != nil {
 		return err
 	}
-	logrus.Debugf("latestDistributeWithdrawalHeight OnCycleSnapshot: %d", latestDistributeWithdrawalHeightOnCycleSnapshot.Uint64())
+	s.log.Debugf("latestDistributeWithdrawalHeight OnCycleSnapshot: %d", latestDistributeWithdrawalHeightOnCycleSnapshot.Uint64())
 
 	if minHeight > latestDistributeWithdrawalHeightOnCycleSnapshot.Uint64() {
 		minHeight = latestDistributeWithdrawalHeightOnCycleSnapshot.Uint64()
@@ -57,7 +56,7 @@ func (s *Service) pruneBlocks() error {
 	maxHeight := uint64(0)
 	for blockNumber := range s.cachedBeaconBlock {
 		if blockNumber < minHeight {
-			logrus.Tracef("rm cached block: %d", blockNumber)
+			s.log.Tracef("rm cached block: %d", blockNumber)
 			delete(s.cachedBeaconBlock, blockNumber)
 
 		}
@@ -66,7 +65,7 @@ func (s *Service) pruneBlocks() error {
 		}
 	}
 
-	logrus.Debugf("prune cachedBlocks, now cached block minHeight: %d, maxHeight: %d", minHeight, maxHeight)
+	s.log.Debugf("prune cachedBlocks, now cached block minHeight: %d, maxHeight: %d", minHeight, maxHeight)
 
 	return nil
 }

@@ -17,11 +17,11 @@ func (s *Service) distributeWithdrawals() error {
 		return errors.Wrap(err, "distributeWithdrawals checkSyncState failed")
 	}
 	if !shouldGoNext {
-		logrus.Debug("distributeWithdrawals should not go next")
+		s.log.Debug("distributeWithdrawals should not go next")
 		return nil
 	}
 
-	logrus.WithFields(logrus.Fields{
+	s.log.WithFields(logrus.Fields{
 		"latestDistributeHeight": latestDistributeHeight,
 		"targetEth1BlockHeight":  targetEth1BlockHeight,
 		"latestBlockOfSyncBlock": s.latestBlockOfSyncBlock,
@@ -59,7 +59,7 @@ func (s *Service) checkStateForDistributeWithdraw() (uint64, uint64, bool, error
 		return 0, 0, false, err
 	}
 
-	logrus.Debugf("targetEth1Block %d", targetEth1BlockHeight)
+	s.log.Debugf("targetEth1Block %d", targetEth1BlockHeight)
 
 	latestDistributeHeight := s.latestDistributeWithdrawalsHeight
 	if err != nil {
@@ -71,7 +71,7 @@ func (s *Service) checkStateForDistributeWithdraw() (uint64, uint64, bool, error
 	}
 
 	if latestDistributeHeight >= targetEth1BlockHeight {
-		logrus.Debugf("latestDistributeHeight: %d  targetEth1BlockHeight: %d", latestDistributeHeight, targetEth1BlockHeight)
+		s.log.Debugf("latestDistributeHeight: %d  targetEth1BlockHeight: %d", latestDistributeHeight, targetEth1BlockHeight)
 		return 0, 0, false, nil
 	}
 
@@ -160,7 +160,7 @@ func (s *Service) sendDistributeTx(distributeType uint8, targetEth1BlockHeight, 
 		return nil
 	}
 
-	logrus.WithFields(logrus.Fields{
+	s.log.WithFields(logrus.Fields{
 		"distributeType":               distributeType,
 		"targetEth1BlockHeight":        targetEth1BlockHeight,
 		"totalUserEthDeci":             totalUserEth.String(),
@@ -174,7 +174,7 @@ func (s *Service) sendDistributeTx(distributeType uint8, targetEth1BlockHeight, 
 		return err
 	}
 
-	logrus.Infof("send Distribute tx hash: %s", tx.Hash().String())
+	s.log.Infof("send Distribute tx hash: %s", tx.Hash().String())
 
 	return s.waitProposalTxOk(tx.Hash(), proposalId)
 }

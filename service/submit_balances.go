@@ -39,7 +39,7 @@ func (s *Service) submitBalances() error {
 		return nil
 	}
 
-	logrus.WithFields(logrus.Fields{
+	s.log.WithFields(logrus.Fields{
 		"targetEpoch":          targetEpoch,
 		"targetBlock":          targetBlock,
 		"balancesBlockOnChain": snapshotOnchain.Block.Uint64(),
@@ -64,7 +64,7 @@ func (s *Service) submitBalances() error {
 	userDepositPoolBalanceDeci := decimal.NewFromBigInt(userDepositPoolBalance, 0)
 
 	targetValidators := s.GetValidatorDepositedListBeforeBlock(targetBlock)
-	logrus.WithFields(logrus.Fields{
+	s.log.WithFields(logrus.Fields{
 		"validatorDepositedList len": len(targetValidators),
 	}).Debug("validatorDepositedList")
 
@@ -136,7 +136,7 @@ func (s *Service) submitBalances() error {
 			rateChangeLimit.String(), newExchangeRateDeci.String(), oldExchangeRateDeci.String())
 	}
 
-	logrus.WithFields(logrus.Fields{
+	s.log.WithFields(logrus.Fields{
 		"targetBlockNumber":                 targetBlock,
 		"targetEpoch":                       targetEpoch,
 		"totalUserEthFromValidator":         totalUserEthFromValidatorDeci.StringFixed(0),
@@ -258,7 +258,7 @@ func (s *Service) sendSubmitBalancesTx(block, totalUserEth, lsdTokenTotalSupply 
 		return err
 	}
 
-	logrus.Info("send submitBalances tx hash: ", tx.Hash().String())
+	s.log.Info("send submitBalances tx hash: ", tx.Hash().String())
 
 	return s.waitProposalTxOk(tx.Hash(), proposalId)
 }

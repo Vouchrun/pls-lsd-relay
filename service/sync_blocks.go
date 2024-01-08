@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/sirupsen/logrus"
 	"github.com/stafiprotocol/eth-lsd-relay/pkg/connection/beacon"
 	"github.com/stafiprotocol/eth-lsd-relay/pkg/utils"
 	"golang.org/x/sync/errgroup"
@@ -76,7 +75,7 @@ func (s *Service) syncBlocks() error {
 				blockReciever[slot-subStart] = &beaconBlock
 
 				saveTime := time.Now().Unix()
-				logrus.Tracef("request block %d,start at %d, end at %d, save at: %d ", beaconBlock.ExecutionBlockNumber, startTime, endTime, saveTime)
+				s.log.Tracef("request block %d,start at %d, end at %d, save at: %d ", beaconBlock.ExecutionBlockNumber, startTime, endTime, saveTime)
 				return nil
 			})
 		}
@@ -88,7 +87,7 @@ func (s *Service) syncBlocks() error {
 				return nil
 			}
 
-			logrus.Warnf("sync block err: %s, will retry", err.Error())
+			s.log.Warnf("sync block err: %s, will retry", err.Error())
 			return err
 		}
 
@@ -98,10 +97,10 @@ func (s *Service) syncBlocks() error {
 			if beaconBlock == nil {
 				continue
 			}
-			logrus.Tracef("save block: %d", beaconBlock.ExecutionBlockNumber)
+			s.log.Tracef("save block: %d", beaconBlock.ExecutionBlockNumber)
 
 			if beaconBlock.ExecutionBlockNumber%500 == 0 {
-				logrus.Infof("synced block: %d", beaconBlock.ExecutionBlockNumber)
+				s.log.Infof("synced block: %d", beaconBlock.ExecutionBlockNumber)
 			}
 
 			cachedWithdrawals := make([]*CachedWithdrawal, len(beaconBlock.Withdrawals))
@@ -140,7 +139,7 @@ func (s *Service) syncBlocks() error {
 		s.latestSlotOfSyncBlock = subEnd
 
 		batchRequestEndTime := time.Now().Unix()
-		logrus.Tracef("batch request block, start at: %d, wait at %d, end at %d", batchRequestStartTime, batchRequestWaitTime, batchRequestEndTime)
+		s.log.Tracef("batch request block, start at: %d, wait at %d, end at %d", batchRequestStartTime, batchRequestWaitTime, batchRequestEndTime)
 	}
 
 	return nil

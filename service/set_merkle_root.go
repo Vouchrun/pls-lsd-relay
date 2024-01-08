@@ -44,7 +44,7 @@ func (s *Service) setMerkleRoot() error {
 		return errors.Wrap(err, "setMerkleRoot checkSyncState failed")
 	}
 	if !shouldGoNext {
-		logrus.Debug("setMerkleRoot should not go next")
+		s.log.Debug("setMerkleRoot should not go next")
 		return nil
 	}
 
@@ -228,7 +228,7 @@ func buildMerkleTree(nodelist NodeRewardsList) (*utils.MerkleTree, error) {
 }
 
 // check sync and vote state
-// return (dealedEpoch,targetEpoch, targetEth1Blocknumber, shouldGoNext, err)
+// return (dealtEpoch,targetEpoch, targetEth1Blocknumber, shouldGoNext, err)
 func (s *Service) checkStateForSetMerkleRoot() (uint64, uint64, uint64, bool, error) {
 	beaconHead, err := s.connection.BeaconHead()
 	if err != nil {
@@ -242,7 +242,7 @@ func (s *Service) checkStateForSetMerkleRoot() (uint64, uint64, uint64, bool, er
 		return 0, 0, 0, false, err
 	}
 	if targetEpoch <= dealtEpochOnchain {
-		logrus.Debugf("targetEpoch: %d  dealtEpochOnchain: %d", targetEpoch, dealtEpochOnchain)
+		s.log.Debugf("targetEpoch: %d  dealtEpochOnchain: %d", targetEpoch, dealtEpochOnchain)
 		return 0, 0, 0, false, nil
 	}
 
@@ -251,7 +251,7 @@ func (s *Service) checkStateForSetMerkleRoot() (uint64, uint64, uint64, bool, er
 		return 0, 0, 0, false, err
 	}
 
-	logrus.WithFields(logrus.Fields{
+	s.log.WithFields(logrus.Fields{
 		"targetEth1BlockHeight":  targetEth1BlockHeight,
 		"latestBlockOfSyncBlock": s.latestBlockOfSyncBlock,
 		"dealtEpochOnchain":      dealtEpochOnchain,
@@ -260,7 +260,7 @@ func (s *Service) checkStateForSetMerkleRoot() (uint64, uint64, uint64, bool, er
 
 	// wait sync block
 	if targetEth1BlockHeight > s.latestBlockOfSyncBlock {
-		logrus.Debugf("targetEth1BlockHeight: %d  latestBlockOfSyncBlock: %d", targetEth1BlockHeight, s.latestBlockOfSyncBlock)
+		s.log.Debugf("targetEth1BlockHeight: %d  latestBlockOfSyncBlock: %d", targetEth1BlockHeight, s.latestBlockOfSyncBlock)
 		return 0, 0, 0, false, nil
 	}
 
@@ -290,7 +290,7 @@ func (s *Service) sendSetMerkleRootTx(targetEpoch int64, rootHash [32]byte, cid 
 		return nil
 	}
 
-	logrus.WithFields(logrus.Fields{
+	s.log.WithFields(logrus.Fields{
 		"cid": cid,
 	}).Info("will sendSetMerkleRootTx")
 
@@ -299,7 +299,7 @@ func (s *Service) sendSetMerkleRootTx(targetEpoch int64, rootHash [32]byte, cid 
 		return err
 	}
 
-	logrus.Info("send setMerkleRoot tx hash: ", tx.Hash().String())
+	s.log.Info("send setMerkleRoot tx hash: ", tx.Hash().String())
 
 	return s.waitProposalTxOk(tx.Hash(), proposalId)
 }

@@ -15,11 +15,11 @@ func (s *Service) distributePriorityFee() error {
 		return errors.Wrap(err, "distributePriorityFee checkSyncState failed")
 	}
 	if !shouldGoNext {
-		logrus.Debug("distributePriorityFee should not go next")
+		s.log.Debug("distributePriorityFee should not go next")
 		return nil
 	}
 
-	logrus.WithFields(logrus.Fields{
+	s.log.WithFields(logrus.Fields{
 		"latestDistributeHeight": latestDistributeHeight,
 		"targetEth1BlockHeight":  targetEth1BlockHeight,
 		"latestBlockOfSyncBlock": s.latestBlockOfSyncBlock,
@@ -57,7 +57,7 @@ func (s *Service) checkStateForDistributePriorityFee() (uint64, uint64, bool, er
 	if err != nil {
 		return 0, 0, false, err
 	}
-	logrus.Debugf("checkStateForDistributePriorityFee targetEth1Block: %d", targetEth1BlockHeight)
+	s.log.Debugf("checkStateForDistributePriorityFee targetEth1Block: %d", targetEth1BlockHeight)
 
 	latestDistributeHeight := s.latestDistributePriorityFeeHeight
 	// init case
@@ -66,7 +66,7 @@ func (s *Service) checkStateForDistributePriorityFee() (uint64, uint64, bool, er
 	}
 
 	if latestDistributeHeight >= targetEth1BlockHeight {
-		logrus.Debugf("latestDistributeHeight: %d  targetEth1BlockHeight: %d", latestDistributeHeight, targetEth1BlockHeight)
+		s.log.Debugf("latestDistributeHeight: %d  targetEth1BlockHeight: %d", latestDistributeHeight, targetEth1BlockHeight)
 		return 0, 0, false, nil
 	}
 
