@@ -34,18 +34,18 @@ import (
 	"github.com/stafiprotocol/eth-lsd-relay/pkg/config"
 	"github.com/stafiprotocol/eth-lsd-relay/pkg/connection"
 	"github.com/stafiprotocol/eth-lsd-relay/pkg/connection/beacon"
+	"github.com/stafiprotocol/eth-lsd-relay/pkg/destorage"
+	"github.com/stafiprotocol/eth-lsd-relay/pkg/destorage/nftstorage"
 	"github.com/stafiprotocol/eth-lsd-relay/pkg/local_store"
 	"github.com/stafiprotocol/eth-lsd-relay/pkg/utils"
-	"github.com/web3-storage/go-w3s-client"
 )
 
 type Service struct {
-	stop                chan struct{}
-	startServiceOnce    sync.Once
-	eth1Endpoint        string
-	eth2Endpoint        string
-	nodeRewardsFilePath string
-	log                 *logrus.Entry
+	stop             chan struct{}
+	startServiceOnce sync.Once
+	eth1Endpoint     string
+	eth2Endpoint     string
+	log              *logrus.Entry
 
 	submitBalancesDuEpochs        uint64
 	distributeWithdrawalsDuEpochs uint64
@@ -55,7 +55,7 @@ type Service struct {
 	batchRequestBlocksNumber uint64
 
 	connection          *connection.CachedConnection
-	web3Client          w3s.Client
+	dds                 destorage.DeStorage
 	eth2Config          beacon.Eth2Config
 	withdrawCredentials []byte
 	domain              []byte // for eth2 sigs
@@ -210,10 +210,6 @@ func NewService(
 	if len(cfg.Web3StorageApiToken) == 0 {
 		return nil, fmt.Errorf("web3StorageApiToken empty")
 	}
-	w3sClient, err := w3s.NewClient(w3s.WithToken(cfg.Web3StorageApiToken))
-	if err != nil {
-		return nil, fmt.Errorf("error creating new Web3.Storage client: %w", err)
-	}
 	if cfg.BatchRequestBlocksNumber == 0 {
 		return nil, fmt.Errorf("BatchRequestBlocksNumber is zero")
 	}
@@ -229,15 +225,18 @@ func NewService(
 	log := logrus.WithFields(logrus.Fields{
 		"lsdToken": cfg.Contracts.LsdTokenAddress,
 	})
+	dds, err := nftstorage.NewNftStorage(cfg.Web3StorageApiToken, log)
+	if err != nil {
+		return nil, fmt.Errorf("error creating new nft.storage client: %w", err)
+	}
 
 	s := &Service{
 		stop:                     make(chan struct{}),
 		connection:               conn,
 		eth1Endpoint:             cfg.Eth1Endpoint,
 		eth2Endpoint:             cfg.Eth2Endpoint,
-		nodeRewardsFilePath:      cfg.LogFilePath,
 		log:                      log,
-		web3Client:               w3sClient,
+		dds:                      dds,
 		lsdTokenAddress:          common.HexToAddress(cfg.Contracts.LsdTokenAddress),
 		lsdNetworkFactoryAddress: common.HexToAddress(cfg.Contracts.LsdFactoryAddress),
 		batchRequestBlocksNumber: cfg.BatchRequestBlocksNumber,

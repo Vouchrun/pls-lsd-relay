@@ -12,11 +12,10 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
-	"github.com/ipfs/go-cid"
+	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/shopspring/decimal"
 	"github.com/stafiprotocol/eth-lsd-relay/pkg/connection"
 	"github.com/stafiprotocol/eth-lsd-relay/pkg/utils"
-	"github.com/web3-storage/go-w3s-client"
 )
 
 func TestAppendFile(t *testing.T) {
@@ -181,41 +180,6 @@ func TestTx(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Log(blockReceipts)
-
-}
-
-func TestUploadFileToWeb3Storage(t *testing.T) {
-	client, err := w3s.NewClient(w3s.WithToken("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJkaWQ6ZXRocjoweDNhZGRkOEUyZENjN2E3NDhmMzQ5NUYwYmNDQTUyYzgzQjVEOTQxMDYiLCJpc3MiOiJ3ZWIzLXN0b3JhZ2UiLCJpYXQiOjE2OTM3MDc2NzcyNTcsIm5hbWUiOiJ0ZXN0In0.2oOoiCvqjRGiVYNFH6UpRqVWtvE2NQQvzaJdjhC5jSQ"))
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	// f, err := os.Open("/Users/tpkeeper/gowork/stafi/eth-lsd-relay/bindings/Erc20/erc20_abi.json")
-	f, err := os.Open("/Users/tpkeeper/gowork/stafi/eth-lsd-relay/bindings/UserDeposit/userdeposit_abi.json")
-	if err != nil {
-		t.Fatal(err)
-	}
-	cid, err := client.Put(context.Background(), f)
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Log(cid.String())
-}
-
-func TestGetFileFromWeb3Storage(t *testing.T) {
-	client, err := w3s.NewClient(w3s.WithToken("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJkaWQ6ZXRocjoweDNhZGRkOEUyZENjN2E3NDhmMzQ5NUYwYmNDQTUyYzgzQjVEOTQxMDYiLCJpc3MiOiJ3ZWIzLXN0b3JhZ2UiLCJpYXQiOjE2OTM3MDc2NzcyNTcsIm5hbWUiOiJ0ZXN0In0.2oOoiCvqjRGiVYNFH6UpRqVWtvE2NQQvzaJdjhC5jSQ"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	c, err := cid.Decode("bafybeia3y3ch5fykhmmesfiyfx3vn7jfzg4dz7lki7olwt2ydiksaqkqne")
-	if err != nil {
-		t.Fatal(err)
-	}
-	s, err := client.Status(context.Background(), c)
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Logf("%+v", s)
 
 }
 

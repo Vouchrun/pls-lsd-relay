@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"math/big"
-	"path"
 	"sort"
 	"strings"
 
@@ -59,11 +58,11 @@ func (s *Service) setMerkleRoot() error {
 			return err
 		}
 
-		fileBytes, err := utils.DownloadWeb3File(preCid, utils.NodeRewardsFileNameAtEpoch(s.lsdTokenAddress.String(), dealtEpochOnchain))
+		fileBytes, err := s.dds.DownloadFile(preCid, utils.NodeRewardsFileNameAtEpoch(s.lsdTokenAddress.String(), dealtEpochOnchain))
 		if err != nil {
 			if strings.Contains(err.Error(), "404") {
 				// try old
-				if fileBytes, err = utils.DownloadWeb3File(preCid, utils.NodeRewardsFileNameAtEpochOld(s.lsdTokenAddress.String(), dealtEpochOnchain)); err != nil {
+				if fileBytes, err = s.dds.DownloadFile(preCid, utils.NodeRewardsFileNameAtEpochOld(s.lsdTokenAddress.String(), dealtEpochOnchain)); err != nil {
 					return err
 				}
 			} else {
@@ -202,8 +201,8 @@ func (s *Service) setMerkleRoot() error {
 	if err != nil {
 		return err
 	}
-	filePath := path.Join(s.nodeRewardsFilePath, utils.NodeRewardsFileNameAtEpoch(s.lsdTokenAddress.String(), targetEpoch))
-	cid, err := utils.UploadFileToWeb3Storage(s.web3Client, fileBts, filePath)
+	filePath := utils.NodeRewardsFileNameAtEpoch(s.lsdTokenAddress.String(), targetEpoch)
+	cid, err := s.dds.UploadFile(fileBts, filePath)
 	if err != nil {
 		return err
 	}

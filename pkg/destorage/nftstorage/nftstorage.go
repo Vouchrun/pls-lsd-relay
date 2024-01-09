@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 
 	nftstorage "github.com/nftstorage/go-client"
+	"github.com/sirupsen/logrus"
 	"github.com/stafiprotocol/eth-lsd-relay/pkg/destorage"
 )
 
@@ -18,10 +19,14 @@ var fileUrlFormatter string = "https://%s.ipfs.dweb.link/%s"
 
 type NftStorage struct {
 	apikey string
+	log    *logrus.Entry
 }
 
 func (s *NftStorage) DownloadFile(cid string, fileName string) (content []byte, err error) {
 	url := fmt.Sprintf(fileUrlFormatter, cid, fileName)
+	s.log.WithFields(logrus.Fields{
+		"url": url,
+	}).Debug("DownloadFile")
 	rsp, err := http.Get(url)
 	if err != nil {
 		return nil, err
@@ -55,6 +60,12 @@ func (s *NftStorage) UploadFile(content []byte, path string) (cid string, err er
 	}
 	writer.Close()
 
+	s.log.WithFields(logrus.Fields{
+		"to":       "POST https://api.nft.storage/upload",
+		"filename": path,
+		"content":  string(content),
+	}).Debug("UploadFile")
+
 	r, _ := http.NewRequest("POST", "https://api.nft.storage/upload", body)
 	r.Header.Add("Content-Type", writer.FormDataContentType())
 	r.Header.Add("Authorization", "Bearer "+s.apikey)
@@ -79,8 +90,12 @@ func (s *NftStorage) UploadFile(content []byte, path string) (cid string, err er
 	return "", fmt.Errorf("upload error: status code[%s] with body: %s", resp.Status, string(respBody))
 }
 
-func NewNftStorage(apikey string) (*NftStorage, error) {
+func NewNftStorage(apikey string, logger *logrus.Entry) (*NftStorage, error) {
+	if logger == nil {
+		return nil, fmt.Errorf("logger can not be nil")
+	}
 	return &NftStorage{
 		apikey: apikey,
+		log:    logger,
 	}, nil
 }
