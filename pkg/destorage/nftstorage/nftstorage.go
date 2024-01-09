@@ -91,6 +91,9 @@ func (s *NftStorage) UploadFile(content []byte, path string) (cid string, err er
 }
 
 func NewNftStorage(apikey string, logger *logrus.Entry) (*NftStorage, error) {
+	if apikey == "" {
+		return nil, fmt.Errorf("apikey must be set")
+	}
 	if logger == nil {
 		return nil, fmt.Errorf("logger can not be nil")
 	}

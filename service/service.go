@@ -207,8 +207,8 @@ func NewService(
 	} else if !isDir {
 		return nil, fmt.Errorf("logFilePath %s is not dir", cfg.LogFilePath)
 	}
-	if len(cfg.Web3StorageApiToken) == 0 {
-		return nil, fmt.Errorf("web3StorageApiToken empty")
+	if len(cfg.StorageApiToken) == 0 {
+		return nil, fmt.Errorf("storageApiToken empty")
 	}
 	if cfg.BatchRequestBlocksNumber == 0 {
 		return nil, fmt.Errorf("BatchRequestBlocksNumber is zero")
@@ -225,7 +225,7 @@ func NewService(
 	log := logrus.WithFields(logrus.Fields{
 		"lsdToken": cfg.Contracts.LsdTokenAddress,
 	})
-	dds, err := nftstorage.NewNftStorage(cfg.Web3StorageApiToken, log)
+	dds, err := nftstorage.NewNftStorage(cfg.StorageApiToken, log)
 	if err != nil {
 		return nil, fmt.Errorf("error creating new nft.storage client: %w", err)
 	}
