@@ -10,56 +10,59 @@ import (
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/pkg/errors"
+	"github.com/samber/lo"
 	"github.com/shopspring/decimal"
 	"github.com/sirupsen/logrus"
 
 	ethpb "github.com/prysmaticlabs/prysm/v4/proto/eth/v1"
+	node_deposit "github.com/stafiprotocol/eth-lsd-relay/bindings/NodeDeposit"
 	"github.com/stafiprotocol/eth-lsd-relay/pkg/connection/beacon"
 	"github.com/stafiprotocol/eth-lsd-relay/pkg/connection/types"
 	"github.com/stafiprotocol/eth-lsd-relay/pkg/utils"
 )
 
 func (s *Service) updateValidatorsFromNetwork() error {
-	eth1LatestBlock, err := s.connection.Eth1LatestBlock()
+	// 0. fetch new Nodes
+	jobResult, err := s.connection.SubmitLatestCallJob(s.nodeDepositContract.NewGetNodesLengthMultiCall())
 	if err != nil {
 		return err
 	}
+	call := jobResult.Get()
+	if call.Failed {
+		return fmt.Errorf("nodeDepositContract.GetNodesLength failed: %w height: %d", call.Err, call.BlockNumber)
+	}
+	eth1LatestBlock := call.BlockNumber
 	if eth1LatestBlock <= s.latestBlockOfUpdateValidator {
 		return nil
 	}
-	call := s.connection.CallOpts(big.NewInt(int64(eth1LatestBlock)))
+	opts := s.connection.CallOpts(big.NewInt(int64(eth1LatestBlock)))
 
-	// 0. fetch new Nodes
-	nodesLength, err := s.nodeDepositContract.GetNodesLength(call)
-	if err != nil {
-		return fmt.Errorf("nodeDepositContract.GetNodesLength failed: %w", err)
-	}
+	nodesLength := call.Outputs.(*node_deposit.GetNodesLengthMultiCallOutput).Length
 	if nodesLength.Uint64() == 0 {
 		return nil
 	}
 
-	nodesOnChain, err := s.nodeDepositContract.GetNodes(call, big.NewInt(0), nodesLength)
-	if err != nil {
-		return fmt.Errorf("nodeDepositContract.GetNodes failed: %w", err)
-	}
-
 	s.log.WithFields(logrus.Fields{
 		"eth1LatestBlock": eth1LatestBlock,
-		"nodesLenOnChain": len(nodesOnChain),
+		"nodesLenOnChain": nodesLength.Int64(),
 	}).Debug("updateValidatorsFromNetwork")
 
-	if len(s.nodes) < len(nodesOnChain) {
+	if len(s.nodes) < int(nodesLength.Int64()) {
+		nodesOnChain, err := s.nodeDepositContract.GetNodes(opts, big.NewInt(0), nodesLength)
+		if err != nil {
+			return fmt.Errorf("nodeDepositContract.GetNodes failed: %w", err)
+		}
 		newNodes := nodesOnChain[len(s.nodes):]
 		for _, nodeAddress := range newNodes {
-			nodeInfo, err := s.nodeDepositContract.NodeInfoOf(call, nodeAddress)
+			nodeInfo, err := s.nodeDepositContract.NodeInfoOf(opts, nodeAddress)
 			if err != nil {
 				return err
 			}
-			pubkeys, err := s.nodeDepositContract.GetPubkeysOfNode(call, nodeAddress)
+			pubkeys, err := s.nodeDepositContract.GetPubkeysOfNode(opts, nodeAddress)
 			if err != nil {
 				return err
 			}
-			newVals, err := s.fetchNewVals(call, pubkeys)
+			newVals, err := s.fetchNewVals(opts, pubkeys)
 			if err != nil {
 				return errors.Wrapf(err, "new node fetchNewVals")
 			}
@@ -78,11 +81,12 @@ func (s *Service) updateValidatorsFromNetwork() error {
 	}
 
 	// 1 fetch node's new pubkey
-	for _, node := range s.nodes {
-		pubkeys, err := s.nodeDepositContract.GetPubkeysOfNode(call, node.NodeAddress)
-		if err != nil {
-			return err
-		}
+	nodesPubkeyList, err := s.nodeDepositContract.GetPubkeysOfNodes(opts, lo.Keys(s.nodes))
+	if err != nil {
+		return err
+	}
+	for addr, node := range s.nodes {
+		pubkeys := nodesPubkeyList[addr]
 
 		s.log.WithFields(logrus.Fields{
 			"node":              node.NodeAddress,
@@ -91,7 +95,7 @@ func (s *Service) updateValidatorsFromNetwork() error {
 
 		if len(pubkeys) > int(node.PubkeyNumber) {
 			newPubkeys := pubkeys[int(node.PubkeyNumber):]
-			newVals, err := s.fetchNewVals(call, newPubkeys)
+			newVals, err := s.fetchNewVals(opts, newPubkeys)
 			if err != nil {
 				return errors.Wrapf(err, "new pubkey fetchNewVals")
 			}
@@ -106,6 +110,7 @@ func (s *Service) updateValidatorsFromNetwork() error {
 	}
 
 	// 2. update validator status on network
+	validValidatorPubkeys := make([][]byte, 0, len(s.validators))
 	for _, val := range s.validators {
 		if val.Status > utils.ValidatorStatusWithdrawUnmatch {
 			continue
@@ -115,11 +120,14 @@ func (s *Service) updateValidatorsFromNetwork() error {
 			continue
 		}
 
-		pubkeyInfo, err := s.nodeDepositContract.PubkeyInfoOf(call, val.Pubkey)
-		if err != nil {
-			return err
-		}
-		val.Status = pubkeyInfo.Status
+		validValidatorPubkeys = append(validValidatorPubkeys, val.Pubkey)
+	}
+	pubkeyInfo, err := s.nodeDepositContract.GetPubkeyInfoList(opts, validValidatorPubkeys)
+	if err != nil {
+		return err
+	}
+	for pubkeyStr, info := range pubkeyInfo {
+		s.validators[pubkeyStr].Status = info.Status
 	}
 
 	s.latestBlockOfUpdateValidator = eth1LatestBlock

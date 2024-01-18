@@ -72,7 +72,7 @@ type Service struct {
 	nodeDepositAbi      abi.ABI
 
 	lsdNetworkFactoryContract *lsd_network_factory.LsdNetworkFactory
-	nodeDepositContract       *node_deposit.NodeDeposit
+	nodeDepositContract       *node_deposit.CustomNodeDeposit
 	networkWithdrawContract   *network_withdraw.NetworkWithdraw
 	govDepositContract        *deposit_contract.DepositContract
 	networkProposalContract   *network_proposal.NetworkProposal
@@ -84,8 +84,9 @@ type Service struct {
 	nodeCommissionRate     decimal.Decimal
 	platfromCommissionRate decimal.Decimal
 
-	quenedVoteHandlers []Handler
-	quenedSyncHandlers []Handler
+	quenedVoteHandlers      []Handler
+	quenedSyncHandlers      []Handler
+	quenedValidatorHandlers []Handler
 
 	latestSlotOfSyncBlock   uint64
 	latestBlockOfSyncBlock  uint64
@@ -510,13 +511,18 @@ func (s *Service) startHandlers() {
 
 		s.appendSyncHandlers(s.syncBlocks, s.pruneBlocks)
 
-		s.appendVoteHandlers(
-			s.updateValidatorsFromNetwork, s.updateValidatorsFromBeacon, s.syncEvents,
+		s.appendValidatorHandlers(
+			s.updateValidatorsFromNetwork,
 			s.voteWithdrawCredentials,
+		)
+
+		s.appendVoteHandlers(
+			s.updateValidatorsFromBeacon, s.syncEvents,
 			s.submitBalances, s.distributeWithdrawals, s.distributePriorityFee,
 			s.setMerkleRoot, s.notifyValidatorExit)
 
 		utils.SafeGo(s.syncService)
+		utils.SafeGo(s.validatorVoteService)
 		utils.SafeGo(s.voteService)
 	})
 }
@@ -549,7 +555,7 @@ func (s *Service) initContract() error {
 		return err
 	}
 
-	s.nodeDepositContract, err = node_deposit.NewNodeDeposit(networkContracts.NodeDeposit, s.connection.Eth1Client())
+	s.nodeDepositContract, err = node_deposit.NewCustomNodeDeposit(networkContracts.NodeDeposit, s.connection.Eth1Client(), s.connection.MultiCaller())
 	if err != nil {
 		return err
 	}
@@ -655,6 +661,7 @@ func (s *Service) initLatestBlockOfSyncBlock() error {
 
 func (s *Service) voteService() {
 	s.log.Info("start vote service")
+	time.Sleep(time.Minute) // Run after validator vote service
 	retry := 0
 
 Out:
@@ -682,6 +689,45 @@ Out:
 					continue Out
 				}
 				s.log.Debugf("handler %s end", funcName)
+			}
+
+			retry = 0
+		}
+
+		time.Sleep(5 * time.Minute)
+	}
+}
+
+func (s *Service) validatorVoteService() {
+	log := s.log
+	log.Info("validator vote srv start")
+	retry := 0
+
+Out:
+	for {
+		if retry > utils.RetryLimit {
+			utils.ShutdownRequestChannel <- struct{}{}
+			return
+		}
+
+		select {
+		case <-s.stop:
+			log.Info("validator vote srv stopped")
+			return
+		default:
+
+			for _, handler := range s.quenedValidatorHandlers {
+				funcName := handler.name
+				log.Debugf("handler %s start...", funcName)
+
+				err := handler.method()
+				if err != nil {
+					log.Warnf("handler %s failed: %s, will retry.", funcName, err)
+					time.Sleep(utils.RetryInterval * 4)
+					retry++
+					continue Out
+				}
+				log.Debugf("handler %s end", funcName)
 			}
 
 			retry = 0
@@ -753,6 +799,21 @@ func (s *Service) appendSyncHandlers(handlers ...func() error) {
 		funcName := splits[len(splits)-1]
 
 		s.quenedSyncHandlers = append(s.quenedSyncHandlers, Handler{
+			method: handler,
+			name:   funcName,
+		})
+	}
+}
+
+func (s *Service) appendValidatorHandlers(handlers ...func() error) {
+	for _, handler := range handlers {
+
+		funcNameRaw := runtime.FuncForPC(reflect.ValueOf(handler).Pointer()).Name()
+
+		splits := strings.Split(funcNameRaw, "/")
+		funcName := splits[len(splits)-1]
+
+		s.quenedValidatorHandlers = append(s.quenedValidatorHandlers, Handler{
 			method: handler,
 			name:   funcName,
 		})

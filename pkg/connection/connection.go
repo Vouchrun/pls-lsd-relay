@@ -1,4 +1,4 @@
-// Copyright 2020 Stafi Protocol
+// Copyright 2024 Stafi Protocol
 // SPDX-License-Identifier: LGPL-3.0-only
 
 package connection
@@ -18,12 +18,14 @@ import (
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/ethereum/go-ethereum/rpc"
+	"github.com/forta-network/go-multicall"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/stafiprotocol/chainbridge/utils/crypto/secp256k1"
 	"github.com/stafiprotocol/eth-lsd-relay/pkg/connection/beacon"
 	"github.com/stafiprotocol/eth-lsd-relay/pkg/connection/beacon/client"
 	"github.com/stafiprotocol/eth-lsd-relay/pkg/connection/types"
+	gomicrobee "github.com/stephennancekivell/go-micro-bee"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -46,6 +48,9 @@ type Connection struct {
 	txOpts       *bind.TransactOpts
 	callOpts     bind.CallOpts
 	optsLock     sync.Mutex
+	multiCaller  *multicall.Caller
+
+	latestMultiCallMicrobeeSystem gomicrobee.System[*multicall.Call, *MultiCall]
 }
 
 // NewConnection returns an uninitialized connection, must call Connection.Connect() before using.
@@ -70,6 +75,11 @@ func NewConnection(eth1Endpoint, eth2Endpoint string, kp *secp256k1.Keypair, gas
 	if err != nil {
 		return nil, err
 	}
+
+	if err = c.initMulticall(); err != nil {
+		return nil, err
+	}
+
 	return c, nil
 }
 
@@ -165,6 +175,10 @@ func (c *Connection) Eth2Client() *client.StandardHttpClient {
 
 func (c *Connection) TxOpts() *bind.TransactOpts {
 	return c.txOpts
+}
+
+func (c *Connection) MultiCaller() *multicall.Caller {
+	return c.multiCaller
 }
 
 func (c *Connection) CallOpts(blocknumber *big.Int) *bind.CallOpts {
