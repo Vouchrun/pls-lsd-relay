@@ -6,6 +6,7 @@ require (
 	github.com/BurntSushi/toml v1.3.2
 	github.com/avast/retry-go/v4 v4.5.1
 	github.com/ethereum/go-ethereum v1.13.2
+	github.com/forta-network/go-multicall v0.0.0-20230701154355-9467c4ddaa83
 	github.com/hashicorp/golang-lru/v2 v2.0.7
 	github.com/lestrrat-go/file-rotatelogs v2.4.0+incompatible
 	github.com/nftstorage/go-client v0.0.0-20211129173848-be669a365634
@@ -19,6 +20,7 @@ require (
 	github.com/sirupsen/logrus v1.9.0
 	github.com/spf13/cobra v1.7.0
 	github.com/stafiprotocol/chainbridge v0.0.0-20201204032253-9b92852c8d66
+	github.com/stephennancekivell/go-micro-bee v0.0.0-20230604080939-50c3f7f4cf80
 	github.com/stretchr/testify v1.8.4
 	github.com/wealdtech/go-eth2-types/v2 v2.8.1
 	golang.org/x/crypto v0.12.0
@@ -76,7 +78,6 @@ require (
 	github.com/shirou/gopsutil v3.21.11+incompatible // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/stafiprotocol/go-substrate-rpc-client v1.0.2 // indirect
-	github.com/stephennancekivell/go-micro-bee v0.0.0-20230604080939-50c3f7f4cf80 // indirect
 	github.com/supranational/blst v0.3.11 // indirect
 	github.com/thomaso-mirodin/intmath v0.0.0-20160323211736-5dc6d854e46e // indirect
 	github.com/tklauser/go-sysconf v0.3.12 // indirect
