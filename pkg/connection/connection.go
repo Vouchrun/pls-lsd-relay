@@ -50,7 +50,8 @@ type Connection struct {
 	optsLock     sync.Mutex
 	multiCaller  *multicall.Caller
 
-	latestMultiCallMicrobeeSystem gomicrobee.System[*multicall.Call, *MultiCall]
+	latestMultiCallMicrobeeSystem       gomicrobee.System[*multicall.Call, *MultiCall]
+	latestValicatorStatusMicrobeeSystem gomicrobee.System[types.ValidatorPubkey, BeaconValidatorStatus]
 }
 
 // NewConnection returns an uninitialized connection, must call Connection.Connect() before using.
@@ -79,6 +80,7 @@ func NewConnection(eth1Endpoint, eth2Endpoint string, kp *secp256k1.Keypair, gas
 	if err = c.initMulticall(); err != nil {
 		return nil, err
 	}
+	c.initBatchBeaconChain()
 
 	return c, nil
 }

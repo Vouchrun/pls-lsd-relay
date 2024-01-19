@@ -84,10 +84,6 @@ type Service struct {
 	nodeCommissionRate     decimal.Decimal
 	platfromCommissionRate decimal.Decimal
 
-	quenedVoteHandlers      []Handler
-	quenedSyncHandlers      []Handler
-	quenedValidatorHandlers []Handler
-
 	latestSlotOfSyncBlock   uint64
 	latestBlockOfSyncBlock  uint64
 	waitFirstNodeStakeEvent bool
@@ -509,21 +505,12 @@ func (s *Service) startHandlers() {
 			"latestBlockOfSyncBlock": s.latestBlockOfSyncBlock,
 		}).Info("start voting handlers")
 
-		s.appendSyncHandlers(s.syncBlocks, s.pruneBlocks)
-
-		s.appendValidatorHandlers(
-			s.updateValidatorsFromNetwork,
-			s.voteWithdrawCredentials,
-		)
-
-		s.appendVoteHandlers(
-			s.updateValidatorsFromBeacon, s.syncEvents,
-			s.submitBalances, s.distributeWithdrawals, s.distributePriorityFee,
-			s.setMerkleRoot, s.notifyValidatorExit)
-
-		utils.SafeGo(s.syncService)
-		utils.SafeGo(s.validatorVoteService)
-		utils.SafeGo(s.voteService)
+		s.startGroupHanders("sync_new", 12*time.Second, s.syncBlocks)
+		s.startGroupHanders("prune", time.Hour, s.pruneBlocks)
+		s.startGroupHanders("vote_val_credential", 12*time.Second, s.updateValidatorsFromNetwork, s.voteWithdrawCredentials)
+		s.startGroupHanders("vote", 5*time.Minute,
+			s.updateValidatorsFromBeacon, s.syncEvents, s.submitBalances,
+			s.distributeWithdrawals, s.distributePriorityFee, s.setMerkleRoot, s.notifyValidatorExit)
 	})
 }
 
@@ -659,165 +646,71 @@ func (s *Service) initLatestBlockOfSyncBlock() error {
 	return nil
 }
 
-func (s *Service) voteService() {
-	s.log.Info("start vote service")
-	time.Sleep(time.Minute) // Run after validator vote service
-	retry := 0
-
-Out:
-	for {
-		if retry > utils.RetryLimit {
-			utils.ShutdownRequestChannel <- struct{}{}
-			return
-		}
-
-		select {
-		case <-s.stop:
-			s.log.Info("task has stopped")
-			return
-		default:
-
-			for _, handler := range s.quenedVoteHandlers {
-				funcName := handler.name
-				s.log.Debugf("handler %s start...", funcName)
-
-				err := handler.method()
-				if err != nil {
-					s.log.Warnf("handler %s failed: %s, will retry.", funcName, err)
-					time.Sleep(utils.RetryInterval * 4)
-					retry++
-					continue Out
-				}
-				s.log.Debugf("handler %s end", funcName)
-			}
-
-			retry = 0
-		}
-
-		time.Sleep(5 * time.Minute)
+func (s *Service) startGroupHanders(groupName string, interval time.Duration, handlerFns ...func() error) {
+	if len(handlerFns) == 0 {
+		panic("handlers can not be empty")
 	}
-}
 
-func (s *Service) validatorVoteService() {
-	log := s.log
-	log.Info("validator vote srv start")
-	retry := 0
-
-Out:
-	for {
-		if retry > utils.RetryLimit {
-			utils.ShutdownRequestChannel <- struct{}{}
-			return
-		}
-
-		select {
-		case <-s.stop:
-			log.Info("validator vote srv stopped")
-			return
-		default:
-
-			for _, handler := range s.quenedValidatorHandlers {
-				funcName := handler.name
-				log.Debugf("handler %s start...", funcName)
-
-				err := handler.method()
-				if err != nil {
-					log.Warnf("handler %s failed: %s, will retry.", funcName, err)
-					time.Sleep(utils.RetryInterval * 4)
-					retry++
-					continue Out
-				}
-				log.Debugf("handler %s end", funcName)
-			}
-
-			retry = 0
-		}
-
-		time.Sleep(12 * time.Second)
-	}
-}
-
-func (s *Service) syncService() {
-	s.log.Info("start sync service")
-	retry := 0
-
-Out:
-	for {
-		if retry > utils.RetryLimit {
-			utils.ShutdownRequestChannel <- struct{}{}
-			return
-		}
-
-		select {
-		case <-s.stop:
-			s.log.Info("task has stopped")
-			return
-		default:
-
-			for _, handler := range s.quenedSyncHandlers {
-				funcName := handler.name
-				s.log.Debugf("handler %s start...", funcName)
-
-				err := handler.method()
-				if err != nil {
-					s.log.Warnf("handler %s failed: %s, will retry.", funcName, err)
-					time.Sleep(utils.RetryInterval * 4)
-					retry++
-					continue Out
-				}
-				s.log.Debugf("handler %s end", funcName)
-			}
-
-			retry = 0
-		}
-
-		time.Sleep(12 * time.Second)
-	}
-}
-
-func (s *Service) appendVoteHandlers(handlers ...func() error) {
-	for _, handler := range handlers {
+	handlers := make([]Handler, 0, len(handlerFns))
+	for _, handler := range handlerFns {
 
 		funcNameRaw := runtime.FuncForPC(reflect.ValueOf(handler).Pointer()).Name()
 
 		splits := strings.Split(funcNameRaw, "/")
 		funcName := splits[len(splits)-1]
+		funcName = strings.TrimPrefix(funcName, "service.(*Service).")
+		funcName = strings.TrimSuffix(funcName, "-fm")
 
-		s.quenedVoteHandlers = append(s.quenedVoteHandlers, Handler{
+		handlers = append(handlers, Handler{
 			method: handler,
 			name:   funcName,
 		})
 	}
-}
 
-func (s *Service) appendSyncHandlers(handlers ...func() error) {
-	for _, handler := range handlers {
+	log := s.log.WithField("group", groupName)
+	utils.SafeGo(func() {
+		log.Info("start service")
+		retry := 0
 
-		funcNameRaw := runtime.FuncForPC(reflect.ValueOf(handler).Pointer()).Name()
+	Out:
+		for {
+			if retry > utils.RetryLimit {
+				utils.ShutdownRequestChannel <- struct{}{}
+				return
+			}
 
-		splits := strings.Split(funcNameRaw, "/")
-		funcName := splits[len(splits)-1]
+			select {
+			case <-s.stop:
+				log.Info("service stopped")
+				return
+			default:
 
-		s.quenedSyncHandlers = append(s.quenedSyncHandlers, Handler{
-			method: handler,
-			name:   funcName,
-		})
-	}
-}
+				for _, handler := range handlers {
+					funcName := handler.name
+					log := log.WithField("handler", funcName)
+					log.Debugf("handler begin")
 
-func (s *Service) appendValidatorHandlers(handlers ...func() error) {
-	for _, handler := range handlers {
+					err := handler.method()
+					if err != nil {
+						retryIn := utils.RetryInterval * 4
+						log.WithFields(logrus.Fields{
+							"retry_in":    retryIn,
+							"retry_times": retry,
+							"err":         err,
+						}).Warnf("handler failed waiting retry")
+						time.Sleep(retryIn)
+						retry++
+						continue Out
+					}
+					log.Debugf("handler end")
+				}
 
-		funcNameRaw := runtime.FuncForPC(reflect.ValueOf(handler).Pointer()).Name()
+				retry = 0
+			}
 
-		splits := strings.Split(funcNameRaw, "/")
-		funcName := splits[len(splits)-1]
-
-		s.quenedValidatorHandlers = append(s.quenedValidatorHandlers, Handler{
-			method: handler,
-			name:   funcName,
-		})
-	}
+			time.Sleep(interval)
+		}
+	})
 }
 
 func (s *Service) GetValidatorDepositedListBeforeBlock(block uint64) []*Validator {

@@ -15,8 +15,7 @@ import (
 )
 
 func (s *Service) voteWithdrawCredentials() error {
-
-	validatorListNeedVote := make([]*Validator, 0)
+	validatorListNeedVote := make([]*Validator, 0, len(s.validators))
 	for _, val := range s.validators {
 		if !(val.Status == utils.ValidatorStatusDeposited || val.Status == utils.ValidatorStatusWithdrawUnmatch) {
 			continue
@@ -42,10 +41,15 @@ func (s *Service) voteWithdrawCredentials() error {
 		}
 
 		validatorPubkey := types.BytesToValidatorPubkey(validator.Pubkey)
-		validatorStatus, err := s.connection.Eth2Client().GetValidatorStatus(validatorPubkey, nil)
+		job, err := s.connection.SubmitFetchValidatorStatusJob(validatorPubkey)
 		if err != nil {
 			return err
 		}
+		validatorStatus := job.Get()
+		if validatorStatus.BatchErr != nil {
+			return validatorStatus.BatchErr
+		}
+
 		s.log.WithFields(logrus.Fields{
 			"status": validatorStatus,
 		}).Debug("validator beacon status")
