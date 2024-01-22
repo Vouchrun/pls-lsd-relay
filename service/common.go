@@ -64,6 +64,13 @@ func (s *Service) waitProposalsTxOk(txHash common.Hash, proposalIds [][32]byte) 
 }
 
 func (s *Service) getEpochStartBlocknumberWithCheck(epoch uint64) (uint64, error) {
+	s.cacheEpochToBlockIDMutex.Lock()
+	defer s.cacheEpochToBlockIDMutex.Unlock()
+
+	if blockID, ok := s.cacheEpochToBlockID.Get(epoch); ok {
+		return blockID, nil
+	}
+
 	targetBlock, err := s.getEpochStartBlocknumber(epoch)
 	if err != nil {
 		return 0, err
@@ -72,6 +79,7 @@ func (s *Service) getEpochStartBlocknumberWithCheck(epoch uint64) (uint64, error
 	if targetBlock < s.startAtBlock {
 		targetBlock = s.startAtBlock + 1
 	}
+	s.cacheEpochToBlockID.Add(epoch, targetBlock)
 	return targetBlock, nil
 }
 
@@ -85,7 +93,7 @@ func (s *Service) getEpochStartBlocknumber(epoch uint64) (uint64, error) {
 
 		targetBeaconBlock, exist, err := s.connection.GetBeaconBlock(eth2ValidatorBalanceSyncerStartSlot)
 		if err != nil {
-			return 0, err
+			return 0, fmt.Errorf("fail to get beacon block[%d]: %w", eth2ValidatorBalanceSyncerStartSlot, err)
 		}
 		// we will use next slot if not exist
 		if !exist {

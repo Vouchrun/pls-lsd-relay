@@ -314,3 +314,13 @@ func Max[T constraints.Ordered](a, b T) T {
 	}
 	return b
 }
+
+func Min[T constraints.Ordered](n1 T, nums ...T) T {
+	min := n1
+	for i := 0; i < len(nums); i++ {
+		if min > nums[i] {
+			min = nums[i]
+		}
+	}
+	return min
+}

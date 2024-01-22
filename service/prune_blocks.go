@@ -8,7 +8,6 @@ import (
 )
 
 func (s *Service) pruneBlocks() error {
-
 	latestMerkleRootEpochStartBlock := uint64(0)
 	if s.latestMerkleRootEpoch != 0 {
 		latestMerkleRootEpochStartBlockRes, err := s.getEpochStartBlocknumberWithCheck(s.latestMerkleRootEpoch)
@@ -16,14 +15,6 @@ func (s *Service) pruneBlocks() error {
 			return err
 		}
 		latestMerkleRootEpochStartBlock = latestMerkleRootEpochStartBlockRes
-	}
-
-	minHeight := s.latestDistributePriorityFeeHeight
-	if minHeight > s.latestDistributeWithdrawalsHeight {
-		minHeight = s.latestDistributeWithdrawalsHeight
-	}
-	if minHeight > latestMerkleRootEpochStartBlock {
-		minHeight = latestMerkleRootEpochStartBlock
 	}
 
 	_, targetTimestamp, err := s.currentCycleAndStartTimestamp()
@@ -42,9 +33,8 @@ func (s *Service) pruneBlocks() error {
 	}
 	s.log.Debugf("latestDistributeWithdrawalHeight OnCycleSnapshot: %d", latestDistributeWithdrawalHeightOnCycleSnapshot.Uint64())
 
-	if minHeight > latestDistributeWithdrawalHeightOnCycleSnapshot.Uint64() {
-		minHeight = latestDistributeWithdrawalHeightOnCycleSnapshot.Uint64()
-	}
+	minHeight := utils.Min(s.latestDistributePriorityFeeHeight, s.latestDistributeWithdrawalsHeight,
+		latestMerkleRootEpochStartBlock, latestDistributeWithdrawalHeightOnCycleSnapshot.Uint64())
 
 	if minHeight == 0 {
 		return nil
@@ -58,7 +48,6 @@ func (s *Service) pruneBlocks() error {
 		if blockNumber < minHeight {
 			s.log.Tracef("rm cached block: %d", blockNumber)
 			delete(s.cachedBeaconBlock, blockNumber)
-
 		}
 		if blockNumber > maxHeight {
 			maxHeight = blockNumber

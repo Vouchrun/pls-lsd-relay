@@ -18,6 +18,7 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
+	lru "github.com/hashicorp/golang-lru/v2"
 	"github.com/prysmaticlabs/prysm/v4/beacon-chain/core/signing"
 	"github.com/prysmaticlabs/prysm/v4/config/params"
 	"github.com/shopspring/decimal"
@@ -112,6 +113,9 @@ type Service struct {
 
 	cachedBeaconBlock      map[uint64]*CachedBeaconBlock // executionBlockNumber => beaconblock
 	cachedBeaconBlockMutex sync.RWMutex
+
+	cacheEpochToBlockID      *lru.Cache[uint64, uint64]
+	cacheEpochToBlockIDMutex sync.RWMutex
 
 	exitElections map[uint64]*ExitElection // cycle -> exitElection
 }
@@ -227,6 +231,11 @@ func NewService(
 		return nil, fmt.Errorf("error creating new nft.storage client: %w", err)
 	}
 
+	cacheEpochToBlockID, err := lru.New[uint64, uint64](1024 * 1000)
+	if err != nil {
+		return nil, err
+	}
+
 	s := &Service{
 		stop:                     make(chan struct{}),
 		connection:               conn,
@@ -240,13 +249,14 @@ func NewService(
 		localSyncedBlockHeight:   localSyncedBlockHeight,
 		localStore:               localStore,
 
-		govDeposits:       make(map[string][][]byte),
-		validators:        make(map[string]*Validator),
-		validatorsByIndex: make(map[uint64]*Validator),
-		nodes:             make(map[common.Address]*Node),
-		stakerWithdrawals: make(map[uint64]*StakerWithdrawal),
-		cachedBeaconBlock: make(map[uint64]*CachedBeaconBlock),
-		exitElections:     make(map[uint64]*ExitElection),
+		govDeposits:         make(map[string][][]byte),
+		validators:          make(map[string]*Validator),
+		validatorsByIndex:   make(map[uint64]*Validator),
+		nodes:               make(map[common.Address]*Node),
+		stakerWithdrawals:   make(map[uint64]*StakerWithdrawal),
+		cachedBeaconBlock:   make(map[uint64]*CachedBeaconBlock),
+		exitElections:       make(map[uint64]*ExitElection),
+		cacheEpochToBlockID: cacheEpochToBlockID,
 	}
 
 	return s, nil
