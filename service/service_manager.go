@@ -121,7 +121,7 @@ Out:
 
 			err := m.syncEntrustedLsdTokens()
 			if err != nil {
-				logrus.Errorf("fail to sync entrusted toksn: %s", err.Error())
+				logrus.Errorf("fail to sync entrusted token: %s", err.Error())
 				time.Sleep(utils.RetryInterval * 4)
 				retry++
 				continue Out
