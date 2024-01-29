@@ -47,6 +47,7 @@ type Service struct {
 	eth1Endpoint     string
 	eth2Endpoint     string
 	log              *logrus.Entry
+	manager          *ServiceManager
 
 	submitBalancesDuEpochs        uint64
 	distributeWithdrawalsDuEpochs uint64
@@ -111,8 +112,7 @@ type Service struct {
 
 	stakerWithdrawals map[uint64]*StakerWithdrawal // withraw index => stakerWithdrawal
 
-	cachedBeaconBlock      map[uint64]*CachedBeaconBlock // executionBlockNumber => beaconblock
-	cachedBeaconBlockMutex sync.RWMutex
+	minExecutionBlockHeight uint64
 
 	cacheEpochToBlockID      *lru.Cache[uint64, uint64]
 	cacheEpochToBlockIDMutex sync.RWMutex
@@ -160,13 +160,10 @@ type ExitElection struct {
 }
 
 type CachedBeaconBlock struct {
-	ProposerIndex uint64
-	Withdrawals   []*CachedWithdrawal
-
-	// execute layer
-	FeeRecipient common.Address
-	Transactions []*CachedTransaction
-	PriorityFee  *big.Int // may be nil if not pool validator
+	BeaconBlockId        uint64
+	ExecutionBlockNumber uint64
+	ProposerIndex        uint64
+	Withdrawals          []*CachedWithdrawal
 }
 
 type CachedTransaction struct {
@@ -188,6 +185,7 @@ type Handler struct {
 
 func NewService(
 	cfg *config.Config,
+	manager *ServiceManager,
 	conn *connection.CachedConnection,
 	localStore *local_store.LocalStore,
 ) (*Service, error) {
@@ -238,6 +236,7 @@ func NewService(
 
 	s := &Service{
 		stop:                     make(chan struct{}),
+		manager:                  manager,
 		connection:               conn,
 		eth1Endpoint:             cfg.Eth1Endpoint,
 		eth2Endpoint:             cfg.Eth2Endpoint,
@@ -254,7 +253,6 @@ func NewService(
 		validatorsByIndex:   make(map[uint64]*Validator),
 		nodes:               make(map[common.Address]*Node),
 		stakerWithdrawals:   make(map[uint64]*StakerWithdrawal),
-		cachedBeaconBlock:   make(map[uint64]*CachedBeaconBlock),
 		exitElections:       make(map[uint64]*ExitElection),
 		cacheEpochToBlockID: cacheEpochToBlockID,
 	}
@@ -734,15 +732,11 @@ func (s *Service) GetValidatorDepositedListBeforeBlock(block uint64) []*Validato
 }
 
 func (s *Service) getBeaconBlock(eth1BlcokNumber uint64) (*CachedBeaconBlock, error) {
-	s.cachedBeaconBlockMutex.RLock()
-	defer s.cachedBeaconBlockMutex.RUnlock()
-
-	block, exist := s.cachedBeaconBlock[eth1BlcokNumber]
+	block, exist := s.manager.cachedBeaconBlockByExecBlockHeight.Load(eth1BlcokNumber)
 	if !exist {
 		return nil, fmt.Errorf("block %d not cached", eth1BlcokNumber)
 	}
 	return block, nil
-
 }
 
 func (s *Service) getValidatorByIndex(valIndex uint64) (*Validator, bool) {

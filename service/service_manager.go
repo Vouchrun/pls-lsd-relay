@@ -2,6 +2,7 @@ package service
 
 import (
 	"fmt"
+	"math"
 	"time"
 
 	"github.com/avast/retry-go/v4"
@@ -24,6 +25,10 @@ type ServiceManager struct {
 	connection *connection.CachedConnection
 	srvs       *xsync.MapOf[string, *Service]
 	localStore *local_store.LocalStore
+
+	cachedBeaconBlock                  *xsync.MapOf[uint64, *CachedBeaconBlock] // beacon block id: (uint64) => beaconblock: (*CachedBeaconBlock)
+	cachedBeaconBlockByExecBlockHeight *xsync.MapOf[uint64, *CachedBeaconBlock] // execution block height: (uint64) => beaconblock: (*CachedBeaconBlock)
+	beaconBlockMutex                   *utils.KeyedMutex[uint64]
 }
 
 func NewServiceManager(cfg *config.Config, keyPair *secp256k1.Keypair) (*ServiceManager, error) {
@@ -65,15 +70,20 @@ func NewServiceManager(cfg *config.Config, keyPair *secp256k1.Keypair) (*Service
 	}
 
 	return &ServiceManager{
-		stop:       make(chan struct{}),
-		cfg:        cfg,
-		connection: cachedConn,
-		srvs:       xsync.NewMapOf[string, *Service](),
-		localStore: localStore,
+		stop:                               make(chan struct{}),
+		cfg:                                cfg,
+		connection:                         cachedConn,
+		srvs:                               xsync.NewMapOf[string, *Service](),
+		cachedBeaconBlock:                  xsync.NewMapOf[uint64, *CachedBeaconBlock](),
+		cachedBeaconBlockByExecBlockHeight: xsync.NewMapOf[uint64, *CachedBeaconBlock](),
+		beaconBlockMutex:                   &utils.KeyedMutex[uint64]{},
+		localStore:                         localStore,
 	}, nil
 }
 
 func (m *ServiceManager) Start() error {
+	utils.SafeGoWithRestart(m.pruneCachedBeaconBlocksService)
+
 	if !m.cfg.RunForEntrustedLsdNetwork {
 		if _, err := m.newAndStartServiceFor(m.cfg.Contracts.LsdTokenAddress); err != nil {
 			return err
@@ -178,7 +188,7 @@ func (m *ServiceManager) newAndStartServiceFor(lsdToken string) (*Service, error
 	log.Debug("new service instance")
 	srvConfig := *m.cfg
 	srvConfig.Contracts.LsdTokenAddress = lsdToken
-	srv, err := NewService(&srvConfig, m.connection, m.localStore)
+	srv, err := NewService(&srvConfig, m, m.connection, m.localStore)
 	if err != nil {
 		return nil, fmt.Errorf("new service for lsd token %s err %s", lsdToken, err.Error())
 	}
@@ -188,4 +198,89 @@ func (m *ServiceManager) newAndStartServiceFor(lsdToken string) (*Service, error
 	m.srvs.Store(lsdToken, srv)
 	log.Warn("started service")
 	return srv, nil
+}
+
+var notExistBeaconBlock = &CachedBeaconBlock{}
+
+func (m *ServiceManager) CacheBeaconBlock(blockId uint64) (*CachedBeaconBlock, bool, error) {
+	unlock := m.beaconBlockMutex.Lock(blockId)
+	defer unlock()
+
+	if block, ok := m.cachedBeaconBlock.Load(blockId); ok {
+		if block == notExistBeaconBlock {
+			return nil, false, nil
+		}
+
+		return block, true, nil
+	}
+
+	block, exist, err := m.connection.GetBeaconBlock(blockId)
+	if err != nil {
+		return nil, false, err
+	}
+	if !exist {
+		m.cachedBeaconBlock.Store(blockId, notExistBeaconBlock)
+		return nil, false, nil
+	}
+
+	cachedBlock := CachedBeaconBlock{
+		BeaconBlockId:        blockId,
+		ExecutionBlockNumber: block.ExecutionBlockNumber,
+		ProposerIndex:        block.ProposerIndex,
+		Withdrawals:          make([]*CachedWithdrawal, 0, len(block.Withdrawals)),
+	}
+	for _, w := range block.Withdrawals {
+		cachedBlock.Withdrawals = append(cachedBlock.Withdrawals, &CachedWithdrawal{
+			ValidatorIndex: w.ValidatorIndex,
+			Amount:         w.Amount,
+		})
+	}
+
+	m.cachedBeaconBlockByExecBlockHeight.Store(block.ExecutionBlockNumber, &cachedBlock)
+	m.cachedBeaconBlock.Store(blockId, &cachedBlock)
+	return &cachedBlock, true, nil
+}
+
+func (m *ServiceManager) pruneCachedBeaconBlocksService() {
+	for {
+		m.pruneCachedBeaconBlocks()
+		time.Sleep(time.Minute)
+	}
+}
+func (m *ServiceManager) pruneCachedBeaconBlocks() {
+	var minHeight uint64 = math.MaxUint64
+	m.srvs.Range(func(key string, srv *Service) bool {
+		if srv != nil &&
+			!srv.waitFirstNodeStakeEvent &&
+			srv.minExecutionBlockHeight > 0 &&
+			srv.minExecutionBlockHeight < minHeight {
+			minHeight = srv.minExecutionBlockHeight
+		}
+		return true
+	})
+
+	if minHeight == math.MaxUint64 {
+		return
+	}
+
+	var maxClearableBeaconBlockId uint64 = 0
+	m.cachedBeaconBlockByExecBlockHeight.Range(func(blockNumber uint64, b *CachedBeaconBlock) bool {
+		if b != nil &&
+			b.ExecutionBlockNumber < minHeight {
+			if maxClearableBeaconBlockId < b.BeaconBlockId {
+				maxClearableBeaconBlockId = b.BeaconBlockId
+			}
+			m.cachedBeaconBlockByExecBlockHeight.Delete(blockNumber)
+		}
+		return true
+	})
+
+	m.cachedBeaconBlock.Range(func(beaconBlockId uint64, b *CachedBeaconBlock) bool {
+		if b != nil &&
+			b.BeaconBlockId <= maxClearableBeaconBlockId {
+			m.cachedBeaconBlock.Delete(beaconBlockId)
+			m.beaconBlockMutex.Delete(beaconBlockId)
+		}
+		return true
+	})
 }

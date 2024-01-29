@@ -40,21 +40,7 @@ func (s *Service) pruneBlocks() error {
 		return nil
 	}
 
-	s.cachedBeaconBlockMutex.Lock()
-	defer s.cachedBeaconBlockMutex.Unlock()
-
-	maxHeight := uint64(0)
-	for blockNumber := range s.cachedBeaconBlock {
-		if blockNumber < minHeight {
-			s.log.Tracef("rm cached block: %d", blockNumber)
-			delete(s.cachedBeaconBlock, blockNumber)
-		}
-		if blockNumber > maxHeight {
-			maxHeight = blockNumber
-		}
-	}
-
-	s.log.Debugf("prune cachedBlocks, now cached block minHeight: %d, maxHeight: %d", minHeight, maxHeight)
+	s.minExecutionBlockHeight = minHeight
 
 	return nil
 }

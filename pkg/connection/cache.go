@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/avast/retry-go/v4"
-	lru "github.com/hashicorp/golang-lru/v2"
 	"github.com/sirupsen/logrus"
 	"github.com/stafiprotocol/eth-lsd-relay/pkg/connection/beacon"
 	"github.com/stafiprotocol/eth-lsd-relay/pkg/utils"
@@ -24,21 +23,12 @@ type CachedConnection struct {
 
 	chainId    *big.Int
 	eth2Config *beacon.Eth2Config
-
-	beaconBlockCache *lru.Cache[uint64, beacon.BeaconBlock]
-	beaconBlockMutex *utils.KeyedMutex[uint64]
 }
 
 func NewCachedConnection(conn *Connection) (*CachedConnection, error) {
-	beaconBlockCache, err := lru.New[uint64, beacon.BeaconBlock](1024 * 1000)
-	if err != nil {
-		return nil, err
-	}
 	cc := CachedConnection{
-		Connection:       conn,
-		stop:             make(chan struct{}),
-		beaconBlockCache: beaconBlockCache,
-		beaconBlockMutex: &utils.KeyedMutex[uint64]{},
+		Connection: conn,
+		stop:       make(chan struct{}),
 	}
 	return &cc, nil
 }
@@ -139,24 +129,15 @@ func (c *CachedConnection) cacheChainID() (err error) {
 	return
 }
 
-func (c *CachedConnection) GetBeaconBlock(blockId uint64) (beacon.BeaconBlock, bool, error) {
-	// lock block for concurrent
-	unlock := c.beaconBlockMutex.Lock(blockId)
-	defer unlock()
+// func (c *CachedConnection) GetBeaconBlock(blockId uint64) (beacon.BeaconBlock, bool, error) {
+// 	// lock block for concurrent
+// 	unlock := c.beaconBlockMutex.Lock(blockId)
+// 	defer unlock()
 
-	// load from cache
-	block, ok := c.beaconBlockCache.Get(blockId)
-	if ok {
-		return block, true, nil
-	}
+// 	block, exist, err := c.Connection.GetBeaconBlock(blockId)
+// 	if err != nil {
+// 		return beacon.BeaconBlock{}, exist, err
+// 	}
 
-	block, ok, err := c.Connection.GetBeaconBlock(blockId)
-	if err != nil {
-		return beacon.BeaconBlock{}, ok, err
-	}
-	if ok {
-		c.beaconBlockCache.Add(blockId, block)
-	}
-
-	return block, ok, nil
-}
+// 	return block, exist, nil
+// }

@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/stafiprotocol/eth-lsd-relay/pkg/connection/beacon"
 	"github.com/stafiprotocol/eth-lsd-relay/pkg/utils"
 	"golang.org/x/sync/errgroup"
 )
@@ -41,13 +40,13 @@ func (s *Service) syncBlocks() error {
 		preLatestSyncBlock := s.latestBlockOfSyncBlock
 		batchRequestStartTime := time.Now().Unix()
 
-		blockReciever := make([]*beacon.BeaconBlock, s.batchRequestBlocksNumber)
+		blockReciever := make([]*CachedBeaconBlock, s.batchRequestBlocksNumber)
 		for j := subStart; j <= subEnd; j++ {
 			// notice this
 			slot := j
 			g.Go(func() error {
 				startTime := time.Now().Unix()
-				beaconBlock, exist, err := s.connection.GetBeaconBlock(slot)
+				beaconBlock, exist, err := s.manager.CacheBeaconBlock(slot)
 				if err != nil {
 					return err
 				}
@@ -62,17 +61,7 @@ func (s *Service) syncBlocks() error {
 					return ErrExceedsValidatorUpdateBlock
 				}
 
-				// ensure validator cached
-				_, isPoolVal := s.getValidatorByIndex(beaconBlock.ProposerIndex)
-				if isPoolVal {
-					fee, err := s.connection.GetELRewardForBlock(beaconBlock.ExecutionBlockNumber)
-					if err != nil {
-						return err
-					}
-					beaconBlock.PriorityFee = fee
-				}
-
-				blockReciever[slot-subStart] = &beaconBlock
+				blockReciever[slot-subStart] = beaconBlock
 
 				saveTime := time.Now().Unix()
 				s.log.Tracef("request block %d,start at %d, end at %d, save at: %d ", beaconBlock.ExecutionBlockNumber, startTime, endTime, saveTime)
@@ -102,32 +91,6 @@ func (s *Service) syncBlocks() error {
 			if beaconBlock.ExecutionBlockNumber%500 == 0 {
 				s.log.Infof("synced block: %d", beaconBlock.ExecutionBlockNumber)
 			}
-
-			cachedWithdrawals := make([]*CachedWithdrawal, len(beaconBlock.Withdrawals))
-			for i, w := range beaconBlock.Withdrawals {
-				cachedWithdrawals[i] = &CachedWithdrawal{
-					ValidatorIndex: w.ValidatorIndex,
-					Amount:         w.Amount,
-				}
-			}
-
-			cachedTxs := make([]*CachedTransaction, len(beaconBlock.Transactions))
-			for i, t := range beaconBlock.Transactions {
-				cachedTxs[i] = &CachedTransaction{
-					Recipient: t.Recipient,
-					Amount:    t.Amount,
-				}
-			}
-
-			s.cachedBeaconBlockMutex.Lock()
-			s.cachedBeaconBlock[beaconBlock.ExecutionBlockNumber] = &CachedBeaconBlock{
-				ProposerIndex: beaconBlock.ProposerIndex,
-				Withdrawals:   cachedWithdrawals,
-				FeeRecipient:  beaconBlock.FeeRecipient,
-				Transactions:  cachedTxs,
-				PriorityFee:   beaconBlock.PriorityFee,
-			}
-			s.cachedBeaconBlockMutex.Unlock()
 
 			// update latest block
 			if beaconBlock.ExecutionBlockNumber > s.latestBlockOfSyncBlock {
