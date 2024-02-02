@@ -7,7 +7,6 @@ import (
 	"math/big"
 	"os"
 	"sort"
-	"strings"
 	"testing"
 	"time"
 
@@ -20,7 +19,6 @@ import (
 	node_deposit "github.com/stafiprotocol/eth-lsd-relay/bindings/NodeDeposit"
 	"github.com/stafiprotocol/eth-lsd-relay/pkg/connection"
 	"github.com/stafiprotocol/eth-lsd-relay/pkg/connection/beacon"
-	"github.com/stafiprotocol/eth-lsd-relay/pkg/connection/beacon/client"
 	"github.com/stafiprotocol/eth-lsd-relay/pkg/connection/types"
 	"github.com/stafiprotocol/eth-lsd-relay/pkg/utils"
 )
@@ -127,41 +125,12 @@ func TestBlockDetail(t *testing.T) {
 
 	return
 
-	r, err := c.Eth2Client().SyncCommitteeRewards(6190497)
-	if err != nil {
-		if err != nil {
-			switch {
-			case strings.Contains(err.Error(), client.ErrBlockNotFound.Error()):
-				// block not exit, should return
-				t.Log("not exit")
-			case strings.Contains(err.Error(), client.ErrSlotPreSyncCommittees.Error()):
-				// skip err
-				t.Log("skip")
-			default:
-				t.Log(err)
-			}
-		}
-		t.Fatal(err)
-	}
-	t.Log(r)
-	return
-
-	balance, err := c.Eth2Client().Balance(77999, 61730)
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Log(balance)
-	return
-
-	head, err := c.Eth2BeaconHead()
-	if err != nil {
-		t.Fatal(err)
-	}
+	var slot uint64 = 1
 
 	pubkey, _ := types.HexToValidatorPubkey("93ce5068db907b2e5055dbb7805a3a3d7c56c9e82d010e864403e10a61235db4795949f01302dc2ad2b6225963599ed5")
 	status, err := c.Eth2Client().GetValidatorStatus(pubkey, &beacon.ValidatorStatusOptions{
 		Epoch: new(uint64),
-		Slot:  &head.Slot,
+		Slot:  &slot,
 	})
 	if err != nil {
 		t.Fatal(err)

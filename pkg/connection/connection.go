@@ -260,10 +260,6 @@ func (c *Connection) EnsureHasBytecode(addr common.Address) error {
 	return nil
 }
 
-func (c *Connection) Eth2BeaconHead() (beacon.BeaconHead, error) {
-	return c.eth2Client.GetBeaconHead()
-}
-
 func (c *Connection) GetValidatorStatus(pubkey types.ValidatorPubkey, opts *beacon.ValidatorStatusOptions) (beacon.ValidatorStatus, error) {
 	return c.eth2Client.GetValidatorStatus(pubkey, opts)
 }
