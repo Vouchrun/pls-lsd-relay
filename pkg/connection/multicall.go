@@ -8,7 +8,7 @@ import (
 
 	"github.com/forta-network/go-multicall"
 	"github.com/samber/lo"
-	gomicrobee "github.com/stephennancekivell/go-micro-bee"
+	"github.com/stafiprotocol/eth-lsd-relay/pkg/gomicrobee"
 )
 
 func (c *Connection) initMulticall() error {

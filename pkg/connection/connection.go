@@ -22,7 +22,7 @@ import (
 	"github.com/stafiprotocol/eth-lsd-relay/pkg/connection/beacon"
 	"github.com/stafiprotocol/eth-lsd-relay/pkg/connection/beacon/client"
 	"github.com/stafiprotocol/eth-lsd-relay/pkg/connection/types"
-	gomicrobee "github.com/stephennancekivell/go-micro-bee"
+	"github.com/stafiprotocol/eth-lsd-relay/pkg/gomicrobee"
 )
 
 var Gwei5 = big.NewInt(5e9)

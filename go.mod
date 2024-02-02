@@ -20,7 +20,6 @@ require (
 	github.com/sirupsen/logrus v1.9.0
 	github.com/spf13/cobra v1.7.0
 	github.com/stafiprotocol/chainbridge v0.0.0-20201204032253-9b92852c8d66
-	github.com/stephennancekivell/go-micro-bee v0.0.0-20230604080939-50c3f7f4cf80
 	github.com/stretchr/testify v1.8.4
 	golang.org/x/crypto v0.12.0
 	golang.org/x/exp v0.0.0-20230810033253-352e893a4cad
