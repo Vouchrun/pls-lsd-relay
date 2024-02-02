@@ -384,6 +384,7 @@ func (s *Service) Start() error {
 	s.cycleSeconds = cycleSeconds.Uint64()
 
 	// init latest block and slot number
+	s.minExecutionBlockHeight = s.startAtBlock
 	s.latestBlockOfUpdateValidator = s.startAtBlock
 	s.latestBlockOfSyncEvents = s.startAtBlock
 	if err = s.initLatestBlockOfSyncBlock(); err != nil {
@@ -513,12 +514,10 @@ func (s *Service) startHandlers() {
 			"latestBlockOfSyncBlock": s.latestBlockOfSyncBlock,
 		}).Info("start voting handlers")
 
-		s.startGroupHanders("sync_new", 12*time.Second, s.syncBlocks)
-		s.startGroupHanders("prune", time.Hour, s.pruneBlocks)
-		s.startGroupHanders("vote_val_credential", 12*time.Second, s.updateValidatorsFromNetwork, s.voteWithdrawCredentials)
-		s.startGroupHanders("vote", 5*time.Minute,
+		s.startGroupHanders(12*time.Second, s.syncBlocks, s.updateValidatorsFromNetwork, s.voteWithdrawCredentials)
+		s.startGroupHanders(5*time.Minute,
 			s.updateValidatorsFromBeacon, s.syncEvents, s.submitBalances,
-			s.distributeWithdrawals, s.distributePriorityFee, s.setMerkleRoot, s.notifyValidatorExit)
+			s.distributeWithdrawals, s.distributePriorityFee, s.setMerkleRoot, s.notifyValidatorExit, s.pruneBlocks)
 	})
 }
 
@@ -654,7 +653,7 @@ func (s *Service) initLatestBlockOfSyncBlock() error {
 	return nil
 }
 
-func (s *Service) startGroupHanders(groupName string, interval time.Duration, handlerFns ...func() error) {
+func (s *Service) startGroupHanders(interval time.Duration, handlerFns ...func() error) {
 	if len(handlerFns) == 0 {
 		panic("handlers can not be empty")
 	}
@@ -675,7 +674,7 @@ func (s *Service) startGroupHanders(groupName string, interval time.Duration, ha
 		})
 	}
 
-	log := s.log.WithField("group", groupName)
+	log := s.log
 	utils.SafeGo(func() {
 		log.Info("start service")
 		retry := 0
