@@ -699,7 +699,7 @@ func (s *Service) startGroupHanders(interval time.Duration, handlerFns ...func()
 
 					err := handler.method()
 					if err != nil {
-						retryIn := utils.RetryInterval * 4
+						retryIn := interval
 						log.WithFields(logrus.Fields{
 							"retry_in":    retryIn,
 							"retry_times": retry,

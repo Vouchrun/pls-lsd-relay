@@ -26,7 +26,7 @@ var location *time.Location
 var dayLayout = "20060102"
 
 const (
-	RetryLimit    = 200
+	RetryLimit    = 300
 	RetryInterval = 6 * time.Second
 )
 
