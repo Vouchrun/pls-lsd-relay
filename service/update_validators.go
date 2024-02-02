@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"math"
 	"math/big"
+	"time"
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/pkg/errors"
@@ -135,6 +136,8 @@ func (s *Service) updateValidatorsFromNetwork() error {
 }
 
 func (s *Service) updateValidatorsFromBeacon() error {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*120)
+	defer cancel()
 	beaconHead, err := s.connection.BeaconHead()
 	if err != nil {
 		return err
@@ -153,7 +156,7 @@ func (s *Service) updateValidatorsFromBeacon() error {
 		return nil
 	}
 
-	validatorStatusMap, err := s.connection.GetValidatorStatuses(pubkeys, &beacon.ValidatorStatusOptions{
+	validatorStatusMap, err := s.connection.GetValidatorStatuses(ctx, pubkeys, &beacon.ValidatorStatusOptions{
 		Epoch: &finalEpoch,
 	})
 	if err != nil {

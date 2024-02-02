@@ -312,7 +312,7 @@ func (s *Service) getNodeNewRewardsBetween(latestDistributeHeight, targetEth1Blo
 	return finalNodeRewardsMap, nil
 }
 
-func (s *Service) getValidatorsOfTargetEpoch(targetEpoch uint64) ([]*Validator, error) {
+func (s *Service) getValidatorsOfTargetEpoch(ctx context.Context, targetEpoch uint64) ([]*Validator, error) {
 	vals := make([]*Validator, 0)
 	pubkeys := make([]types.ValidatorPubkey, 0)
 	for _, val := range s.validators {
@@ -322,7 +322,7 @@ func (s *Service) getValidatorsOfTargetEpoch(targetEpoch uint64) ([]*Validator, 
 		return nil, nil
 	}
 
-	validatorStatusMap, err := s.connection.GetValidatorStatuses(pubkeys, &beacon.ValidatorStatusOptions{
+	validatorStatusMap, err := s.connection.GetValidatorStatuses(ctx, pubkeys, &beacon.ValidatorStatusOptions{
 		Epoch: &targetEpoch,
 	})
 	if err != nil {
@@ -418,7 +418,7 @@ func (s *Service) getValidatorsOfTargetEpoch(targetEpoch uint64) ([]*Validator, 
 	return vals, nil
 }
 
-func (s *Service) exitButNotFullWithdrawedValidatorListAtEpoch(epoch uint64) ([]*Validator, error) {
+func (s *Service) exitButNotFullWithdrawedValidatorListAtEpoch(ctx context.Context, epoch uint64) ([]*Validator, error) {
 	vals := make([]*Validator, 0)
 
 	pubkeys := make([]types.ValidatorPubkey, 0)
@@ -433,7 +433,7 @@ func (s *Service) exitButNotFullWithdrawedValidatorListAtEpoch(epoch uint64) ([]
 		return nil, nil
 	}
 
-	validatorStatusMap, err := s.connection.GetValidatorStatuses(pubkeys, &beacon.ValidatorStatusOptions{
+	validatorStatusMap, err := s.connection.GetValidatorStatuses(ctx, pubkeys, &beacon.ValidatorStatusOptions{
 		Epoch: &epoch,
 	})
 	if err != nil {

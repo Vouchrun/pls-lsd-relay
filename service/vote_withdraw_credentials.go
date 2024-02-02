@@ -2,9 +2,11 @@ package service
 
 import (
 	"bytes"
+	"context"
 	"encoding/hex"
 	"fmt"
 	"math/big"
+	"time"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/prysmaticlabs/prysm/v4/contracts/deposit"
@@ -15,6 +17,8 @@ import (
 )
 
 func (s *Service) voteWithdrawCredentials() error {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Minute*5)
+	defer cancel()
 	validatorListNeedVote := make([]*Validator, 0, len(s.validators))
 	for _, val := range s.validators {
 		if !(val.Status == utils.ValidatorStatusDeposited || val.Status == utils.ValidatorStatusWithdrawUnmatch) {
@@ -41,13 +45,9 @@ func (s *Service) voteWithdrawCredentials() error {
 		}
 
 		validatorPubkey := types.BytesToValidatorPubkey(validator.Pubkey)
-		job, err := s.connection.SubmitFetchValidatorStatusJob(validatorPubkey)
+		validatorStatus, err := s.connection.GetValidatorStatus(ctx, validatorPubkey, nil)
 		if err != nil {
 			return err
-		}
-		validatorStatus := job.Get()
-		if validatorStatus.BatchErr != nil {
-			return validatorStatus.BatchErr
 		}
 
 		s.log.WithFields(logrus.Fields{

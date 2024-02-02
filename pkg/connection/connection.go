@@ -43,8 +43,7 @@ type Connection struct {
 	optsLock     sync.Mutex
 	multiCaller  *multicall.Caller
 
-	latestMultiCallMicrobeeSystem       gomicrobee.System[*multicall.Call, *MultiCall]
-	latestValicatorStatusMicrobeeSystem gomicrobee.System[types.ValidatorPubkey, BeaconValidatorStatus]
+	latestMultiCallMicrobeeSystem gomicrobee.System[*multicall.Call, *MultiCall]
 }
 
 // NewConnection returns an uninitialized connection, must call Connection.Connect() before using.
@@ -73,7 +72,6 @@ func NewConnection(eth1Endpoint, eth2Endpoint string, kp *secp256k1.Keypair, gas
 	if err = c.initMulticall(); err != nil {
 		return nil, err
 	}
-	c.initBatchBeaconChain()
 
 	return c, nil
 }
@@ -260,18 +258,14 @@ func (c *Connection) EnsureHasBytecode(addr common.Address) error {
 	return nil
 }
 
-func (c *Connection) GetValidatorStatus(pubkey types.ValidatorPubkey, opts *beacon.ValidatorStatusOptions) (beacon.ValidatorStatus, error) {
-	return c.eth2Client.GetValidatorStatus(pubkey, opts)
+func (c *Connection) GetValidatorStatus(ctx context.Context, pubkey types.ValidatorPubkey, opts *beacon.ValidatorStatusOptions) (beacon.ValidatorStatus, error) {
+	return c.eth2Client.GetValidatorStatus(ctx, pubkey, opts)
 }
 
-func (c *Connection) GetValidatorStatuses(pubkeys []types.ValidatorPubkey, opts *beacon.ValidatorStatusOptions) (map[types.ValidatorPubkey]beacon.ValidatorStatus, error) {
-	return c.eth2Client.GetValidatorStatuses(pubkeys, opts)
+func (c *Connection) GetValidatorStatuses(ctx context.Context, pubkeys []types.ValidatorPubkey, opts *beacon.ValidatorStatusOptions) (map[types.ValidatorPubkey]beacon.ValidatorStatus, error) {
+	return c.eth2Client.GetValidatorStatuses(ctx, pubkeys, opts)
 }
 
 func (c *Connection) GetBeaconBlock(blockId uint64) (beacon.BeaconBlock, bool, error) {
 	return c.eth2Client.GetBeaconBlock(blockId)
-}
-
-func (c *Connection) GetValidatorStatusByIndex(index string, opts *beacon.ValidatorStatusOptions) (beacon.ValidatorStatus, error) {
-	return c.eth2Client.GetValidatorStatusByIndex(index, opts)
 }

@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"fmt"
 	"math/big"
 	"sort"
@@ -13,6 +14,8 @@ import (
 )
 
 func (s *Service) notifyValidatorExit() error {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Minute*5)
+	defer cancel()
 	currentCycle, targetTimestamp, err := s.currentCycleAndStartTimestamp()
 	if err != nil {
 		return fmt.Errorf("currentCycleAndStartTimestamp failed: %w", err)
@@ -77,7 +80,7 @@ func (s *Service) notifyValidatorExit() error {
 	}).Debug("notifyValidatorExit")
 
 	// calc exited but not full withdrawed amount
-	exitButNotFullWithdrawedValidatorList, err := s.exitButNotFullWithdrawedValidatorListAtEpoch(targetEpoch)
+	exitButNotFullWithdrawedValidatorList, err := s.exitButNotFullWithdrawedValidatorListAtEpoch(ctx, targetEpoch)
 	if err != nil {
 		return errors.Wrap(err, "exitButNotFullWithdrawedValidatorListAtEpoch failed")
 	}
@@ -106,7 +109,7 @@ func (s *Service) notifyValidatorExit() error {
 	// final total missing amount
 	finalTotalMissingAmountDeci := totalMissingAmountDeci.Sub(totalPendingAmountDeci)
 
-	selectVals, err := s.mustSelectValidatorsForExit(finalTotalMissingAmountDeci, targetEpoch, uint64(willDealCycle))
+	selectVals, err := s.mustSelectValidatorsForExit(ctx, finalTotalMissingAmountDeci, targetEpoch, uint64(willDealCycle))
 	if err != nil {
 		return errors.Wrap(err, "selectValidatorsForExit failed")
 	}
@@ -175,8 +178,8 @@ func (s *Service) currentCycleAndStartTimestamp() (int64, int64, error) {
 	return int64(currentCycle), int64(targetTimestamp), nil
 }
 
-func (s *Service) mustSelectValidatorsForExit(totalMissingAmount decimal.Decimal, targetEpoch, willDealCycle uint64) ([]*big.Int, error) {
-	vals, err := s.getValidatorsOfTargetEpoch(targetEpoch)
+func (s *Service) mustSelectValidatorsForExit(ctx context.Context, totalMissingAmount decimal.Decimal, targetEpoch, willDealCycle uint64) ([]*big.Int, error) {
+	vals, err := s.getValidatorsOfTargetEpoch(ctx, targetEpoch)
 	if err != nil {
 		return nil, err
 	}

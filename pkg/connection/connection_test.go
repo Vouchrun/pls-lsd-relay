@@ -128,7 +128,7 @@ func TestBlockDetail(t *testing.T) {
 	var slot uint64 = 1
 
 	pubkey, _ := types.HexToValidatorPubkey("93ce5068db907b2e5055dbb7805a3a3d7c56c9e82d010e864403e10a61235db4795949f01302dc2ad2b6225963599ed5")
-	status, err := c.Eth2Client().GetValidatorStatus(pubkey, &beacon.ValidatorStatusOptions{
+	status, err := c.Eth2Client().GetValidatorStatus(context.TODO(), pubkey, &beacon.ValidatorStatusOptions{
 		Epoch: new(uint64),
 		Slot:  &slot,
 	})
@@ -172,57 +172,6 @@ func TestBalance(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Log(tx.Logs)
-
-	return
-	c, err := connection.NewConnection(os.Getenv("ETH1_ENDPOINT"), os.Getenv("ETH2_ENDPOINT"), nil, nil, nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	startSlot := uint64(204864)
-	endSlot := uint64(204895)
-	withdrawSlot := uint64(204886)
-	epoch := uint64(6402)
-
-	startStatus, err := c.GetValidatorStatusByIndex(fmt.Sprint(62947), &beacon.ValidatorStatusOptions{
-		Slot: &startSlot,
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Log(startStatus.Balance)
-
-	withdrawStatus, err := c.GetValidatorStatusByIndex(fmt.Sprint(62947), &beacon.ValidatorStatusOptions{
-		Slot: &withdrawSlot,
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Log(withdrawStatus.Balance)
-
-	endStatus, err := c.GetValidatorStatusByIndex(fmt.Sprint(62947), &beacon.ValidatorStatusOptions{
-		Slot: &endSlot,
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Log(endStatus.Balance)
-
-	epochStatus, err := c.GetValidatorStatusByIndex(fmt.Sprint(62947), &beacon.ValidatorStatusOptions{
-		Epoch: &epoch,
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Log(epochStatus.Balance)
-	t.Log(epochStatus.Status)
-	t.Logf("%+v", epochStatus)
-
-	config, err := c.Eth2Client().GetEth2Config()
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Log(utils.StartSlotOfEpoch(config, epoch))
 }
 
 func TestGettingFirstNodeStakeEvent(t *testing.T) {

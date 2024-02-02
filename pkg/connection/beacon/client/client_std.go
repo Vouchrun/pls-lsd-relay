@@ -2,6 +2,7 @@ package client
 
 import (
 	"bytes"
+	"context"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -174,26 +175,18 @@ func (c *StandardHttpClient) GetBeaconHead() (beacon.BeaconHead, error) {
 }
 
 // Get a validator's status
-func (c *StandardHttpClient) GetValidatorStatus(pubkey types.ValidatorPubkey, opts *beacon.ValidatorStatusOptions) (beacon.ValidatorStatus, error) {
-
-	return c.getValidatorStatus(utils.AddPrefix(pubkey.Hex()), opts)
-
-}
-func (c *StandardHttpClient) GetValidatorStatusByIndex(index string, opts *beacon.ValidatorStatusOptions) (beacon.ValidatorStatus, error) {
-
-	return c.getValidatorStatus(index, opts)
-
+func (c *StandardHttpClient) GetValidatorStatus(ctx context.Context, pubkey types.ValidatorPubkey, opts *beacon.ValidatorStatusOptions) (beacon.ValidatorStatus, error) {
+	return c.getValidatorStatus(ctx, utils.AddPrefix(pubkey.Hex()), opts)
 }
 
-func (c *StandardHttpClient) getValidatorStatus(pubkeyOrIndex string, opts *beacon.ValidatorStatusOptions) (beacon.ValidatorStatus, error) {
-
+func (c *StandardHttpClient) getValidatorStatus(ctx context.Context, pubkeyOrIndex string, opts *beacon.ValidatorStatusOptions) (beacon.ValidatorStatus, error) {
 	// Return zero status for null pubkeyOrIndex
 	if pubkeyOrIndex == "" {
 		return beacon.ValidatorStatus{}, nil
 	}
 
 	// Get validator
-	validators, err := c.getValidatorsByOpts([]string{pubkeyOrIndex}, opts)
+	validators, err := c.getValidatorsByOpts(ctx, []string{pubkeyOrIndex}, opts)
 	if err != nil {
 		return beacon.ValidatorStatus{}, err
 	}
@@ -222,7 +215,7 @@ func (c *StandardHttpClient) getValidatorStatus(pubkeyOrIndex string, opts *beac
 
 // Get multiple validators' statuses
 // epoch in opts == the first slot of epoch
-func (c *StandardHttpClient) GetValidatorStatuses(pubkeys []types.ValidatorPubkey, opts *beacon.ValidatorStatusOptions) (map[types.ValidatorPubkey]beacon.ValidatorStatus, error) {
+func (c *StandardHttpClient) GetValidatorStatuses(ctx context.Context, pubkeys []types.ValidatorPubkey, opts *beacon.ValidatorStatusOptions) (map[types.ValidatorPubkey]beacon.ValidatorStatus, error) {
 
 	// The null validator pubkey
 	nullPubkey := types.ValidatorPubkey{}
@@ -242,7 +235,7 @@ func (c *StandardHttpClient) GetValidatorStatuses(pubkeys []types.ValidatorPubke
 	}
 
 	// Get validators
-	validators, err := c.getValidatorsByOpts(pubkeysHex, opts)
+	validators, err := c.getValidatorsByOpts(ctx, pubkeysHex, opts)
 	if err != nil {
 		return nil, err
 	}
@@ -279,25 +272,6 @@ func (c *StandardHttpClient) GetValidatorStatuses(pubkeys []types.ValidatorPubke
 
 	// Return
 	return statuses, nil
-
-}
-
-// Get a validator's index
-func (c *StandardHttpClient) GetValidatorIndex(pubkey types.ValidatorPubkey) (uint64, error) {
-
-	// Get validator
-	pubkeyString := utils.AddPrefix(pubkey.Hex())
-	validators, err := c.getValidatorsByOpts([]string{pubkeyString}, nil)
-	if err != nil {
-		return 0, err
-	}
-	if len(validators.Data) == 0 {
-		return 0, fmt.Errorf("validator %s index not found", pubkeyString)
-	}
-	validator := validators.Data[0]
-
-	// Return validator index
-	return uint64(validator.Index), nil
 
 }
 
@@ -580,12 +554,12 @@ func (c *StandardHttpClient) getFinalityCheckpoints(stateId string) (FinalityChe
 }
 
 // Get validators
-func (c *StandardHttpClient) getValidators(stateId string, pubkeys []string) (ValidatorsResponse, error) {
+func (c *StandardHttpClient) getValidators(ctx context.Context, stateId string, pubkeys []string) (ValidatorsResponse, error) {
 	var query string
 	if len(pubkeys) > 0 {
 		query = fmt.Sprintf("?id=%s", strings.Join(pubkeys, ","))
 	}
-	responseBody, status, err := c.getRequest(fmt.Sprintf(RequestValidatorsPath, stateId) + query)
+	responseBody, status, err := c.getRequest(fmt.Sprintf(RequestValidatorsPath, stateId)+query, ctx)
 	if err != nil {
 		return ValidatorsResponse{}, fmt.Errorf("could not get validators: %w", err)
 	}
@@ -601,7 +575,7 @@ func (c *StandardHttpClient) getValidators(stateId string, pubkeys []string) (Va
 }
 
 // Get validators by pubkeys and status options
-func (c *StandardHttpClient) getValidatorsByOpts(pubkeysOrIndices []string, opts *beacon.ValidatorStatusOptions) (ValidatorsResponse, error) {
+func (c *StandardHttpClient) getValidatorsByOpts(ctx context.Context, pubkeysOrIndices []string, opts *beacon.ValidatorStatusOptions) (ValidatorsResponse, error) {
 
 	// Get state ID
 	var stateId string
@@ -634,7 +608,7 @@ func (c *StandardHttpClient) getValidatorsByOpts(pubkeysOrIndices []string, opts
 		for vi := vsi; vi < vei; vi++ {
 			batch[vi-vsi] = pubkeysOrIndices[vi]
 		}
-		validators, err := c.getValidators(stateId, batch)
+		validators, err := c.getValidators(ctx, stateId, batch)
 		if err != nil {
 			return ValidatorsResponse{}, err
 		}
@@ -678,12 +652,25 @@ func (c *StandardHttpClient) getBeaconBlock(blockId uint64) (BeaconBlockResponse
 }
 
 // Make a GET request to the beacon node
-func (c *StandardHttpClient) getRequest(requestPath string) ([]byte, int, error) {
+func (c *StandardHttpClient) getRequest(requestPath string, optionalCtx ...context.Context) ([]byte, int, error) {
+	var ctx context.Context
+	if len(optionalCtx) == 0 {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(context.Background(), 120*time.Second)
+		defer cancel()
+	} else if len(optionalCtx) == 1 {
+		ctx = optionalCtx[0]
+	} else {
+		return nil, 0, fmt.Errorf("you can pass only one context")
+	}
 
-	// Send request
-	client := http.Client{Timeout: 120 * time.Second}
+	url := fmt.Sprintf(RequestUrlFormat, c.providerAddress, requestPath)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return nil, 0, err
+	}
 
-	response, err := client.Get(fmt.Sprintf(RequestUrlFormat, c.providerAddress, requestPath))
+	response, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return []byte{}, 0, err
 	}
@@ -691,15 +678,12 @@ func (c *StandardHttpClient) getRequest(requestPath string) ([]byte, int, error)
 		_ = response.Body.Close()
 	}()
 
-	// Get response
 	body, err := io.ReadAll(response.Body)
 	if err != nil {
 		return []byte{}, 0, err
 	}
 
-	// Return
 	return body, response.StatusCode, nil
-
 }
 
 // Make a POST request to the beacon node

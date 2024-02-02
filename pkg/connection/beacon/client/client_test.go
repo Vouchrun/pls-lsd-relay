@@ -55,7 +55,7 @@ func TestStatus(t *testing.T) {
 	}
 	epoch1 := uint64(912384)
 	// epoch3 := uint64(167678)
-	startStatus1, err := c.GetValidatorStatus(pubkey, &beacon.ValidatorStatusOptions{
+	startStatus1, err := c.GetValidatorStatus(context.TODO(), pubkey, &beacon.ValidatorStatusOptions{
 		Epoch: &epoch1,
 	})
 	if err != nil {

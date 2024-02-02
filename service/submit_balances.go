@@ -1,8 +1,10 @@
 package service
 
 import (
+	"context"
 	"fmt"
 	"math/big"
+	"time"
 
 	"github.com/pkg/errors"
 	"github.com/shopspring/decimal"
@@ -13,6 +15,8 @@ import (
 )
 
 func (s *Service) submitBalances() error {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Minute*5)
+	defer cancel()
 	beaconHead, err := s.connection.BeaconHead()
 	if err != nil {
 		return err
@@ -71,7 +75,7 @@ func (s *Service) submitBalances() error {
 	// user eth from validators
 	totalUserEthFromValidatorDeci := decimal.Zero
 	for _, validator := range targetValidators {
-		userAllEth, err := s.getUserEthInfoFromValidatorBalance(validator, targetEpoch)
+		userAllEth, err := s.getUserEthInfoFromValidatorBalance(ctx, validator, targetEpoch)
 		if err != nil {
 			return err
 		}
@@ -154,7 +158,7 @@ func (s *Service) submitBalances() error {
 
 }
 
-func (task *Service) getUserEthInfoFromValidatorBalance(validator *Validator, targetEpoch uint64) (decimal.Decimal, error) {
+func (task *Service) getUserEthInfoFromValidatorBalance(ctx context.Context, validator *Validator, targetEpoch uint64) (decimal.Decimal, error) {
 	// todo use status on target epoch
 	switch validator.Status {
 	case utils.ValidatorStatusDeposited, utils.ValidatorStatusWithdrawMatch, utils.ValidatorStatusWithdrawUnmatch:
@@ -181,7 +185,7 @@ func (task *Service) getUserEthInfoFromValidatorBalance(validator *Validator, ta
 			return userDepositBalance, nil
 		}
 
-		validatorStatus, err := task.connection.GetValidatorStatus(types.BytesToValidatorPubkey(validator.Pubkey), &beacon.ValidatorStatusOptions{
+		validatorStatus, err := task.connection.GetValidatorStatus(ctx, types.BytesToValidatorPubkey(validator.Pubkey), &beacon.ValidatorStatusOptions{
 			Epoch: &targetEpoch,
 		})
 		if err != nil {
