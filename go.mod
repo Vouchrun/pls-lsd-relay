@@ -22,7 +22,6 @@ require (
 	github.com/stafiprotocol/chainbridge v0.0.0-20201204032253-9b92852c8d66
 	github.com/stephennancekivell/go-micro-bee v0.0.0-20230604080939-50c3f7f4cf80
 	github.com/stretchr/testify v1.8.4
-	github.com/wealdtech/go-eth2-types/v2 v2.8.1
 	golang.org/x/crypto v0.12.0
 	golang.org/x/exp v0.0.0-20230810033253-352e893a4cad
 	golang.org/x/sync v0.3.0
@@ -43,7 +42,6 @@ require (
 	github.com/deckarep/golang-set/v2 v2.1.0 // indirect
 	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.1.0 // indirect
 	github.com/ethereum/c-kzg-4844 v0.3.1 // indirect
-	github.com/ferranbt/fastssz v0.1.3 // indirect
 	github.com/fsnotify/fsnotify v1.6.0 // indirect
 	github.com/go-ole/go-ole v1.2.6 // indirect
 	github.com/go-stack/stack v1.8.1 // indirect
