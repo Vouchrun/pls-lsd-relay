@@ -289,13 +289,6 @@ func TestBalance(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Log(utils.StartSlotOfEpoch(config, epoch))
-
-	proposers, err := c.GetValidatorProposerDuties(epoch)
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Log(proposers)
-
 }
 
 func TestGettingFirstNodeStakeEvent(t *testing.T) {

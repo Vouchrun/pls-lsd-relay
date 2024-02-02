@@ -15,7 +15,6 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/stafiprotocol/eth-lsd-relay/pkg/connection/types"
-	eth2types "github.com/wealdtech/go-eth2-types/v2"
 	"golang.org/x/sync/errgroup"
 
 	gtypes "github.com/ethereum/go-ethereum/core/types"
@@ -33,16 +32,10 @@ const (
 	RequestEth2ConfigPath            = "/eth/v1/config/spec"
 	RequestEth2DepositContractMethod = "/eth/v1/config/deposit_contract"
 	RequestGenesisPath               = "/eth/v1/beacon/genesis"
-	RequestCommitteePath             = "/eth/v1/beacon/states/%s/committees"
 	RequestFinalityCheckpointsPath   = "/eth/v1/beacon/states/%s/finality_checkpoints"
-	RequestForkPath                  = "/eth/v1/beacon/states/%s/fork"
 	RequestValidatorsPath            = "/eth/v1/beacon/states/%s/validators"
 	RequestVoluntaryExitPath         = "/eth/v1/beacon/pool/voluntary_exits"
-	RequestAttestationsPath          = "/eth/v1/beacon/blocks/%s/attestations"
 	RequestBeaconBlockPath           = "/eth/v2/beacon/blocks/%d"
-	RequestValidatorSyncDuties       = "/eth/v1/validator/duties/sync/%s"
-	RequestValidatorProposerDuties   = "/eth/v1/validator/duties/proposer/%s"
-	RequestSyncCommittees            = "/eth/v1/beacon/states/%s/sync_committees"
 
 	MaxRequestValidatorsCount = 50
 )
@@ -293,75 +286,6 @@ func (c *StandardHttpClient) GetValidatorStatuses(pubkeys []types.ValidatorPubke
 
 }
 
-// Get whether validators have sync duties to perform at given epoch
-func (c *StandardHttpClient) GetValidatorSyncDuties(indices []uint64, epoch uint64) (map[uint64]bool, error) {
-
-	// Convert incoming uint64 validator indices into an array of string for the request
-	indicesStrings := make([]string, len(indices))
-
-	for i, index := range indices {
-		indicesStrings[i] = strconv.FormatUint(index, 10)
-	}
-
-	// Perform the post request
-	responseBody, status, err := c.postRequest(fmt.Sprintf(RequestValidatorSyncDuties, strconv.FormatUint(epoch, 10)), indicesStrings)
-
-	if err != nil {
-		return nil, fmt.Errorf("could not get validator sync duties: %w", err)
-	}
-	if status != http.StatusOK {
-		return nil, fmt.Errorf("could not get validator sync duties: HTTP status %d; response body: '%s'", status, string(responseBody))
-	}
-
-	var response SyncDutiesResponse
-	if err := json.Unmarshal(responseBody, &response); err != nil {
-		return nil, fmt.Errorf("could not decode validator sync duties data: %w", err)
-	}
-
-	// Map the results
-	validatorMap := make(map[uint64]bool)
-
-	for _, index := range indices {
-		validatorMap[index] = false
-		for _, duty := range response.Data {
-			if uint64(duty.ValidatorIndex) == index {
-				validatorMap[index] = true
-				break
-			}
-		}
-	}
-
-	return validatorMap, nil
-}
-
-// proposer duties for a given epoch, return [slot][valIndex]
-func (c *StandardHttpClient) GetValidatorProposerDuties(epoch uint64) (map[uint64]uint64, error) {
-
-	// Perform the post request
-	responseBody, status, err := c.getRequest(fmt.Sprintf(RequestValidatorProposerDuties, strconv.FormatUint(epoch, 10)))
-
-	if err != nil {
-		return nil, fmt.Errorf("could not get validator proposer duties: %w", err)
-	}
-	if status != http.StatusOK {
-		return nil, fmt.Errorf("could not get validator proposer duties: HTTP status %d; response body: '%s'", status, string(responseBody))
-	}
-
-	var response ProposerDutiesResponse
-	if err := json.Unmarshal(responseBody, &response); err != nil {
-		return nil, fmt.Errorf("could not decode validator proposer duties data: %w", err)
-	}
-
-	// Map the results
-	proposerMap := make(map[uint64]uint64)
-
-	for _, duty := range response.Data {
-		proposerMap[uint64(duty.Slot)] = uint64(duty.ValidatorIndex)
-	}
-
-	return proposerMap, nil
-}
-
 // Get a validator's index
 func (c *StandardHttpClient) GetValidatorIndex(pubkey types.ValidatorPubkey) (uint64, error) {
 
@@ -378,48 +302,6 @@ func (c *StandardHttpClient) GetValidatorIndex(pubkey types.ValidatorPubkey) (ui
 
 	// Return validator index
 	return uint64(validator.Index), nil
-
-}
-
-// Get domain data for a domain type at a given epoch
-func (c *StandardHttpClient) GetDomainData(domainType []byte, epoch uint64) ([]byte, error) {
-
-	// Data
-	var wg errgroup.Group
-	var genesis GenesisResponse
-	var fork ForkResponse
-
-	// Get genesis
-	wg.Go(func() error {
-		var err error
-		genesis, err = c.getGenesis()
-		return err
-	})
-
-	// Get fork
-	wg.Go(func() error {
-		var err error
-		fork, err = c.getFork("head")
-		return err
-	})
-
-	// Wait for data
-	if err := wg.Wait(); err != nil {
-		return []byte{}, err
-	}
-
-	// Get fork version
-	var forkVersion []byte
-	if epoch < uint64(fork.Data.Epoch) {
-		forkVersion = fork.Data.PreviousVersion
-	} else {
-		forkVersion = fork.Data.CurrentVersion
-	}
-
-	// Compute & return domain
-	var dt [4]byte
-	copy(dt[:], domainType[:])
-	return eth2types.Domain(dt, forkVersion, genesis.Data.GenesisValidatorsRoot), nil
 
 }
 
@@ -453,30 +335,6 @@ func (c *StandardHttpClient) GetEth1DataForEth2Block(blockId uint64) (beacon.Eth
 		BlockHash:    common.HexToHash(block.Data.Message.Body.Eth1Data.BlockHash),
 	}, true, nil
 
-}
-
-func (c *StandardHttpClient) GetAttestations(blockId string) ([]beacon.AttestationInfo, bool, error) {
-	attestations, exists, err := c.getAttestations(blockId)
-	if err != nil {
-		return nil, false, err
-	}
-	if !exists {
-		return nil, false, nil
-	}
-
-	// Add attestation info
-	attestationInfo := make([]beacon.AttestationInfo, len(attestations.Data))
-	for i, attestation := range attestations.Data {
-		bitString := utils.RemovePrefix(attestation.AggregationBits)
-		attestationInfo[i].SlotIndex = uint64(attestation.Data.Slot)
-		attestationInfo[i].CommitteeIndex = uint64(attestation.Data.Index)
-		attestationInfo[i].AggregationBits, err = hex.DecodeString(bitString)
-		if err != nil {
-			return nil, false, fmt.Errorf("decoding aggregation bits for attestation %d of block %s err: %w", i, blockId, err)
-		}
-	}
-
-	return attestationInfo, true, nil
 }
 
 func (c *StandardHttpClient) GetBeaconBlock(blockId uint64) (beacon.BeaconBlock, bool, error) {
@@ -645,49 +503,6 @@ func (c *StandardHttpClient) GetBeaconBlock(blockId uint64) (beacon.BeaconBlock,
 	return beaconBlock, true, nil
 }
 
-// Get the attestation committees for the given epoch, or the current epoch if nil
-func (c *StandardHttpClient) GetCommitteesForEpoch(epoch uint64) ([]beacon.Committee, error) {
-	response, err := c.getCommittees("head", &epoch)
-	if err != nil {
-		return nil, err
-	}
-
-	committees := []beacon.Committee{}
-	for _, committee := range response.Data {
-		validators := []uint64{}
-		for _, validator := range committee.Validators {
-			validators = append(validators, uint64(validator))
-		}
-		committees = append(committees, beacon.Committee{
-			Index:      uint64(committee.Index),
-			Slot:       uint64(committee.Slot),
-			Validators: validators,
-		})
-	}
-
-	return committees, nil
-}
-
-func (c *StandardHttpClient) GetSyncCommitteesForEpoch(epoch uint64) ([]beacon.SyncCommittee, error) {
-	response, err := c.getSyncCommittees("head", &epoch)
-	if err != nil {
-		return nil, err
-	}
-
-	committees := []beacon.SyncCommittee{}
-	for _, valIndexStr := range response.Data.Validators {
-		valIndexU64, err := strconv.ParseUint(valIndexStr, 10, 64)
-		if err != nil {
-			return nil, fmt.Errorf("in sync_committee for epoch %d validator has bad validator index: %q", epoch, valIndexStr)
-		}
-		committees = append(committees, beacon.SyncCommittee{
-			ValIndex: valIndexU64,
-		})
-	}
-
-	return committees, nil
-}
-
 // Get sync status
 func (c *StandardHttpClient) getSyncStatus() (SyncStatusResponse, error) {
 	responseBody, status, err := c.getRequest(RequestSyncStatusPath)
@@ -766,22 +581,6 @@ func (c *StandardHttpClient) getFinalityCheckpoints(stateId string) (FinalityChe
 		return FinalityCheckpointsResponse{}, fmt.Errorf("could not decode finality checkpoints: %w", err)
 	}
 	return finalityCheckpoints, nil
-}
-
-// Get fork
-func (c *StandardHttpClient) getFork(stateId string) (ForkResponse, error) {
-	responseBody, status, err := c.getRequest(fmt.Sprintf(RequestForkPath, stateId))
-	if err != nil {
-		return ForkResponse{}, fmt.Errorf("could not get fork data: %w", err)
-	}
-	if status != http.StatusOK {
-		return ForkResponse{}, fmt.Errorf("could not get fork data: HTTP status %d; response body: '%s'", status, string(responseBody))
-	}
-	var fork ForkResponse
-	if err := json.Unmarshal(responseBody, &fork); err != nil {
-		return ForkResponse{}, fmt.Errorf("could not decode fork data: %w", err)
-	}
-	return fork, nil
 }
 
 // Get validators
@@ -876,25 +675,6 @@ func (c *StandardHttpClient) postVoluntaryExit(request VoluntaryExitRequest) err
 }
 
 // Get the target beacon block
-func (c *StandardHttpClient) getAttestations(blockId string) (AttestationsResponse, bool, error) {
-	responseBody, status, err := c.getRequest(fmt.Sprintf(RequestAttestationsPath, blockId))
-	if err != nil {
-		return AttestationsResponse{}, false, fmt.Errorf("could not get attestations data for slot %s: %w", blockId, err)
-	}
-	if status == http.StatusNotFound {
-		return AttestationsResponse{}, false, nil
-	}
-	if status != http.StatusOK {
-		return AttestationsResponse{}, false, fmt.Errorf("could not get attestations data for slot %s: HTTP status %d; response body: '%s'", blockId, status, string(responseBody))
-	}
-	var attestations AttestationsResponse
-	if err := json.Unmarshal(responseBody, &attestations); err != nil {
-		return AttestationsResponse{}, false, fmt.Errorf("could not decode attestations data for slot %s: %w", blockId, err)
-	}
-	return attestations, true, nil
-}
-
-// Get the target beacon block
 func (c *StandardHttpClient) getBeaconBlock(blockId uint64) (BeaconBlockResponse, bool, error) {
 	responseBody, status, err := c.getRequest(fmt.Sprintf(RequestBeaconBlockPath, blockId))
 	if err != nil {
@@ -911,46 +691,6 @@ func (c *StandardHttpClient) getBeaconBlock(blockId uint64) (BeaconBlockResponse
 		return BeaconBlockResponse{}, false, fmt.Errorf("could not decode beacon block data: %w", err)
 	}
 	return beaconBlock, true, nil
-}
-
-// Get the committees for the epoch
-func (c *StandardHttpClient) getCommittees(stateId string, epoch *uint64) (CommitteesResponse, error) {
-	query := ""
-	if epoch != nil {
-		query = fmt.Sprintf("?epoch=%d", *epoch)
-	}
-	responseBody, status, err := c.getRequest(fmt.Sprintf(RequestCommitteePath, stateId) + query)
-	if err != nil {
-		return CommitteesResponse{}, fmt.Errorf("could not get committees: %w", err)
-	}
-	if status != http.StatusOK {
-		return CommitteesResponse{}, fmt.Errorf("could not get committees: HTTP status %d; response body: '%s'", status, string(responseBody))
-	}
-	var committees CommitteesResponse
-	if err := json.Unmarshal(responseBody, &committees); err != nil {
-		return CommitteesResponse{}, fmt.Errorf("could not decode committees: %w", err)
-	}
-	return committees, nil
-}
-
-// Get the sync committees for the epoch
-func (c *StandardHttpClient) getSyncCommittees(stateId string, epoch *uint64) (SyncCommitteesResponse, error) {
-	query := ""
-	if epoch != nil {
-		query = fmt.Sprintf("?epoch=%d", *epoch)
-	}
-	responseBody, status, err := c.getRequest(fmt.Sprintf(RequestSyncCommittees, stateId) + query)
-	if err != nil {
-		return SyncCommitteesResponse{}, fmt.Errorf("could not get sync committees: %w", err)
-	}
-	if status != http.StatusOK {
-		return SyncCommitteesResponse{}, fmt.Errorf("could not get sync committees: HTTP status %d; response body: '%s'", status, string(responseBody))
-	}
-	var committees SyncCommitteesResponse
-	if err := json.Unmarshal(responseBody, &committees); err != nil {
-		return SyncCommitteesResponse{}, fmt.Errorf("could not decode sync committees: %w", err)
-	}
-	return committees, nil
 }
 
 // Make a GET request to the beacon node
