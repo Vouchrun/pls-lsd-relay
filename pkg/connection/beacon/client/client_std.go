@@ -40,10 +40,6 @@ const (
 	MaxRequestValidatorsCount = 50
 )
 
-var (
-	retryLimit = 10
-)
-
 // Beacon client using the standard Beacon HTTP REST API (https://ethereum.github.io/beacon-APIs/)
 type StandardHttpClient struct {
 	providerAddress string
@@ -638,23 +634,11 @@ func (c *StandardHttpClient) getValidatorsByOpts(pubkeysOrIndices []string, opts
 		for vi := vsi; vi < vei; vi++ {
 			batch[vi-vsi] = pubkeysOrIndices[vi]
 		}
-
-		// Get & add validators
-		var validators ValidatorsResponse
-		var err error
-		retry := 0
-		for {
-			if retry > retryLimit {
-				return ValidatorsResponse{}, err
-			}
-			validators, err = c.getValidators(stateId, batch)
-			if err != nil {
-				time.Sleep(time.Millisecond * 200)
-				retry++
-				continue
-			}
-			break
+		validators, err := c.getValidators(stateId, batch)
+		if err != nil {
+			return ValidatorsResponse{}, err
 		}
+
 		data = append(data, validators.Data...)
 
 	}
