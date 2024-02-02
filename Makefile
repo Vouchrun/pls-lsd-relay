@@ -61,4 +61,12 @@ get-lint:
 lint:
 	golangci-lint run ./... --skip-files ".+_test.go"
 
+test:
+	@ls .env-go-test 2> /dev/null || cp .env-go-test-example .env-go-test
+	@if grep 'ETH1_ENDPOINT=""' .env-go-test; then\
+		echo 'Please config your env file, .env-go-test, for testing'; \
+		exit 99; \
+	fi
+	@godotenv -f .env-go-test go test ./...
+
 .PHONY: all lint test race msan tools clean build install

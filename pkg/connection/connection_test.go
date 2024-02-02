@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"math/big"
+	"os"
 	"sort"
 	"strings"
 	"testing"
@@ -25,7 +26,7 @@ import (
 )
 
 func TestCallOpts(t *testing.T) {
-	c, err := connection.NewConnection("https://eth-mainnet.g.alchemy.com/v2/3whje5yFZZxg9BqsldHTRku-VXWuf88E", "https://beaconcha-rpc2.stafi.io", nil, nil, nil)
+	c, err := connection.NewConnection(os.Getenv("ETH1_ENDPOINT"), os.Getenv("ETH2_ENDPOINT"), nil, nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -60,12 +61,11 @@ func TestCallOpts(t *testing.T) {
 }
 
 func TestBlockReward(t *testing.T) {
-	// c, err := shared.NewConnection("https://eth-mainnet.g.alchemy.com/v2/3whje5yFZZxg9BqsldHTRku-VXWuf88E", "https://beaconcha-rpc2.stafi.io", nil, nil, nil)
-	c, err := connection.NewConnection("https://eth-mainnet.g.alchemy.com/v2/3whje5yFZZxg9BqsldHTRku-VXWuf88E", "https://beacon-lighthouse.stafi.io", nil, nil, nil)
+	c, err := connection.NewConnection(os.Getenv("ETH1_ENDPOINT"), os.Getenv("ETH2_ENDPOINT"), nil, nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	eth1Block, err := c.Eth1Client().BlockByNumber(context.Background(), big.NewInt(15979869))
+	eth1Block, err := c.Eth1Client().BlockByNumber(context.Background(), big.NewInt(859542))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -84,7 +84,7 @@ func TestBlockReward(t *testing.T) {
 	}
 	t.Log(totalFee)
 
-	eth1Block, err = c.Eth1Client().BlockByNumber(context.Background(), big.NewInt(15979870))
+	eth1Block, err = c.Eth1Client().BlockByNumber(context.Background(), big.NewInt(859543))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -110,8 +110,7 @@ func TestBlockDetail(t *testing.T) {
 	sort.SliceStable(s, func(i, j int) bool { return s[i] < s[j] })
 
 	logrus.SetLevel(logrus.DebugLevel)
-	// c, err := shared.NewConnection("https://rpc.zhejiang.ethpandaops.io", "https://beacon.zhejiang.ethpandaops.io", nil, nil, nil)
-	c, err := connection.NewConnection("https://mainnet.infura.io/v3/4d058381a4d64d31b00a4e15df3ddb94", "https://beacon-lighthouse.stafi.io", nil, nil, nil)
+	c, err := connection.NewConnection(os.Getenv("ETH1_ENDPOINT"), os.Getenv("ETH2_ENDPOINT"), nil, nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -224,7 +223,7 @@ func TestBlockDetail(t *testing.T) {
 }
 
 func TestBalance(t *testing.T) {
-	cc, err := ethclient.Dial("https://evm.confluxrpc.com")
+	cc, err := ethclient.Dial(os.Getenv("ETH1_ENDPOINT"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -233,14 +232,14 @@ func TestBalance(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Log(blockNumber)
-	tx, err := cc.TransactionReceipt(context.Background(), common.HexToHash("0x5f32eba11a34c7856df21b031f932a88fc935ef95bb3cdfe04e5d5e3f3ffce8b"))
+	tx, err := cc.TransactionReceipt(context.Background(), common.HexToHash("0x7e1bd5879335a0bc5d088f7709d76ba257de6b00473bc441c65fa9eedd552e57"))
 	if err != nil {
 		t.Fatal(err)
 	}
 	t.Log(tx.Logs)
 
 	return
-	c, err := connection.NewConnection("https://rpc.zhejiang.ethpandaops.io", "https://beacon.zhejiang.ethpandaops.io", nil, nil, nil)
+	c, err := connection.NewConnection(os.Getenv("ETH1_ENDPOINT"), os.Getenv("ETH2_ENDPOINT"), nil, nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -292,7 +291,7 @@ func TestBalance(t *testing.T) {
 }
 
 func TestGettingFirstNodeStakeEvent(t *testing.T) {
-	c, err := connection.NewConnection("https://eth-goerli.g.alchemy.com/v2/ttJ0x4Zlxb_b7bdiX151hKUiYBdjYduG", "https://beacon-lighthouse-goerli.stafi.io", nil, nil, nil)
+	c, err := connection.NewConnection(os.Getenv("ETH1_ENDPOINT"), os.Getenv("ETH2_ENDPOINT"), nil, nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

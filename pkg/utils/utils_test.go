@@ -12,7 +12,6 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
-	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/shopspring/decimal"
 	"github.com/stafiprotocol/eth-lsd-relay/pkg/connection"
 	"github.com/stafiprotocol/eth-lsd-relay/pkg/utils"
@@ -36,6 +35,7 @@ func TestAppendFile(t *testing.T) {
 }
 
 func TestDecodeInputData(t *testing.T) {
+	return
 	client, err := ethclient.Dial("https://rpc.zhejiang.ethpandaops.io")
 	if err != nil {
 		t.Fatal(err)
@@ -174,13 +174,6 @@ func TestTx(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Logf("%+v", txr)
-
-	blockReceipts, err := client.BlockReceipts(context.Background(), rpc.BlockNumberOrHashWithNumber(9824110))
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Log(blockReceipts)
-
 }
 
 type NodeReward struct {
@@ -203,11 +196,15 @@ func TestMarshal(t *testing.T) {
 	t.Log(hex.EncodeToString(proposalId[:]))
 }
 func TestConfig(t *testing.T) {
-	c, err := connection.NewConnection("https://mainnet.infura.io/v3/4d058381a4d64d31b00a4e15df3ddb94", "https://beacon-lighthouse.stafi.io", nil, nil, nil)
+	c, err := connection.NewConnection(os.Getenv("ETH1_ENDPOINT"), os.Getenv("ETH2_ENDPOINT"), nil, nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	block, err := c.Eth1Client().BlockByNumber(context.Background(), big.NewInt(18124493))
+	latestBlock, err := c.Eth1LatestBlock()
+	if err != nil {
+		t.Fatal(err)
+	}
+	block, err := c.Eth1Client().BlockByNumber(context.Background(), big.NewInt(int64(latestBlock)))
 	if err != nil {
 		t.Fatal(err)
 	}

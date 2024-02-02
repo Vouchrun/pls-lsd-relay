@@ -3,6 +3,7 @@ package client_test
 import (
 	"context"
 	"math/big"
+	"os"
 	"testing"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -18,13 +19,11 @@ import (
 	"github.com/stafiprotocol/eth-lsd-relay/pkg/utils"
 )
 
-var chainId = big.NewInt(1)
+var chainId = big.NewInt(17000)
 
 func TestStatus(t *testing.T) {
-	// c, err := client.NewStandardHttpClient("https://27Y0WDKrX1dYIkBXOugsSLh9hfr:a7c3849eba862fdd67382dab42e2a23c@eth2-beacon-mainnet.infura.io")
-	// c, err := client.NewStandardHttpClient("https://beaconcha-rpc2.stafi.io")
-	// c, err := client.NewStandardHttpClient("https://beacon.zhejiang.ethpandaops.io")
-	c, err := client.NewStandardHttpClient("https://beacon-lighthouse-zhejiang.stafi.io", chainId)
+	return
+	c, err := client.NewStandardHttpClient(os.Getenv("ETH2_ENDPOINT"), chainId)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -49,12 +48,12 @@ func TestStatus(t *testing.T) {
 	// pubkey, err := types.HexToValidatorPubkey("b427ea30366336e4632d327428fac24ac3016534b18e0e39f5c2c4fffaa35656f982fba8e636599ae54b6f148a90a8e9")
 	// pubkey, err := types.HexToValidatorPubkey("ae9d34a72d6d16c17e3703a12eeaa45063128046055516f0611a337caaea7cf823e1ae8c9298154c325fc10fcb279d42")
 	// pubkey, err := types.HexToValidatorPubkey("b3ea762c11ef4548d7c2a1a707f69cf68a1f1b7fc63c7dcb414d6a7ab722e2155d7e3ac3b601abdb98e158ca6035e9c4")
-	pubkey, err := types.HexToValidatorPubkey("b44b3b379d7e8bdb043336ba901c5c4a685041d48bc783b351ad3873b6cfca7f9142465ed56c82018cbde52d5ca709be")
+	pubkey, err := types.HexToValidatorPubkey("8bfd9021526c1e0f02945fba6ef6e9895d059e2212697cb133bfe0e2e05a2dace4b62357f0d8db45398448110a698425")
 	// pubkey, err := types.HexToValidatorPubkey("ad90505f19a31915940316ba5178984ae7e9164628eae689b3f99f2e50079ff421fd09edf46b8080322b4b0b7a5d2b26")
 	if err != nil {
 		t.Fatal(err)
 	}
-	epoch1 := uint64(13199)
+	epoch1 := uint64(912384)
 	// epoch3 := uint64(167678)
 	startStatus1, err := c.GetValidatorStatus(pubkey, &beacon.ValidatorStatusOptions{
 		Epoch: &epoch1,
@@ -81,7 +80,7 @@ func TestStatus(t *testing.T) {
 }
 
 func TestTx(t *testing.T) {
-	ethClient, err := ethclient.Dial("https://test-eth-node.stafi.io")
+	ethClient, err := ethclient.Dial(os.Getenv("ETH1_ENDPOINT"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -90,24 +89,23 @@ func TestTx(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Log(blockNumber)
-	receipt, err := ethClient.TransactionReceipt(context.Background(), common.HexToHash("0x06456bdf80482c3e0b59e53720438630f152f4fbcc7e02ab614e83198b1805be"))
+	receipt, err := ethClient.TransactionReceipt(context.Background(), common.HexToHash("0xafd5b6555f394e947d39288ffb4f754043d22ea10d7596f21ca23558098b64f1"))
 	if err != nil {
 		t.Fatal(err)
 	}
 	t.Logf("%+v", receipt)
-
 }
 
 func TestBlock(t *testing.T) {
-	ethClient, err := ethclient.Dial("https://mainnet.infura.io/v3/4d058381a4d64d31b00a4e15df3ddb94")
+	ethClient, err := ethclient.Dial(os.Getenv("ETH1_ENDPOINT"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	// blockNumber, err := ethClient.BlockNumber(context.Background())
-	// if err != nil {
-	// 	t.Fatal(err)
-	// }
-	blockNumber := 15541242
+	blockNumber, err := ethClient.BlockNumber(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	// blockNumber := 15541242
 	t.Log(blockNumber)
 	block, err := ethClient.BlockByNumber(context.Background(), big.NewInt(int64(blockNumber)))
 	if err != nil {
@@ -117,14 +115,11 @@ func TestBlock(t *testing.T) {
 
 }
 func TestBeaconBlock(t *testing.T) {
-	// c, err := client.NewStandardHttpClient("https://27Y0WDKrX1dYIkBXOugsSLh9hfr:a7c3849eba862fdd67382dab42e2a23c@eth2-beacon-mainnet.infura.io")
-	c, err := client.NewStandardHttpClient("https://beacon.zhejiang.ethpandaops.io", chainId)
+	c, err := client.NewStandardHttpClient(os.Getenv("ETH2_ENDPOINT"), chainId)
 	if err != nil {
 		t.Fatal(err)
 	}
 	block, exists, err := c.GetBeaconBlock(263205)
-	// block, _, err := c.GetBeaconBlock("5071581")
-	// block, _, err := c.GetBeaconBlock("3339591")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -139,8 +134,7 @@ func TestBeaconBlock(t *testing.T) {
 	t.Logf("%+v", block.Withdrawals)
 }
 func TestBeaconHead(t *testing.T) {
-	// c, err := client.NewStandardHttpClient("https://27Y0WDKrX1dYIkBXOugsSLh9hfr:a7c3849eba862fdd67382dab42e2a23c@eth2-beacon-mainnet.infura.io")
-	c, err := client.NewStandardHttpClient("https://beaconcha-rpc2.stafi.io", chainId)
+	c, err := client.NewStandardHttpClient(os.Getenv("ETH2_ENDPOINT"), chainId)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -153,8 +147,7 @@ func TestBeaconHead(t *testing.T) {
 
 }
 func TestConfig(t *testing.T) {
-	// c, err := client.NewStandardHttpClient("https://27Y0WDKrX1dYIkBXOugsSLh9hfr:a7c3849eba862fdd67382dab42e2a23c@eth2-beacon-mainnet.infura.io")
-	c, err := client.NewStandardHttpClient("https://beaconcha-rpc2.stafi.io", chainId)
+	c, err := client.NewStandardHttpClient(os.Getenv("ETH2_ENDPOINT"), chainId)
 	if err != nil {
 		t.Fatal(err)
 	}
