@@ -384,7 +384,6 @@ func (s *Service) Start() error {
 	s.cycleSeconds = cycleSeconds.Uint64()
 
 	// init latest block and slot number
-	s.minExecutionBlockHeight = s.startAtBlock
 	s.latestBlockOfUpdateValidator = s.startAtBlock
 	s.latestBlockOfSyncEvents = s.startAtBlock
 	if err = s.initLatestBlockOfSyncBlock(); err != nil {
@@ -510,6 +509,7 @@ func (s *Service) seekFirstNodeStakeEvent() (bool, error) {
 
 func (s *Service) startHandlers() {
 	s.startServiceOnce.Do(func() {
+		s.minExecutionBlockHeight = s.startAtBlock
 		s.log.WithFields(logrus.Fields{
 			"latestBlockOfSyncBlock": s.latestBlockOfSyncBlock,
 		}).Info("start voting handlers")
