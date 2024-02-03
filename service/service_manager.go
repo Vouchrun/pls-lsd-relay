@@ -173,7 +173,7 @@ func (m *ServiceManager) syncEntrustedLsdTokens() error {
 			log.Info("stopping service")
 			srv.Stop()
 			m.srvs.Delete(token)
-			log.Warn("stopped service")
+			log.Info("stopped service")
 		}
 		return true
 	})
@@ -196,7 +196,7 @@ func (m *ServiceManager) newAndStartServiceFor(lsdToken string) (*Service, error
 		return nil, fmt.Errorf("start service for lsd token %s err %s", lsdToken, err.Error())
 	}
 	m.srvs.Store(lsdToken, srv)
-	log.Warn("started service")
+	log.Info("started service")
 	return srv, nil
 }
 
