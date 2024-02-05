@@ -514,10 +514,29 @@ func (s *Service) startHandlers() {
 			"latestBlockOfSyncBlock": s.latestBlockOfSyncBlock,
 		}).Info("start voting handlers")
 
-		s.startGroupHanders(12*time.Second, s.syncBlocks, s.updateValidatorsFromNetwork, s.voteWithdrawCredentials)
-		s.startGroupHanders(5*time.Minute,
-			s.updateValidatorsFromBeacon, s.syncEvents, s.submitBalances,
-			s.distributeWithdrawals, s.distributePriorityFee, s.setMerkleRoot, s.notifyValidatorExit, s.pruneBlocks)
+		s.startGroupHanders(func() time.Duration {
+			return time.Duration(s.eth2Config.SecondsPerSlot) * time.Second
+		}, s.syncBlocks, s.syncEvents, s.updateValidatorsFromNetwork, s.voteWithdrawCredentials)
+		s.startGroupHanders(func() time.Duration {
+			slotDur := time.Duration(s.eth2Config.SecondsPerSlot) * time.Second
+			epochDur := time.Duration(s.eth2Config.SlotsPerEpoch) * slotDur
+			beaconHead, err := s.connection.BeaconHead()
+			if err != nil {
+				return 6 * slotDur
+			}
+			// use 2 advance epoch to calc sleep duration
+			epoch := beaconHead.Epoch + 2
+			targetEpoch := (epoch / s.submitBalancesDuEpochs) * s.submitBalancesDuEpochs
+			distance := epoch - targetEpoch
+			if distance < s.submitBalancesDuEpochs/10 {
+				return slotDur
+			} else if distance < s.submitBalancesDuEpochs/2 {
+				return epochDur
+			}
+			return 2 * epochDur
+		},
+			s.updateValidatorsFromBeacon, s.submitBalances, s.distributeWithdrawals,
+			s.distributePriorityFee, s.setMerkleRoot, s.notifyValidatorExit, s.pruneBlocks)
 	})
 }
 
@@ -653,7 +672,7 @@ func (s *Service) initLatestBlockOfSyncBlock() error {
 	return nil
 }
 
-func (s *Service) startGroupHanders(interval time.Duration, handlerFns ...func() error) {
+func (s *Service) startGroupHanders(sleepIntervalFn func() time.Duration, handlerFns ...func() error) {
 	if len(handlerFns) == 0 {
 		panic("handlers can not be empty")
 	}
@@ -699,14 +718,14 @@ func (s *Service) startGroupHanders(interval time.Duration, handlerFns ...func()
 
 					err := handler.method()
 					if err != nil {
-						retryIn := interval
+						retry++
+						retryIn := sleepIntervalFn()
 						log.WithFields(logrus.Fields{
 							"retry_in":    retryIn,
 							"retry_times": retry,
 							"err":         err,
-						}).Warnf("handler failed waiting retry")
+						}).Warnf("failed waiting retry")
 						time.Sleep(retryIn)
-						retry++
 						continue Out
 					}
 					log.Debugf("handler end")
@@ -715,7 +734,7 @@ func (s *Service) startGroupHanders(interval time.Duration, handlerFns ...func()
 				retry = 0
 			}
 
-			time.Sleep(interval)
+			time.Sleep(sleepIntervalFn())
 		}
 	})
 }
