@@ -238,6 +238,10 @@ func (m *ServiceManager) CacheBeaconBlock(blockId uint64) (*CachedBeaconBlock, b
 
 	m.cachedBeaconBlockByExecBlockHeight.Store(block.ExecutionBlockNumber, &cachedBlock)
 	m.cachedBeaconBlock.Store(blockId, &cachedBlock)
+
+	if block.ExecutionBlockNumber%1000 == 0 {
+		logrus.Infof("synced block: %d", block.ExecutionBlockNumber)
+	}
 	return &cachedBlock, true, nil
 }
 

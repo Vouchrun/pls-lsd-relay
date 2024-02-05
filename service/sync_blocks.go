@@ -88,10 +88,6 @@ func (s *Service) syncBlocks() error {
 			}
 			s.log.Tracef("save block: %d", beaconBlock.ExecutionBlockNumber)
 
-			if beaconBlock.ExecutionBlockNumber%500 == 0 {
-				s.log.Infof("synced block: %d", beaconBlock.ExecutionBlockNumber)
-			}
-
 			// update latest block
 			if beaconBlock.ExecutionBlockNumber > s.latestBlockOfSyncBlock {
 				s.latestBlockOfSyncBlock = beaconBlock.ExecutionBlockNumber
