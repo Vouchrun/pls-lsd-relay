@@ -1,8 +1,6 @@
 package beacon
 
 import (
-	"math/big"
-
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/prysmaticlabs/go-bitfield"
 	ethpb "github.com/prysmaticlabs/prysm/v4/proto/eth/v1"
@@ -74,10 +72,7 @@ type BeaconBlock struct {
 	SyncAggregate     SyncAggregate
 
 	// execute layer
-	HasExecutionPayload  bool
-	FeeRecipient         common.Address
 	ExecutionBlockNumber uint64
-	PriorityFee          *big.Int // may be nil if not pool validator
 }
 
 type Withdrawal struct {

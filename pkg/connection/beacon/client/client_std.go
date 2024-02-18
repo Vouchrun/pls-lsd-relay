@@ -424,12 +424,7 @@ func (c *StandardHttpClient) GetBeaconBlock(blockId uint64) (beacon.BeaconBlock,
 	}
 
 	// Execution payload only exists after the merge, so check for its existence
-	if block.Data.Message.Body.ExecutionPayload == nil {
-		beaconBlock.HasExecutionPayload = false
-	} else {
-		beaconBlock.HasExecutionPayload = true
-
-		beaconBlock.FeeRecipient = common.HexToAddress(block.Data.Message.Body.ExecutionPayload.FeeRecipient)
+	if block.Data.Message.Body.ExecutionPayload != nil {
 		beaconBlock.ExecutionBlockNumber = uint64(block.Data.Message.Body.ExecutionPayload.BlockNumber)
 	}
 
