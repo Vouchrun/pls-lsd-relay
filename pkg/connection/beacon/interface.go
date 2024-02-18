@@ -77,26 +77,7 @@ type BeaconBlock struct {
 	HasExecutionPayload  bool
 	FeeRecipient         common.Address
 	ExecutionBlockNumber uint64
-	Transactions         []*Transaction
 	PriorityFee          *big.Int // may be nil if not pool validator
-}
-
-type Transaction struct {
-	Raw []byte
-	// Note: below values may be nil/0 if Raw fails to decode into a valid transaction
-	TxHash       []byte
-	AccountNonce uint64
-	// big endian
-	Price     []byte
-	GasLimit  uint64
-	Sender    []byte
-	Recipient []byte
-	// big endian
-	Amount  []byte
-	Payload []byte
-
-	MaxPriorityFeePerGas uint64
-	MaxFeePerGas         uint64
 }
 
 type Withdrawal struct {

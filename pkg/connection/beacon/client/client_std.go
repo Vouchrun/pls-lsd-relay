@@ -14,7 +14,6 @@ import (
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/stafiprotocol/eth-lsd-relay/pkg/connection/types"
 	"golang.org/x/sync/errgroup"
 
@@ -416,42 +415,6 @@ func (c *StandardHttpClient) GetBeaconBlock(blockId uint64) (beacon.BeaconBlock,
 			Amount:         uint64(withdrawal.Amount),
 		})
 	}
-
-	txs := make([]*beacon.Transaction, 0, len(block.Data.Message.Body.ExecutionPayload.Transactions))
-	for i, rawTxStr := range block.Data.Message.Body.ExecutionPayload.Transactions {
-		rawTx, err := hexutil.Decode(rawTxStr)
-		if err != nil {
-			return beacon.BeaconBlock{}, false, err
-		}
-		tx := &beacon.Transaction{Raw: rawTx}
-		var decTx gtypes.Transaction
-		if err := decTx.UnmarshalBinary(rawTx); err != nil {
-			return beacon.BeaconBlock{}, false, fmt.Errorf("error parsing tx %d block %x: %v", i, block.Data.Message.Body.ExecutionPayload.BlockHash, err)
-		} else {
-			h := decTx.Hash()
-			tx.TxHash = h[:]
-			tx.AccountNonce = decTx.Nonce()
-			// big endian
-			tx.Price = decTx.GasPrice().Bytes()
-			tx.GasLimit = decTx.Gas()
-			sender, err := c.signer.Sender(&decTx)
-			if err != nil {
-				return beacon.BeaconBlock{}, false, fmt.Errorf("transaction with invalid sender (tx hash: %x): %v", h, err)
-			}
-			tx.Sender = sender.Bytes()
-			if v := decTx.To(); v != nil {
-				tx.Recipient = v.Bytes()
-			} else {
-				tx.Recipient = []byte{}
-			}
-			tx.Amount = decTx.Value().Bytes()
-			tx.Payload = decTx.Data()
-			tx.MaxPriorityFeePerGas = decTx.GasTipCap().Uint64()
-			tx.MaxFeePerGas = decTx.GasFeeCap().Uint64()
-		}
-		txs = append(txs, tx)
-	}
-	beaconBlock.Transactions = txs
 
 	for _, exitMsg := range block.Data.Message.Body.VoluntaryExits {
 		beaconBlock.VoluntaryExits = append(beaconBlock.VoluntaryExits, beacon.VoluntaryExit{
