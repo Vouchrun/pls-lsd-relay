@@ -697,10 +697,14 @@ func (s *Service) startGroupHanders(sleepIntervalFn func() time.Duration, handle
 	utils.SafeGo(func() {
 		log.Info("start service")
 		retry := 0
+		var retryLog *logrus.Entry
 
 	Out:
 		for {
 			if retry > utils.RetryLimit {
+				if retryLog != nil {
+					retryLog.Errorf("shutting down for too many attempts failed, check your RPC status first")
+				}
 				utils.ShutdownRequestChannel <- struct{}{}
 				return
 			}
@@ -720,11 +724,17 @@ func (s *Service) startGroupHanders(sleepIntervalFn func() time.Duration, handle
 					if err != nil {
 						retry++
 						retryIn := sleepIntervalFn()
-						log.WithFields(logrus.Fields{
-							"retry_in":    retryIn,
+
+						retryLog = log.WithFields(logrus.Fields{
 							"retry_times": retry,
 							"err":         err,
-						}).Warnf("failed waiting retry")
+						})
+						log := retryLog.WithField("retry_in", retryIn)
+						if retry > 50 {
+							log.Debugf("failed waiting retry")
+						} else {
+							log.Warnf("failed waiting retry")
+						}
 						time.Sleep(retryIn)
 						continue Out
 					}
@@ -732,6 +742,7 @@ func (s *Service) startGroupHanders(sleepIntervalFn func() time.Duration, handle
 				}
 
 				retry = 0
+				retryLog = nil
 			}
 
 			time.Sleep(sleepIntervalFn())
