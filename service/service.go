@@ -730,7 +730,7 @@ func (s *Service) startGroupHanders(sleepIntervalFn func() time.Duration, handle
 							"err":         err,
 						})
 						log := retryLog.WithField("retry_in", retryIn)
-						if retry > 50 {
+						if retry < 50 {
 							log.Debugf("failed waiting retry")
 						} else {
 							log.Warnf("failed waiting retry")
