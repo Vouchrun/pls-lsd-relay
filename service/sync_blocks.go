@@ -75,8 +75,6 @@ func (s *Service) syncBlocks() error {
 			if err == ErrExceedsValidatorUpdateBlock {
 				return nil
 			}
-
-			s.log.Warnf("sync block err: %s, will retry", err.Error())
 			return err
 		}
 
