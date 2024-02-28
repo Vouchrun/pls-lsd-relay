@@ -47,7 +47,7 @@ func (s *Service) submitBalances() error {
 		"targetEpoch":          targetEpoch,
 		"targetBlock":          targetBlock,
 		"balancesBlockOnChain": snapshotOnchain.Block.Uint64(),
-	}).Debug("epocheInfo")
+	}).Debug("epochInfo")
 
 	targetCallOpts := s.connection.CallOpts(big.NewInt(int64(targetBlock)))
 
@@ -102,7 +102,7 @@ func (s *Service) submitBalances() error {
 		return err
 	}
 
-	// user eth from undistributed priorityfee
+	// user eth from undistributed priority fee
 	latestDistributePriorityFeeHeight, err := s.networkWithdrawContract.LatestDistributePriorityFeeHeight(targetCallOpts)
 	if err != nil {
 		return err
@@ -169,7 +169,7 @@ func (task *Service) getUserEthInfoFromValidatorBalance(ctx context.Context, val
 			return utils.StandardTrustNodeFakeDepositBalance, nil
 		default:
 			// common node and trust node should not happen here
-			return decimal.Zero, fmt.Errorf("unknow node type: %d", validator.NodeType)
+			return decimal.Zero, fmt.Errorf("unknown node type: %d", validator.NodeType)
 		}
 
 	case utils.ValidatorStatusStaked, utils.ValidatorStatusWaiting:
@@ -202,7 +202,7 @@ func (task *Service) getUserEthInfoFromValidatorBalance(ctx context.Context, val
 		return decimal.Zero, nil
 
 	default:
-		return decimal.Zero, fmt.Errorf("unknow validator status: %d", validator.Status)
+		return decimal.Zero, fmt.Errorf("unknown validator status: %d", validator.Status)
 	}
 }
 

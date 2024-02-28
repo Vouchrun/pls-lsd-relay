@@ -514,10 +514,10 @@ func (s *Service) startHandlers() {
 			"latestBlockOfSyncBlock": s.latestBlockOfSyncBlock,
 		}).Info("start voting handlers")
 
-		s.startGroupHanders(func() time.Duration {
+		s.startGroupHandlers(func() time.Duration {
 			return time.Duration(s.eth2Config.SecondsPerSlot) * time.Second
 		}, s.syncBlocks, s.syncEvents, s.updateValidatorsFromNetwork, s.voteWithdrawCredentials)
-		s.startGroupHanders(func() time.Duration {
+		s.startGroupHandlers(func() time.Duration {
 			slotDur := time.Duration(s.eth2Config.SecondsPerSlot) * time.Second
 			epochDur := time.Duration(s.eth2Config.SlotsPerEpoch) * slotDur
 			beaconHead, err := s.connection.BeaconHead()
@@ -672,7 +672,7 @@ func (s *Service) initLatestBlockOfSyncBlock() error {
 	return nil
 }
 
-func (s *Service) startGroupHanders(sleepIntervalFn func() time.Duration, handlerFns ...func() error) {
+func (s *Service) startGroupHandlers(sleepIntervalFn func() time.Duration, handlerFns ...func() error) {
 	if len(handlerFns) == 0 {
 		panic("handlers can not be empty")
 	}
@@ -760,10 +760,10 @@ func (s *Service) GetValidatorDepositedListBeforeBlock(block uint64) []*Validato
 	return selectedValidator
 }
 
-func (s *Service) getBeaconBlock(eth1BlcokNumber uint64) (*CachedBeaconBlock, error) {
-	block, exist := s.manager.cachedBeaconBlockByExecBlockHeight.Load(eth1BlcokNumber)
+func (s *Service) getBeaconBlock(eth1BlockNumber uint64) (*CachedBeaconBlock, error) {
+	block, exist := s.manager.cachedBeaconBlockByExecBlockHeight.Load(eth1BlockNumber)
 	if !exist {
-		return nil, fmt.Errorf("block %d not cached", eth1BlcokNumber)
+		return nil, fmt.Errorf("getBeaconBlockByEth1BlockNumber %d error: not in cache", eth1BlockNumber)
 	}
 	return block, nil
 }
