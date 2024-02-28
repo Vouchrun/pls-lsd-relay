@@ -253,38 +253,57 @@ func (m *ServiceManager) pruneCachedBeaconBlocksService() {
 }
 func (m *ServiceManager) pruneCachedBeaconBlocks() {
 	var minHeight uint64 = math.MaxUint64
+	var minHeightSrv *Service
 	m.srvs.Range(func(key string, srv *Service) bool {
 		if srv != nil &&
 			!srv.waitFirstNodeStakeEvent &&
 			srv.minExecutionBlockHeight > 0 &&
 			srv.minExecutionBlockHeight < minHeight {
+			minHeightSrv = srv
 			minHeight = srv.minExecutionBlockHeight
 		}
 		return true
 	})
 
-	if minHeight == math.MaxUint64 {
+	if minHeightSrv == nil {
 		return
 	}
 
+	var eth1RemoveCacheCount uint64 = 0
 	var maxClearableBeaconBlockId uint64 = 0
-	m.cachedBeaconBlockByExecBlockHeight.Range(func(blockNumber uint64, b *CachedBeaconBlock) bool {
+	m.cachedBeaconBlockByExecBlockHeight.Range(func(eth1BlockNumber uint64, b *CachedBeaconBlock) bool {
 		if b != nil &&
 			b.ExecutionBlockNumber < minHeight {
 			if maxClearableBeaconBlockId < b.BeaconBlockId {
 				maxClearableBeaconBlockId = b.BeaconBlockId
 			}
-			m.cachedBeaconBlockByExecBlockHeight.Delete(blockNumber)
+			m.cachedBeaconBlockByExecBlockHeight.Delete(eth1BlockNumber)
+			eth1RemoveCacheCount++
 		}
 		return true
 	})
 
+	var eth2RemoveCacheCount uint64 = 0
 	m.cachedBeaconBlock.Range(func(beaconBlockId uint64, b *CachedBeaconBlock) bool {
 		if b != nil &&
-			b.BeaconBlockId <= maxClearableBeaconBlockId {
+			0 < maxClearableBeaconBlockId &&
+			b.BeaconBlockId < maxClearableBeaconBlockId {
 			m.cachedBeaconBlock.Delete(beaconBlockId)
 			m.beaconBlockMutex.Delete(beaconBlockId)
+			eth2RemoveCacheCount++
 		}
 		return true
 	})
+	log := logrus.WithFields(logrus.Fields{
+		"eth1MinHeight":        minHeight,
+		"eth1RemoveCacheCount": eth1RemoveCacheCount,
+		"eth2MinHeight":        maxClearableBeaconBlockId,
+		"eth2RemoveCacheCount": eth2RemoveCacheCount,
+		"minHeightLsd":         minHeightSrv.lsdTokenAddress.String(),
+	})
+	if eth1RemoveCacheCount == 0 && eth2RemoveCacheCount == 0 {
+		log.Debug("prune cache blocks")
+	} else {
+		log.Info("prune cache blocks")
+	}
 }
