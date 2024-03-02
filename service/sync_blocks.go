@@ -9,6 +9,8 @@ import (
 )
 
 var ErrExceedsValidatorUpdateBlock = fmt.Errorf("ErrExceedsValidatorUpdateBlock")
+var ErrHandlerExit = fmt.Errorf("exit")
+var ErrMissingEth1Block = fmt.Errorf("beacon chain missing eth1 block: %w", ErrHandlerExit)
 
 // sync beacon and execution block info
 func (s *Service) syncBlocks() error {
@@ -40,7 +42,7 @@ func (s *Service) syncBlocks() error {
 		preLatestSyncBlock := s.latestBlockOfSyncBlock
 		batchRequestStartTime := time.Now().Unix()
 
-		blockReciever := make([]*CachedBeaconBlock, s.batchRequestBlocksNumber)
+		blockReceiver := make([]*CachedBeaconBlock, s.batchRequestBlocksNumber)
 		for j := subStart; j <= subEnd; j++ {
 			// notice this
 			slot := j
@@ -61,7 +63,7 @@ func (s *Service) syncBlocks() error {
 					return ErrExceedsValidatorUpdateBlock
 				}
 
-				blockReciever[slot-subStart] = beaconBlock
+				blockReceiver[slot-subStart] = beaconBlock
 
 				saveTime := time.Now().Unix()
 				s.log.Tracef("request block %d,start at %d, end at %d, save at: %d ", beaconBlock.ExecutionBlockNumber, startTime, endTime, saveTime)
@@ -80,7 +82,7 @@ func (s *Service) syncBlocks() error {
 
 		batchRequestWaitTime := time.Now().Unix()
 
-		for _, beaconBlock := range blockReciever {
+		for _, beaconBlock := range blockReceiver {
 			if beaconBlock == nil {
 				continue
 			}
@@ -88,6 +90,10 @@ func (s *Service) syncBlocks() error {
 
 			// update latest block
 			if beaconBlock.ExecutionBlockNumber > s.latestBlockOfSyncBlock {
+				if beaconBlock.ExecutionBlockNumber-s.latestBlockOfSyncBlock > 1 {
+					// rpc error missing some blocks
+					return fmt.Errorf("%w at slot: %d desired eth1 block: %d", ErrMissingEth1Block, beaconBlock.BeaconBlockId, s.latestBlockOfSyncBlock+1)
+				}
 				s.latestBlockOfSyncBlock = beaconBlock.ExecutionBlockNumber
 			}
 		}

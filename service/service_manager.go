@@ -273,6 +273,7 @@ func (m *ServiceManager) pruneCachedBeaconBlocks() {
 	var maxClearableBeaconBlockId uint64 = 0
 	m.cachedBeaconBlockByExecBlockHeight.Range(func(eth1BlockNumber uint64, b *CachedBeaconBlock) bool {
 		if b != nil &&
+			b.BeaconBlockId != 0 &&
 			b.ExecutionBlockNumber < minHeight {
 			if maxClearableBeaconBlockId < b.BeaconBlockId {
 				maxClearableBeaconBlockId = b.BeaconBlockId
@@ -286,7 +287,7 @@ func (m *ServiceManager) pruneCachedBeaconBlocks() {
 	var eth2RemoveCacheCount uint64 = 0
 	m.cachedBeaconBlock.Range(func(beaconBlockId uint64, b *CachedBeaconBlock) bool {
 		if b != nil &&
-			0 < maxClearableBeaconBlockId &&
+			b.BeaconBlockId != 0 &&
 			b.BeaconBlockId < maxClearableBeaconBlockId {
 			m.cachedBeaconBlock.Delete(beaconBlockId)
 			m.beaconBlockMutex.Delete(beaconBlockId)

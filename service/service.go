@@ -3,6 +3,7 @@ package service
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"math"
 	"math/big"
@@ -516,7 +517,10 @@ func (s *Service) startHandlers() {
 
 		s.startGroupHandlers(func() time.Duration {
 			return time.Duration(s.eth2Config.SecondsPerSlot) * time.Second
-		}, s.syncBlocks, s.syncEvents, s.updateValidatorsFromNetwork, s.voteWithdrawCredentials)
+		}, s.syncBlocks)
+		s.startGroupHandlers(func() time.Duration {
+			return time.Duration(s.eth2Config.SecondsPerSlot) * time.Second
+		}, s.syncEvents, s.updateValidatorsFromNetwork, s.voteWithdrawCredentials)
 		s.startGroupHandlers(func() time.Duration {
 			slotDur := time.Duration(s.eth2Config.SecondsPerSlot) * time.Second
 			epochDur := time.Duration(s.eth2Config.SlotsPerEpoch) * slotDur
@@ -722,6 +726,12 @@ func (s *Service) startGroupHandlers(sleepIntervalFn func() time.Duration, handl
 
 					err := handler.method()
 					if err != nil {
+						if errors.Is(err, ErrHandlerExit) {
+							log.Error(err.Error())
+							utils.ShutdownRequestChannel <- struct{}{}
+							return
+						}
+
 						retry++
 						retryIn := sleepIntervalFn()
 
