@@ -11,9 +11,12 @@ import (
 	"github.com/BurntSushi/toml"
 )
 
+type Endpoint struct {
+	Eth1 string
+	Eth2 string
+}
+
 type Config struct {
-	Eth1Endpoint             string // url for eth1 rpc endpoint
-	Eth2Endpoint             string // url for eth2 rpc endpoint
 	StorageApiToken          string //
 	LogFilePath              string
 	Account                  string
@@ -26,6 +29,7 @@ type Config struct {
 	RunForEntrustedLsdNetwork bool
 
 	Contracts Contracts
+	Endpoints []Endpoint
 }
 
 type Contracts struct {

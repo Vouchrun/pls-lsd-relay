@@ -22,7 +22,7 @@ func init() {
 }
 
 func (s *Service) waitProposalTxOk(txHash common.Hash, proposalId [32]byte) error {
-	_, err := utils.WaitTxOkCommon(s.connection.Eth1Client(), txHash)
+	_, err := s.connection.Eth1Client().WaitTxOkCommon(txHash)
 	if err != nil {
 		p, err := s.networkProposalContract.Proposals(nil, proposalId)
 		if err != nil {
@@ -39,7 +39,7 @@ func (s *Service) waitProposalTxOk(txHash common.Hash, proposalId [32]byte) erro
 }
 
 func (s *Service) waitProposalsTxOk(txHash common.Hash, proposalIds [][32]byte) error {
-	_, err := utils.WaitTxOkCommon(s.connection.Eth1Client(), txHash)
+	_, err := s.connection.Eth1Client().WaitTxOkCommon(txHash)
 	if err != nil {
 		allProposalsExecuted := true
 		for _, proposalId := range proposalIds {
@@ -158,7 +158,7 @@ func (s *Service) getUserNodePlatformFromWithdrawals(latestDistributeHeight, tar
 			}
 
 			// distribute reward
-			userRewardDeci, nodeRewardDeci, platformFeeDeci := utils.GetUserNodePlatformReward(s.nodeCommissionRate, s.platfromCommissionRate, val.NodeDepositAmountDeci, decimal.NewFromInt(int64(totalReward)).Mul(utils.GweiDeci))
+			userRewardDeci, nodeRewardDeci, platformFeeDeci := utils.GetUserNodePlatformReward(s.nodeCommissionRate, s.platformCommissionRate, val.NodeDepositAmountDeci, decimal.NewFromInt(int64(totalReward)).Mul(utils.GweiDeci))
 			userDepositDeci := decimal.NewFromInt(int64(userDeposit)).Mul(utils.GweiDeci)
 			nodeDepositDeci := decimal.NewFromInt(int64(nodeDeposit)).Mul(utils.GweiDeci)
 
@@ -243,7 +243,7 @@ func (s *Service) getUserNodePlatformFromPriorityFee(latestDistributeHeight, tar
 		}
 
 		// cal rewards
-		userRewardDeci, nodeRewardDeci, platformFeeDeci := utils.GetUserNodePlatformReward(s.nodeCommissionRate, s.platfromCommissionRate, val.NodeDepositAmountDeci, feeAmountAtThisBlock)
+		userRewardDeci, nodeRewardDeci, platformFeeDeci := utils.GetUserNodePlatformReward(s.nodeCommissionRate, s.platformCommissionRate, val.NodeDepositAmountDeci, feeAmountAtThisBlock)
 
 		// cal node reward
 		nodeNewReward, exist := nodeNewRewardsMap[val.NodeAddress]

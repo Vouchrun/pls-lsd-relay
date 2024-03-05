@@ -66,7 +66,7 @@ func (c *CachedConnection) ChainID() (*big.Int, error) {
 
 func (c *CachedConnection) Eth2Config() (beacon.Eth2Config, error) {
 	if c.eth2Config == nil {
-		cfg, err := retry.DoWithData(c.Eth2Client().GetEth2Config,
+		cfg, err := retry.DoWithData(c.GetEth2Config,
 			retry.Delay(time.Second*2), retry.Attempts(150))
 		if err != nil {
 			return beacon.Eth2Config{}, err
@@ -93,7 +93,7 @@ func (c *CachedConnection) syncBeaconHeadService() {
 }
 
 func (c *CachedConnection) syncBeaconHead() error {
-	c.beaconHead, c.beaconHeadErr = retry.DoWithData(c.eth2Client.GetBeaconHead,
+	c.beaconHead, c.beaconHeadErr = retry.DoWithData(c.GetBeaconHead,
 		retry.Delay(time.Second*2), retry.Attempts(5))
 	return c.beaconHeadErr
 }

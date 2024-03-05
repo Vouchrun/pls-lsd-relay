@@ -45,8 +45,6 @@ import (
 type Service struct {
 	stop             chan struct{}
 	startServiceOnce sync.Once
-	eth1Endpoint     string
-	eth2Endpoint     string
 	log              *logrus.Entry
 	manager          *ServiceManager
 
@@ -85,7 +83,7 @@ type Service struct {
 	feePoolContract           *fee_pool.FeePool
 
 	nodeCommissionRate     decimal.Decimal
-	platfromCommissionRate decimal.Decimal
+	platformCommissionRate decimal.Decimal
 
 	latestSlotOfSyncBlock   uint64
 	latestBlockOfSyncBlock  uint64
@@ -239,8 +237,6 @@ func NewService(
 		stop:                     make(chan struct{}),
 		manager:                  manager,
 		connection:               conn,
-		eth1Endpoint:             cfg.Eth1Endpoint,
-		eth2Endpoint:             cfg.Eth2Endpoint,
 		log:                      log,
 		dds:                      dds,
 		lsdTokenAddress:          common.HexToAddress(cfg.Contracts.LsdTokenAddress),
@@ -373,9 +369,9 @@ func (s *Service) Start() error {
 	if err != nil {
 		return err
 	}
-	s.platfromCommissionRate = decimal.NewFromBigInt(platformCommissionRate, 0).Div(decimal.NewFromInt(1e18))
+	s.platformCommissionRate = decimal.NewFromBigInt(platformCommissionRate, 0).Div(decimal.NewFromInt(1e18))
 
-	s.log.Infof("nodeCommission rate: %s, platformCommission rate: %s", s.nodeCommissionRate.String(), s.platfromCommissionRate.String())
+	s.log.Infof("nodeCommission rate: %s, platformCommission rate: %s", s.nodeCommissionRate.String(), s.platformCommissionRate.String())
 
 	// init cycle seconds
 	cycleSeconds, err := s.networkWithdrawContract.WithdrawCycleSeconds(nil)

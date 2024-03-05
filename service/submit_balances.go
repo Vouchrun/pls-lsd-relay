@@ -225,7 +225,7 @@ func (s *Service) getUserDepositPlusReward(nodeDepositAmount, validatorBalance d
 		// total staking reward
 		validatorTotalStakingReward := validatorBalance.Sub(utils.StandardEffectiveBalanceDeci)
 
-		userRewardOfThisValidator, _, _ := utils.GetUserNodePlatformReward(s.nodeCommissionRate, s.platfromCommissionRate, nodeDepositAmount, validatorTotalStakingReward)
+		userRewardOfThisValidator, _, _ := utils.GetUserNodePlatformReward(s.nodeCommissionRate, s.platformCommissionRate, nodeDepositAmount, validatorTotalStakingReward)
 
 		return userDepositAmount.Add(userRewardOfThisValidator), nil
 	default:

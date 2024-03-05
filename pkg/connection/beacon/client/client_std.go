@@ -592,7 +592,7 @@ func (c *StandardHttpClient) postVoluntaryExit(request VoluntaryExitRequest) err
 
 // Get the target beacon block
 func (c *StandardHttpClient) getBeaconBlock(blockId uint64) (BeaconBlockResponse, bool, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 	defer cancel()
 	responseBody, status, err := c.getRequest(fmt.Sprintf(RequestBeaconBlockPath, blockId), ctx)
 	if err != nil {

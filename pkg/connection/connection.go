@@ -7,7 +7,6 @@ import (
 	"context"
 	"fmt"
 	"math/big"
-	"net/url"
 	"sync"
 	"time"
 
@@ -15,10 +14,10 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
-	"github.com/ethereum/go-ethereum/ethclient"
-	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/forta-network/go-multicall"
+	"github.com/samber/lo"
 	"github.com/stafiprotocol/chainbridge/utils/crypto/secp256k1"
+	"github.com/stafiprotocol/eth-lsd-relay/pkg/config"
 	"github.com/stafiprotocol/eth-lsd-relay/pkg/connection/beacon"
 	"github.com/stafiprotocol/eth-lsd-relay/pkg/connection/beacon/client"
 	"github.com/stafiprotocol/eth-lsd-relay/pkg/connection/types"
@@ -30,24 +29,24 @@ var Gwei10 = big.NewInt(10e9)
 var Gwei20 = big.NewInt(20e9)
 
 type Connection struct {
-	eth1Endpoint string
-	eth2Endpoint string
-	kp           *secp256k1.Keypair
-	gasLimit     *big.Int
-	maxGasPrice  *big.Int
-	eth1Client   *ethclient.Client
-	eth1Rpc      *rpc.Client
-	eth2Client   *client.StandardHttpClient
-	txOpts       *bind.TransactOpts
-	callOpts     bind.CallOpts
-	optsLock     sync.Mutex
-	multiCaller  *multicall.Caller
+	endpoints   []config.Endpoint
+	kp          *secp256k1.Keypair
+	gasLimit    *big.Int
+	maxGasPrice *big.Int
+
+	eth1Client  ContractBackend
+	eth2Clients []*client.StandardHttpClient
+
+	txOpts      *bind.TransactOpts
+	callOpts    bind.CallOpts
+	optsLock    sync.Mutex
+	multiCaller *multicall.Caller
 
 	latestMultiCallMicrobeeSystem gomicrobee.System[*multicall.Call, *MultiCall]
 }
 
 // NewConnection returns an uninitialized connection, must call Connection.Connect() before using.
-func NewConnection(eth1Endpoint, eth2Endpoint string, kp *secp256k1.Keypair, gasLimit, maxGasPrice *big.Int) (*Connection, error) {
+func NewConnection(endpoints []config.Endpoint, kp *secp256k1.Keypair, gasLimit, maxGasPrice *big.Int) (*Connection, error) {
 	if kp != nil {
 		if maxGasPrice.Cmp(big.NewInt(0)) <= 0 {
 			return nil, fmt.Errorf("max gas price empty")
@@ -57,11 +56,10 @@ func NewConnection(eth1Endpoint, eth2Endpoint string, kp *secp256k1.Keypair, gas
 		}
 	}
 	c := &Connection{
-		eth1Endpoint: eth1Endpoint,
-		eth2Endpoint: eth2Endpoint,
-		kp:           kp,
-		gasLimit:     gasLimit,
-		maxGasPrice:  maxGasPrice,
+		endpoints:   endpoints,
+		kp:          kp,
+		gasLimit:    gasLimit,
+		maxGasPrice: maxGasPrice,
 	}
 
 	err := retry.Do(c.connect, retry.Delay(time.Second), retry.Attempts(3))
@@ -78,40 +76,17 @@ func NewConnection(eth1Endpoint, eth2Endpoint string, kp *secp256k1.Keypair, gas
 
 // Connect starts the ethereum WS connection
 func (c *Connection) connect() error {
-	var rpcClient *rpc.Client
-	var err error
-	// Start http or ws client
-	u, err := url.Parse(c.eth1Endpoint)
-	if err != nil {
+	if err := c.connectEth1(); err != nil {
 		return err
 	}
-	switch u.Scheme {
-	case "http", "https":
-		rpcClient, err = rpc.DialHTTP(c.eth1Endpoint)
-	case "ws", "wss":
-		rpcClient, err = rpc.DialWebsocket(context.Background(), c.eth1Endpoint, fmt.Sprintf("/%s", u.Scheme))
-	default:
-		err = fmt.Errorf("unsupport scheme: %s", u.Scheme)
-	}
-	if err != nil {
-		return err
-	}
-
-	c.eth1Client = ethclient.NewClient(rpcClient)
-
-	c.eth1Rpc = rpcClient
 
 	chainId, err := c.eth1Client.ChainID(context.Background())
 	if err != nil {
 		return err
 	}
 
-	// eth2 client
-	if len(c.eth2Endpoint) != 0 {
-		c.eth2Client, err = client.NewStandardHttpClient(c.eth2Endpoint, chainId)
-		if err != nil {
-			return err
-		}
+	if err = c.connectEth2(chainId); err != nil {
+		return err
 	}
 
 	if c.kp != nil {
@@ -124,6 +99,23 @@ func (c *Connection) connect() error {
 		c.callOpts = bind.CallOpts{Pending: false, From: c.kp.CommonAddress(), BlockNumber: nil, Context: context.Background()}
 	} else {
 		c.callOpts = bind.CallOpts{Pending: false, From: common.Address{}, BlockNumber: nil, Context: context.Background()}
+	}
+	return nil
+}
+
+func (c *Connection) connectEth1() (err error) {
+	c.eth1Client, err = NewEth1Client(lo.Map(c.endpoints, func(e config.Endpoint, i int) string { return e.Eth1 }))
+	return
+}
+
+func (c *Connection) connectEth2(chainId *big.Int) error {
+	c.eth2Clients = make([]*client.StandardHttpClient, 0, len(c.endpoints))
+	for _, e := range c.endpoints {
+		client, err := client.NewStandardHttpClient(e.Eth2, chainId)
+		if err != nil {
+			return err
+		}
+		c.eth2Clients = append(c.eth2Clients, client)
 	}
 	return nil
 }
@@ -158,12 +150,8 @@ func (c *Connection) Keypair() *secp256k1.Keypair {
 	return c.kp
 }
 
-func (c *Connection) Eth1Client() *ethclient.Client {
+func (c *Connection) Eth1Client() ContractBackend {
 	return c.eth1Client
-}
-
-func (c *Connection) Eth2Client() *client.StandardHttpClient {
-	return c.eth2Client
 }
 
 func (c *Connection) TxOpts() *bind.TransactOpts {
@@ -245,27 +233,52 @@ func (c *Connection) Eth1LatestBlock() (uint64, error) {
 	return header, nil
 }
 
-// EnsureHasBytecode asserts if contract code exists at the specified address
-func (c *Connection) EnsureHasBytecode(addr common.Address) error {
-	code, err := c.eth1Client.CodeAt(context.Background(), addr, nil)
-	if err != nil {
-		return err
+func (c *Connection) GetValidatorStatus(ctx context.Context, pubkey types.ValidatorPubkey, opts *beacon.ValidatorStatusOptions) (validatorStatus beacon.ValidatorStatus, err error) {
+	for _, client := range c.eth2Clients {
+		validatorStatus, err = client.GetValidatorStatus(ctx, pubkey, opts)
+		if err == nil {
+			return
+		}
 	}
+	return
+}
 
-	if len(code) == 0 {
-		return fmt.Errorf("no bytecode found at %s", addr.Hex())
+func (c *Connection) GetValidatorStatuses(ctx context.Context, pubkeys []types.ValidatorPubkey, opts *beacon.ValidatorStatusOptions) (validatorStatus map[types.ValidatorPubkey]beacon.ValidatorStatus, err error) {
+	for _, client := range c.eth2Clients {
+		validatorStatus, err = client.GetValidatorStatuses(ctx, pubkeys, opts)
+		if err == nil {
+			return
+		}
 	}
-	return nil
+	return
 }
 
-func (c *Connection) GetValidatorStatus(ctx context.Context, pubkey types.ValidatorPubkey, opts *beacon.ValidatorStatusOptions) (beacon.ValidatorStatus, error) {
-	return c.eth2Client.GetValidatorStatus(ctx, pubkey, opts)
+func (c *Connection) GetBeaconBlock(blockId uint64) (block beacon.BeaconBlock, exist bool, err error) {
+	for _, client := range c.eth2Clients {
+		block, exist, err = client.GetBeaconBlock(blockId)
+		if exist {
+			return
+		}
+	}
+	return
 }
 
-func (c *Connection) GetValidatorStatuses(ctx context.Context, pubkeys []types.ValidatorPubkey, opts *beacon.ValidatorStatusOptions) (map[types.ValidatorPubkey]beacon.ValidatorStatus, error) {
-	return c.eth2Client.GetValidatorStatuses(ctx, pubkeys, opts)
+func (c *Connection) GetEth2Config() (cfg beacon.Eth2Config, err error) {
+	for _, client := range c.eth2Clients {
+		cfg, err = client.GetEth2Config()
+		if err == nil {
+			return
+		}
+	}
+	return
 }
 
-func (c *Connection) GetBeaconBlock(blockId uint64) (beacon.BeaconBlock, bool, error) {
-	return c.eth2Client.GetBeaconBlock(blockId)
+func (c *Connection) GetBeaconHead() (head beacon.BeaconHead, err error) {
+	for _, client := range c.eth2Clients {
+		head, err = client.GetBeaconHead()
+		if err == nil {
+			return
+		}
+	}
+	return
 }

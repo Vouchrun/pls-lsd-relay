@@ -52,7 +52,7 @@ func NewServiceManager(cfg *config.Config, keyPair *secp256k1.Keypair) (*Service
 		return nil, fmt.Errorf("max gas price is zero")
 	}
 
-	conn, err := connection.NewConnection(cfg.Eth1Endpoint, cfg.Eth2Endpoint, keyPair,
+	conn, err := connection.NewConnection(cfg.Endpoints, keyPair,
 		gasLimitDeci.BigInt(), maxGasPriceDeci.BigInt())
 	if err != nil {
 		return nil, err
