@@ -19,13 +19,14 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
+	"golang.org/x/exp/constraints"
 )
 
 var location *time.Location
 var dayLayout = "20060102"
 
 const (
-	RetryLimit    = 200
+	RetryLimit    = 300
 	RetryInterval = 6 * time.Second
 )
 
@@ -296,4 +297,30 @@ func IsDir(path string) (bool, error) {
 	}
 
 	return fileInfo.IsDir(), err
+}
+
+func ExecuteFns(fns ...func() error) (err error) {
+	for _, fn := range fns {
+		if err = fn(); err != nil {
+			return err
+		}
+	}
+	return
+}
+
+func Max[T constraints.Ordered](a, b T) T {
+	if a > b {
+		return a
+	}
+	return b
+}
+
+func Min[T constraints.Ordered](n1 T, nums ...T) T {
+	min := n1
+	for i := 0; i < len(nums); i++ {
+		if min > nums[i] {
+			min = nums[i]
+		}
+	}
+	return min
 }

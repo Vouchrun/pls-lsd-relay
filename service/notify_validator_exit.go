@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"fmt"
 	"math/big"
 	"sort"
@@ -13,6 +14,8 @@ import (
 )
 
 func (s *Service) notifyValidatorExit() error {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Minute*5)
+	defer cancel()
 	currentCycle, targetTimestamp, err := s.currentCycleAndStartTimestamp()
 	if err != nil {
 		return fmt.Errorf("currentCycleAndStartTimestamp failed: %w", err)
@@ -24,19 +27,19 @@ func (s *Service) notifyValidatorExit() error {
 	if err != nil {
 		return fmt.Errorf("getEpochStartBlocknumberWithCheck failed: %w", err)
 	}
-	if targetBlockNumber <= s.networkCreateBlock {
+	if targetBlockNumber <= s.startAtBlock {
 		return nil
 	}
 
 	// wait validator updated
 	if targetEpoch > s.latestEpochOfUpdateValidator {
-		logrus.Debugf("targetEpoch: %d  latestEpochOfUpdateValidator: %d", targetEpoch, s.latestEpochOfUpdateValidator)
+		s.log.Debugf("targetEpoch: %d  latestEpochOfUpdateValidator: %d", targetEpoch, s.latestEpochOfUpdateValidator)
 		return nil
 	}
 
 	// wait sync block
 	if targetBlockNumber > s.latestBlockOfSyncBlock {
-		logrus.Debugf("targetBlockNumber: %d  latestBlockOfSyncBlock: %d", targetBlockNumber, s.latestBlockOfSyncBlock)
+		s.log.Debugf("targetBlockNumber: %d  latestBlockOfSyncBlock: %d", targetBlockNumber, s.latestBlockOfSyncBlock)
 		return nil
 	}
 
@@ -57,9 +60,9 @@ func (s *Service) notifyValidatorExit() error {
 	if err != nil {
 		return fmt.Errorf("GetEjectedValidatorsAtCycle failed: %w", err)
 	}
-	// return if already dealed
+	// return if already dealt
 	if len(ejectedValidator) != 0 {
-		logrus.Debugf("ejectedValidator %d at cycle %d", len(ejectedValidator), willDealCycle)
+		s.log.Debugf("ejectedValidator %d at cycle %d", len(ejectedValidator), willDealCycle)
 		return nil
 	}
 
@@ -68,7 +71,7 @@ func (s *Service) notifyValidatorExit() error {
 		return err
 	}
 
-	logrus.WithFields(logrus.Fields{
+	s.log.WithFields(logrus.Fields{
 		"currentCycle:":      currentCycle,
 		"targetEpoch":        targetEpoch,
 		"targetBlockNumber":  targetBlockNumber,
@@ -77,7 +80,7 @@ func (s *Service) notifyValidatorExit() error {
 	}).Debug("notifyValidatorExit")
 
 	// calc exited but not full withdrawed amount
-	exitButNotFullWithdrawedValidatorList, err := s.exitButNotFullWithdrawedValidatorListAtEpoch(targetEpoch)
+	exitButNotFullWithdrawedValidatorList, err := s.exitButNotFullWithdrawedValidatorListAtEpoch(ctx, targetEpoch)
 	if err != nil {
 		return errors.Wrap(err, "exitButNotFullWithdrawedValidatorListAtEpoch failed")
 	}
@@ -106,7 +109,7 @@ func (s *Service) notifyValidatorExit() error {
 	// final total missing amount
 	finalTotalMissingAmountDeci := totalMissingAmountDeci.Sub(totalPendingAmountDeci)
 
-	selectVals, err := s.mustSelectValidatorsForExit(finalTotalMissingAmountDeci, targetEpoch, uint64(willDealCycle))
+	selectVals, err := s.mustSelectValidatorsForExit(ctx, finalTotalMissingAmountDeci, targetEpoch, uint64(willDealCycle))
 	if err != nil {
 		return errors.Wrap(err, "selectValidatorsForExit failed")
 	}
@@ -135,7 +138,7 @@ func (s *Service) sendNotifyExitTx(withdrawCycle, startCycle uint64, selectVals 
 	}
 	defer s.connection.UnlockTxOpts()
 
-	encodeBts, err := s.networkWithdrdawAbi.Pack("notifyValidatorExit", big.NewInt(int64(withdrawCycle)),
+	encodeBts, err := s.networkWithdrawAbi.Pack("notifyValidatorExit", big.NewInt(int64(withdrawCycle)),
 		big.NewInt(int64(startCycle)), selectVals)
 	if err != nil {
 		return err
@@ -144,7 +147,7 @@ func (s *Service) sendNotifyExitTx(withdrawCycle, startCycle uint64, selectVals 
 	proposalId := utils.ProposalId(s.networkWithdrawAddress, encodeBts, big.NewInt(int64(withdrawCycle)))
 
 	// check voted
-	hasVoted, err := s.networkProposalContract.HasVoted(nil, proposalId, s.keyPair.CommonAddress())
+	hasVoted, err := s.networkProposalContract.HasVoted(nil, proposalId, s.connection.Keypair().CommonAddress())
 	if err != nil {
 		return fmt.Errorf("networkProposalContract.HasVoted err: %s", err)
 	}
@@ -152,7 +155,7 @@ func (s *Service) sendNotifyExitTx(withdrawCycle, startCycle uint64, selectVals 
 		return nil
 	}
 
-	logrus.WithFields(logrus.Fields{
+	s.log.WithFields(logrus.Fields{
 		"startCycle":      startCycle,
 		"withdrawalCycle": withdrawCycle,
 		"selectVal":       selectVals,
@@ -163,7 +166,7 @@ func (s *Service) sendNotifyExitTx(withdrawCycle, startCycle uint64, selectVals 
 		return err
 	}
 
-	logrus.Info("send NotifyValidatorExit tx hash: ", tx.Hash().String())
+	s.log.Info("send NotifyValidatorExit tx hash: ", tx.Hash().String())
 
 	return s.waitProposalTxOk(tx.Hash(), proposalId)
 }
@@ -175,8 +178,8 @@ func (s *Service) currentCycleAndStartTimestamp() (int64, int64, error) {
 	return int64(currentCycle), int64(targetTimestamp), nil
 }
 
-func (s *Service) mustSelectValidatorsForExit(totalMissingAmount decimal.Decimal, targetEpoch, willDealCycle uint64) ([]*big.Int, error) {
-	vals, err := s.getValidatorsOfTargetEpoch(targetEpoch)
+func (s *Service) mustSelectValidatorsForExit(ctx context.Context, totalMissingAmount decimal.Decimal, targetEpoch, willDealCycle uint64) ([]*big.Int, error) {
+	vals, err := s.getValidatorsOfTargetEpoch(ctx, targetEpoch)
 	if err != nil {
 		return nil, err
 	}

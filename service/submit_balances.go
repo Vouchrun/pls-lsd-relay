@@ -1,8 +1,10 @@
 package service
 
 import (
+	"context"
 	"fmt"
 	"math/big"
+	"time"
 
 	"github.com/pkg/errors"
 	"github.com/shopspring/decimal"
@@ -13,7 +15,9 @@ import (
 )
 
 func (s *Service) submitBalances() error {
-	beaconHead, err := s.connection.Eth2BeaconHead()
+	ctx, cancel := context.WithTimeout(context.Background(), time.Minute*5)
+	defer cancel()
+	beaconHead, err := s.connection.BeaconHead()
 	if err != nil {
 		return err
 	}
@@ -39,11 +43,11 @@ func (s *Service) submitBalances() error {
 		return nil
 	}
 
-	logrus.WithFields(logrus.Fields{
+	s.log.WithFields(logrus.Fields{
 		"targetEpoch":          targetEpoch,
 		"targetBlock":          targetBlock,
 		"balancesBlockOnChain": snapshotOnchain.Block.Uint64(),
-	}).Debug("epocheInfo")
+	}).Debug("epochInfo")
 
 	targetCallOpts := s.connection.CallOpts(big.NewInt(int64(targetBlock)))
 
@@ -64,14 +68,14 @@ func (s *Service) submitBalances() error {
 	userDepositPoolBalanceDeci := decimal.NewFromBigInt(userDepositPoolBalance, 0)
 
 	targetValidators := s.GetValidatorDepositedListBeforeBlock(targetBlock)
-	logrus.WithFields(logrus.Fields{
+	s.log.WithFields(logrus.Fields{
 		"validatorDepositedList len": len(targetValidators),
 	}).Debug("validatorDepositedList")
 
 	// user eth from validators
 	totalUserEthFromValidatorDeci := decimal.Zero
 	for _, validator := range targetValidators {
-		userAllEth, err := s.getUserEthInfoFromValidatorBalance(validator, targetEpoch)
+		userAllEth, err := s.getUserEthInfoFromValidatorBalance(ctx, validator, targetEpoch)
 		if err != nil {
 			return err
 		}
@@ -91,20 +95,20 @@ func (s *Service) submitBalances() error {
 		return err
 	}
 	if latestDistributeWithdrawalsHeight.Cmp(big.NewInt(0)) == 0 {
-		latestDistributeWithdrawalsHeight = big.NewInt(int64(s.networkCreateBlock))
+		latestDistributeWithdrawalsHeight = big.NewInt(int64(s.startAtBlock))
 	}
 	userEthFromWithdrawDeci, _, _, _, err := s.getUserNodePlatformFromWithdrawals(latestDistributeWithdrawalsHeight.Uint64(), targetBlock)
 	if err != nil {
 		return err
 	}
 
-	// user eth from undistributed priorityfee
+	// user eth from undistributed priority fee
 	latestDistributePriorityFeeHeight, err := s.networkWithdrawContract.LatestDistributePriorityFeeHeight(targetCallOpts)
 	if err != nil {
 		return err
 	}
 	if latestDistributePriorityFeeHeight.Cmp(big.NewInt(0)) == 0 {
-		latestDistributePriorityFeeHeight = big.NewInt(int64(s.networkCreateBlock))
+		latestDistributePriorityFeeHeight = big.NewInt(int64(s.startAtBlock))
 	}
 	userEthFromPriorityFeeDeci, _, _, _, err := s.getUserNodePlatformFromPriorityFee(latestDistributePriorityFeeHeight.Uint64(), targetBlock)
 	if err != nil {
@@ -136,7 +140,7 @@ func (s *Service) submitBalances() error {
 			rateChangeLimit.String(), newExchangeRateDeci.String(), oldExchangeRateDeci.String())
 	}
 
-	logrus.WithFields(logrus.Fields{
+	s.log.WithFields(logrus.Fields{
 		"targetBlockNumber":                 targetBlock,
 		"targetEpoch":                       targetEpoch,
 		"totalUserEthFromValidator":         totalUserEthFromValidatorDeci.StringFixed(0),
@@ -154,7 +158,7 @@ func (s *Service) submitBalances() error {
 
 }
 
-func (task *Service) getUserEthInfoFromValidatorBalance(validator *Validator, targetEpoch uint64) (decimal.Decimal, error) {
+func (task *Service) getUserEthInfoFromValidatorBalance(ctx context.Context, validator *Validator, targetEpoch uint64) (decimal.Decimal, error) {
 	// todo use status on target epoch
 	switch validator.Status {
 	case utils.ValidatorStatusDeposited, utils.ValidatorStatusWithdrawMatch, utils.ValidatorStatusWithdrawUnmatch:
@@ -165,7 +169,7 @@ func (task *Service) getUserEthInfoFromValidatorBalance(validator *Validator, ta
 			return utils.StandardTrustNodeFakeDepositBalance, nil
 		default:
 			// common node and trust node should not happen here
-			return decimal.Zero, fmt.Errorf("unknow node type: %d", validator.NodeType)
+			return decimal.Zero, fmt.Errorf("unknown node type: %d", validator.NodeType)
 		}
 
 	case utils.ValidatorStatusStaked, utils.ValidatorStatusWaiting:
@@ -181,7 +185,7 @@ func (task *Service) getUserEthInfoFromValidatorBalance(validator *Validator, ta
 			return userDepositBalance, nil
 		}
 
-		validatorStatus, err := task.connection.GetValidatorStatus(types.BytesToValidatorPubkey(validator.Pubkey), &beacon.ValidatorStatusOptions{
+		validatorStatus, err := task.connection.GetValidatorStatus(ctx, types.BytesToValidatorPubkey(validator.Pubkey), &beacon.ValidatorStatusOptions{
 			Epoch: &targetEpoch,
 		})
 		if err != nil {
@@ -198,7 +202,7 @@ func (task *Service) getUserEthInfoFromValidatorBalance(validator *Validator, ta
 		return decimal.Zero, nil
 
 	default:
-		return decimal.Zero, fmt.Errorf("unknow validator status: %d", validator.Status)
+		return decimal.Zero, fmt.Errorf("unknown validator status: %d", validator.Status)
 	}
 }
 
@@ -221,7 +225,7 @@ func (s *Service) getUserDepositPlusReward(nodeDepositAmount, validatorBalance d
 		// total staking reward
 		validatorTotalStakingReward := validatorBalance.Sub(utils.StandardEffectiveBalanceDeci)
 
-		userRewardOfThisValidator, _, _ := utils.GetUserNodePlatformReward(s.nodeCommissionRate, s.platfromCommissionRate, nodeDepositAmount, validatorTotalStakingReward)
+		userRewardOfThisValidator, _, _ := utils.GetUserNodePlatformReward(s.nodeCommissionRate, s.platformCommissionRate, nodeDepositAmount, validatorTotalStakingReward)
 
 		return userDepositAmount.Add(userRewardOfThisValidator), nil
 	default:
@@ -245,7 +249,7 @@ func (s *Service) sendSubmitBalancesTx(block, totalUserEth, lsdTokenTotalSupply 
 	proposalId := utils.ProposalId(s.networkBalancesAddress, encodeBts, block)
 
 	// check voted
-	hasVoted, err := s.networkProposalContract.HasVoted(nil, proposalId, s.keyPair.CommonAddress())
+	hasVoted, err := s.networkProposalContract.HasVoted(nil, proposalId, s.connection.Keypair().CommonAddress())
 	if err != nil {
 		return fmt.Errorf("networkProposalContract.HasVoted err: %s", err)
 	}
@@ -258,7 +262,7 @@ func (s *Service) sendSubmitBalancesTx(block, totalUserEth, lsdTokenTotalSupply 
 		return err
 	}
 
-	logrus.Info("send submitBalances tx hash: ", tx.Hash().String())
+	s.log.Info("send submitBalances tx hash: ", tx.Hash().String())
 
 	return s.waitProposalTxOk(tx.Hash(), proposalId)
 }

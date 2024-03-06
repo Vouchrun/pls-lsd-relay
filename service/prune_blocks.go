@@ -4,12 +4,10 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/sirupsen/logrus"
 	"github.com/stafiprotocol/eth-lsd-relay/pkg/utils"
 )
 
 func (s *Service) pruneBlocks() error {
-
 	latestMerkleRootEpochStartBlock := uint64(0)
 	if s.latestMerkleRootEpoch != 0 {
 		latestMerkleRootEpochStartBlockRes, err := s.getEpochStartBlocknumberWithCheck(s.latestMerkleRootEpoch)
@@ -17,14 +15,6 @@ func (s *Service) pruneBlocks() error {
 			return err
 		}
 		latestMerkleRootEpochStartBlock = latestMerkleRootEpochStartBlockRes
-	}
-
-	minHeight := s.latestDistributePriorityFeeHeight
-	if minHeight > s.latestDistributeWithdrawalsHeight {
-		minHeight = s.latestDistributeWithdrawalsHeight
-	}
-	if minHeight > latestMerkleRootEpochStartBlock {
-		minHeight = latestMerkleRootEpochStartBlock
 	}
 
 	_, targetTimestamp, err := s.currentCycleAndStartTimestamp()
@@ -41,32 +31,16 @@ func (s *Service) pruneBlocks() error {
 	if err != nil {
 		return err
 	}
-	logrus.Debugf("latestDistributeWithdrawalHeight OnCycleSnapshot: %d", latestDistributeWithdrawalHeightOnCycleSnapshot.Uint64())
+	s.log.Debugf("latestDistributeWithdrawalHeight OnCycleSnapshot: %d", latestDistributeWithdrawalHeightOnCycleSnapshot.Uint64())
 
-	if minHeight > latestDistributeWithdrawalHeightOnCycleSnapshot.Uint64() {
-		minHeight = latestDistributeWithdrawalHeightOnCycleSnapshot.Uint64()
-	}
+	minHeight := utils.Min(s.latestDistributePriorityFeeHeight, s.latestDistributeWithdrawalsHeight,
+		latestMerkleRootEpochStartBlock, latestDistributeWithdrawalHeightOnCycleSnapshot.Uint64())
 
 	if minHeight == 0 {
 		return nil
 	}
 
-	s.cachedBeaconBlockMutex.Lock()
-	defer s.cachedBeaconBlockMutex.Unlock()
-
-	maxHeight := uint64(0)
-	for blockNumber := range s.cachedBeaconBlock {
-		if blockNumber < minHeight {
-			logrus.Tracef("rm cached block: %d", blockNumber)
-			delete(s.cachedBeaconBlock, blockNumber)
-
-		}
-		if blockNumber > maxHeight {
-			maxHeight = blockNumber
-		}
-	}
-
-	logrus.Debugf("prune cachedBlocks, now cached block minHeight: %d, maxHeight: %d", minHeight, maxHeight)
+	s.minExecutionBlockHeight = minHeight
 
 	return nil
 }

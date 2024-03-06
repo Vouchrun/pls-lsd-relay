@@ -2,11 +2,12 @@ package service
 
 import (
 	"fmt"
+	"math/big"
+
 	"github.com/pkg/errors"
 	"github.com/shopspring/decimal"
 	"github.com/sirupsen/logrus"
 	"github.com/stafiprotocol/eth-lsd-relay/pkg/utils"
-	"math/big"
 )
 
 func (s *Service) distributeWithdrawals() error {
@@ -16,11 +17,11 @@ func (s *Service) distributeWithdrawals() error {
 		return errors.Wrap(err, "distributeWithdrawals checkSyncState failed")
 	}
 	if !shouldGoNext {
-		logrus.Debug("distributeWithdrawals should not go next")
+		s.log.Debug("distributeWithdrawals should not go next")
 		return nil
 	}
 
-	logrus.WithFields(logrus.Fields{
+	s.log.WithFields(logrus.Fields{
 		"latestDistributeHeight": latestDistributeHeight,
 		"targetEth1BlockHeight":  targetEth1BlockHeight,
 		"latestBlockOfSyncBlock": s.latestBlockOfSyncBlock,
@@ -46,7 +47,7 @@ func (s *Service) distributeWithdrawals() error {
 // check sync and vote state
 // return (latestDistributeHeight, targetEth1Blocknumber, shouldGoNext, err)
 func (s *Service) checkStateForDistributeWithdraw() (uint64, uint64, bool, error) {
-	beaconHead, err := s.connection.Eth2BeaconHead()
+	beaconHead, err := s.connection.BeaconHead()
 	if err != nil {
 		return 0, 0, false, err
 	}
@@ -58,7 +59,7 @@ func (s *Service) checkStateForDistributeWithdraw() (uint64, uint64, bool, error
 		return 0, 0, false, err
 	}
 
-	logrus.Debugf("targetEth1Block %d", targetEth1BlockHeight)
+	s.log.Debugf("targetEth1Block %d", targetEth1BlockHeight)
 
 	latestDistributeHeight := s.latestDistributeWithdrawalsHeight
 	if err != nil {
@@ -66,11 +67,11 @@ func (s *Service) checkStateForDistributeWithdraw() (uint64, uint64, bool, error
 	}
 	// init case
 	if latestDistributeHeight == 0 {
-		latestDistributeHeight = s.networkCreateBlock
+		latestDistributeHeight = s.startAtBlock
 	}
 
 	if latestDistributeHeight >= targetEth1BlockHeight {
-		logrus.Debugf("latestDistributeHeight: %d  targetEth1BlockHeight: %d", latestDistributeHeight, targetEth1BlockHeight)
+		s.log.Debugf("latestDistributeHeight: %d  targetEth1BlockHeight: %d", latestDistributeHeight, targetEth1BlockHeight)
 		return 0, 0, false, nil
 	}
 
@@ -142,7 +143,7 @@ func (s *Service) sendDistributeTx(distributeType uint8, targetEth1BlockHeight, 
 	}
 	defer s.connection.UnlockTxOpts()
 
-	encodeBts, err := s.networkWithdrdawAbi.Pack("distribute", distributeType, targetEth1BlockHeight,
+	encodeBts, err := s.networkWithdrawAbi.Pack("distribute", distributeType, targetEth1BlockHeight,
 		totalUserEth, totalNodeEth, totalPlatformEth, newMaxClaimableWithdrawIndex)
 	if err != nil {
 		return err
@@ -151,7 +152,7 @@ func (s *Service) sendDistributeTx(distributeType uint8, targetEth1BlockHeight, 
 	proposalId := utils.ProposalId(s.networkWithdrawAddress, encodeBts, targetEth1BlockHeight)
 
 	// check voted
-	hasVoted, err := s.networkProposalContract.HasVoted(nil, proposalId, s.keyPair.CommonAddress())
+	hasVoted, err := s.networkProposalContract.HasVoted(nil, proposalId, s.connection.Keypair().CommonAddress())
 	if err != nil {
 		return fmt.Errorf("networkProposalContract.HasVoted err: %s", err)
 	}
@@ -159,7 +160,7 @@ func (s *Service) sendDistributeTx(distributeType uint8, targetEth1BlockHeight, 
 		return nil
 	}
 
-	logrus.WithFields(logrus.Fields{
+	s.log.WithFields(logrus.Fields{
 		"distributeType":               distributeType,
 		"targetEth1BlockHeight":        targetEth1BlockHeight,
 		"totalUserEthDeci":             totalUserEth.String(),
@@ -173,7 +174,7 @@ func (s *Service) sendDistributeTx(distributeType uint8, targetEth1BlockHeight, 
 		return err
 	}
 
-	logrus.Infof("send Distribute tx hash: %s", tx.Hash().String())
+	s.log.Infof("send Distribute tx hash: %s", tx.Hash().String())
 
 	return s.waitProposalTxOk(tx.Hash(), proposalId)
 }

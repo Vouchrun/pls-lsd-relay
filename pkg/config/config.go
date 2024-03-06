@@ -6,22 +6,30 @@ package config
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/BurntSushi/toml"
 )
 
+type Endpoint struct {
+	Eth1 string
+	Eth2 string
+}
+
 type Config struct {
-	Eth1Endpoint             string // url for eth1 rpc endpoint
-	Eth2Endpoint             string // url for eth2 rpc endpoint
-	Web3StorageApiToken      string //
+	StorageApiToken          string //
 	LogFilePath              string
 	Account                  string
 	KeystorePath             string
+	BlockstoreFilePath       string
 	GasLimit                 string
 	MaxGasPrice              string
 	BatchRequestBlocksNumber uint64
 
+	RunForEntrustedLsdNetwork bool
+
 	Contracts Contracts
+	Endpoints []Endpoint
 }
 
 type Contracts struct {
@@ -29,16 +37,25 @@ type Contracts struct {
 	LsdFactoryAddress string
 }
 
-func Load(configFilePath string) (*Config, error) {
+func Load(basePath string) (*Config, error) {
+	basePath = strings.TrimSuffix(basePath, "/")
+	configFilePath := basePath + "/config.toml"
+	fmt.Printf("config path: %s\n", configFilePath)
+
 	var cfg = Config{}
 	if err := loadSysConfig(configFilePath, &cfg); err != nil {
 		return nil, err
 	}
-	if len(cfg.LogFilePath) == 0 {
-		cfg.LogFilePath = "./log_data"
-	}
+	cfg.LogFilePath = basePath + "/log_data"
+	cfg.KeystorePath = KeyStoreFilePath(basePath)
+	cfg.BlockstoreFilePath = basePath + "/blockstore"
 
 	return &cfg, nil
+}
+
+func KeyStoreFilePath(basePath string) string {
+	basePath = strings.TrimSuffix(basePath, "/")
+	return basePath + "/keystore"
 }
 
 func loadSysConfig(path string, config *Config) error {

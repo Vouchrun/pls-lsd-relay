@@ -4,17 +4,17 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/sirupsen/logrus"
-	"github.com/stafiprotocol/eth-lsd-relay/pkg/connection/beacon"
 	"github.com/stafiprotocol/eth-lsd-relay/pkg/utils"
 	"golang.org/x/sync/errgroup"
 )
 
 var ErrExceedsValidatorUpdateBlock = fmt.Errorf("ErrExceedsValidatorUpdateBlock")
+var ErrHandlerExit = fmt.Errorf("exit")
+var ErrMissingEth1Block = fmt.Errorf("beacon chain missing eth1 block: %w", ErrHandlerExit)
 
 // sync beacon and execution block info
 func (s *Service) syncBlocks() error {
-	beaconHead, err := s.connection.Eth2BeaconHead()
+	beaconHead, err := s.connection.BeaconHead()
 	if err != nil {
 		return err
 	}
@@ -42,13 +42,13 @@ func (s *Service) syncBlocks() error {
 		preLatestSyncBlock := s.latestBlockOfSyncBlock
 		batchRequestStartTime := time.Now().Unix()
 
-		blockReciever := make([]*beacon.BeaconBlock, s.batchRequestBlocksNumber)
+		blockReceiver := make([]*CachedBeaconBlock, s.batchRequestBlocksNumber)
 		for j := subStart; j <= subEnd; j++ {
 			// notice this
 			slot := j
 			g.Go(func() error {
 				startTime := time.Now().Unix()
-				beaconBlock, exist, err := s.connection.GetBeaconBlock(slot)
+				beaconBlock, exist, err := s.manager.CacheBeaconBlock(slot)
 				if err != nil {
 					return err
 				}
@@ -63,20 +63,10 @@ func (s *Service) syncBlocks() error {
 					return ErrExceedsValidatorUpdateBlock
 				}
 
-				// ensure validator cached
-				_, isPoolVal := s.getValidatorByIndex(beaconBlock.ProposerIndex)
-				if isPoolVal {
-					fee, err := s.connection.GetELRewardForBlock(beaconBlock.ExecutionBlockNumber)
-					if err != nil {
-						return err
-					}
-					beaconBlock.PriorityFee = fee
-				}
-
-				blockReciever[slot-subStart] = &beaconBlock
+				blockReceiver[slot-subStart] = beaconBlock
 
 				saveTime := time.Now().Unix()
-				logrus.Tracef("request block %d,start at %d, end at %d, save at: %d ", beaconBlock.ExecutionBlockNumber, startTime, endTime, saveTime)
+				s.log.Tracef("request block %d,start at %d, end at %d, save at: %d ", beaconBlock.ExecutionBlockNumber, startTime, endTime, saveTime)
 				return nil
 			})
 		}
@@ -87,51 +77,23 @@ func (s *Service) syncBlocks() error {
 			if err == ErrExceedsValidatorUpdateBlock {
 				return nil
 			}
-
-			logrus.Warnf("sync block err: %s, will retry", err.Error())
 			return err
 		}
 
 		batchRequestWaitTime := time.Now().Unix()
 
-		for _, beaconBlock := range blockReciever {
+		for _, beaconBlock := range blockReceiver {
 			if beaconBlock == nil {
 				continue
 			}
-			logrus.Tracef("save block: %d", beaconBlock.ExecutionBlockNumber)
-
-			if beaconBlock.ExecutionBlockNumber%500 == 0 {
-				logrus.Infof("synced block: %d", beaconBlock.ExecutionBlockNumber)
-			}
-
-			cachedWithdrawals := make([]*CachedWithdrawal, len(beaconBlock.Withdrawals))
-			for i, w := range beaconBlock.Withdrawals {
-				cachedWithdrawals[i] = &CachedWithdrawal{
-					ValidatorIndex: w.ValidatorIndex,
-					Amount:         w.Amount,
-				}
-			}
-
-			cachedTxs := make([]*CachedTransaction, len(beaconBlock.Transactions))
-			for i, t := range beaconBlock.Transactions {
-				cachedTxs[i] = &CachedTransaction{
-					Recipient: t.Recipient,
-					Amount:    t.Amount,
-				}
-			}
-
-			s.cachedBeaconBlockMutex.Lock()
-			s.cachedBeaconBlock[beaconBlock.ExecutionBlockNumber] = &CachedBeaconBlock{
-				ProposerIndex: beaconBlock.ProposerIndex,
-				Withdrawals:   cachedWithdrawals,
-				FeeRecipient:  beaconBlock.FeeRecipient,
-				Transactions:  cachedTxs,
-				PriorityFee:   beaconBlock.PriorityFee,
-			}
-			s.cachedBeaconBlockMutex.Unlock()
+			s.log.Tracef("save block: %d", beaconBlock.ExecutionBlockNumber)
 
 			// update latest block
 			if beaconBlock.ExecutionBlockNumber > s.latestBlockOfSyncBlock {
+				if beaconBlock.ExecutionBlockNumber-s.latestBlockOfSyncBlock > 1 {
+					// rpc error missing some blocks
+					return fmt.Errorf("%w at slot: %d desired eth1 block: %d", ErrMissingEth1Block, beaconBlock.BeaconBlockId, s.latestBlockOfSyncBlock+1)
+				}
 				s.latestBlockOfSyncBlock = beaconBlock.ExecutionBlockNumber
 			}
 		}
@@ -140,7 +102,7 @@ func (s *Service) syncBlocks() error {
 		s.latestSlotOfSyncBlock = subEnd
 
 		batchRequestEndTime := time.Now().Unix()
-		logrus.Tracef("batch request block, start at: %d, wait at %d, end at %d", batchRequestStartTime, batchRequestWaitTime, batchRequestEndTime)
+		s.log.Tracef("batch request block, start at: %d, wait at %d, end at %d", batchRequestStartTime, batchRequestWaitTime, batchRequestEndTime)
 	}
 
 	return nil
