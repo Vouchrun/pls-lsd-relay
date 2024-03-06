@@ -1,20 +1,15 @@
 package utils
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"io"
 	"math/big"
 	"net/http"
-	"time"
 
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/shopspring/decimal"
-	"github.com/sirupsen/logrus"
 	"github.com/stafiprotocol/eth-lsd-relay/pkg/connection/beacon"
 )
 
@@ -197,79 +192,6 @@ type ResGasPriceFromBeacon struct {
 // bytes32 proposalId = keccak256(abi.encodePacked("execProposal", _to, _callData, _proposalFactor));
 func ProposalId(to common.Address, callData []byte, proposalFactor *big.Int) [32]byte {
 	return crypto.Keccak256Hash([]byte("execProposal"), to.Bytes(), callData, common.LeftPadBytes(proposalFactor.Bytes(), 32))
-}
-
-func WaitTxOkCommon(client *ethclient.Client, txHash common.Hash) (blockNumber uint64, err error) {
-	defer func() {
-		if err != nil {
-			logrus.Errorf("find err: %s, will shutdown.", err.Error())
-			ShutdownRequestChannel <- struct{}{}
-		}
-	}()
-
-	retry := 0
-	for {
-		if retry > RetryLimit {
-			return 0, fmt.Errorf("waitTx %s reach retry limit", txHash.String())
-		}
-		_, pending, err := client.TransactionByHash(context.Background(), txHash)
-		if err != nil {
-			logrus.WithFields(logrus.Fields{
-				"hash": txHash.String(),
-				"err":  err.Error(),
-			}).Warn("TransactionByHash")
-
-			time.Sleep(RetryInterval)
-			retry++
-			continue
-		} else {
-			if pending {
-				logrus.WithFields(logrus.Fields{
-					"hash":    txHash.String(),
-					"pending": pending,
-				}).Warn("TransactionByHash")
-
-				time.Sleep(RetryInterval)
-				retry++
-				continue
-			} else {
-				// check status
-				var receipt *types.Receipt
-				subRetry := 0
-				for {
-					if subRetry > RetryLimit {
-						return 0, fmt.Errorf("TransactionReceipt %s reach retry limit", txHash.String())
-					}
-
-					receipt, err = client.TransactionReceipt(context.Background(), txHash)
-					if err != nil {
-						logrus.WithFields(logrus.Fields{
-							"hash": txHash.String(),
-							"err":  err.Error(),
-						}).Warn("tx TransactionReceipt")
-
-						time.Sleep(RetryInterval)
-						subRetry++
-						continue
-					}
-					break
-				}
-
-				if receipt.Status == 1 { //success
-					blockNumber = receipt.BlockNumber.Uint64()
-					break
-				} else { //failed
-					return 0, fmt.Errorf("tx %s failed", txHash.String())
-				}
-			}
-		}
-	}
-
-	logrus.WithFields(logrus.Fields{
-		"tx": txHash.String(),
-	}).Info("tx send ok")
-
-	return blockNumber, nil
 }
 
 // user = 90%*(1-nodedeposit/32)

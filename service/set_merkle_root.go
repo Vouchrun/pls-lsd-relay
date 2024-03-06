@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"math/big"
-	"path"
 	"sort"
 	"strings"
 
@@ -39,40 +38,47 @@ type NodeNewReward struct {
 
 // ensure withdraw and fee already distribute on target epoch
 func (s *Service) setMerkleRoot() error {
-	dealedEpochOnchain, targetEpoch, targetEth1BlockHeight, shouldGoNext, err := s.checkStateForSetMerkleRoot()
+	dealtEpochOnchain, targetEpoch, targetEth1BlockHeight, shouldGoNext, err := s.checkStateForSetMerkleRoot()
 	if err != nil {
 		return errors.Wrap(err, "setMerkleRoot checkSyncState failed")
 	}
 	if !shouldGoNext {
-		logrus.Debug("setMerkleRoot should not go next")
+		s.log.Debug("setMerkleRoot should not go next")
 		return nil
 	}
 
-	var dealedEth1BlockHeight uint64
+	var dealtEth1BlockHeight uint64
 	preNodeRewardList := NodeRewardsList{}
-	if dealedEpochOnchain == 0 {
+	if dealtEpochOnchain == 0 {
 		// init case
-		dealedEth1BlockHeight = s.networkCreateBlock
+		dealtEth1BlockHeight = s.startAtBlock
 	} else {
 		preCid, err := s.networkWithdrawContract.NodeRewardsFileCid(nil)
 		if err != nil {
 			return err
 		}
 
-		fileBytes, err := utils.DownloadWeb3File(preCid, utils.NodeRewardsFileNameAtEpoch(dealedEpochOnchain))
+		fileBytes, err := s.dds.DownloadFile(preCid, utils.NodeRewardsFileNameAtEpoch(s.lsdTokenAddress.String(), dealtEpochOnchain))
 		if err != nil {
-			return err
+			if strings.Contains(err.Error(), "404") {
+				// try old
+				if fileBytes, err = s.dds.DownloadFile(preCid, utils.NodeRewardsFileNameAtEpochOld(s.lsdTokenAddress.String(), dealtEpochOnchain)); err != nil {
+					return err
+				}
+			} else {
+				return err
+			}
 		}
 
 		err = json.Unmarshal(fileBytes, &preNodeRewardList)
 		if err != nil {
 			return err
 		}
-		if preNodeRewardList.Epoch != dealedEpochOnchain {
+		if preNodeRewardList.Epoch != dealtEpochOnchain {
 			return fmt.Errorf("pre node reward file epoch unmatch, cid: %s", preCid)
 		}
 
-		dealedEth1BlockHeight, err = s.getEpochStartBlocknumberWithCheck(dealedEpochOnchain)
+		dealtEth1BlockHeight, err = s.getEpochStartBlocknumberWithCheck(dealtEpochOnchain)
 		if err != nil {
 			return err
 		}
@@ -88,7 +94,7 @@ func (s *Service) setMerkleRoot() error {
 		preNodeRewardMap[address] = nodeReward
 	}
 
-	newNodeRewardsMap, err := s.getNodeNewRewardsBetween(dealedEth1BlockHeight, targetEth1BlockHeight)
+	newNodeRewardsMap, err := s.getNodeNewRewardsBetween(dealtEth1BlockHeight, targetEth1BlockHeight)
 	if err != nil {
 		return err
 	}
@@ -195,8 +201,8 @@ func (s *Service) setMerkleRoot() error {
 	if err != nil {
 		return err
 	}
-	filePath := path.Join(s.nodeRewardsFilePath, utils.NodeRewardsFileNameAtEpoch(targetEpoch))
-	cid, err := utils.UploadFileToWeb3Storage(s.web3Client, fileBts, filePath)
+	filePath := utils.NodeRewardsFileNameAtEpoch(s.lsdTokenAddress.String(), targetEpoch)
+	cid, err := s.dds.UploadFile(fileBts, filePath)
 	if err != nil {
 		return err
 	}
@@ -221,21 +227,21 @@ func buildMerkleTree(nodelist NodeRewardsList) (*utils.MerkleTree, error) {
 }
 
 // check sync and vote state
-// return (dealedEpoch,targetEpoch, targetEth1Blocknumber, shouldGoNext, err)
+// return (dealtEpoch,targetEpoch, targetEth1Blocknumber, shouldGoNext, err)
 func (s *Service) checkStateForSetMerkleRoot() (uint64, uint64, uint64, bool, error) {
-	beaconHead, err := s.connection.Eth2BeaconHead()
+	beaconHead, err := s.connection.BeaconHead()
 	if err != nil {
 		return 0, 0, 0, false, err
 	}
 
 	targetEpoch := (beaconHead.FinalizedEpoch / s.merkleRootDuEpochs) * s.merkleRootDuEpochs
 
-	dealedEpochOnchain := s.latestMerkleRootEpoch
+	dealtEpochOnchain := s.latestMerkleRootEpoch
 	if err != nil {
 		return 0, 0, 0, false, err
 	}
-	if targetEpoch <= dealedEpochOnchain {
-		logrus.Debugf("targetEpoch: %d  dealedEpochOnchain: %d", targetEpoch, dealedEpochOnchain)
+	if targetEpoch <= dealtEpochOnchain {
+		s.log.Debugf("targetEpoch: %d  dealtEpochOnchain: %d", targetEpoch, dealtEpochOnchain)
 		return 0, 0, 0, false, nil
 	}
 
@@ -244,20 +250,20 @@ func (s *Service) checkStateForSetMerkleRoot() (uint64, uint64, uint64, bool, er
 		return 0, 0, 0, false, err
 	}
 
-	logrus.WithFields(logrus.Fields{
+	s.log.WithFields(logrus.Fields{
 		"targetEth1BlockHeight":  targetEth1BlockHeight,
 		"latestBlockOfSyncBlock": s.latestBlockOfSyncBlock,
-		"dealedEpochOnchain":     dealedEpochOnchain,
+		"dealtEpochOnchain":      dealtEpochOnchain,
 		"targetEpoch":            targetEpoch,
 	}).Debug("setMerkleRoot")
 
 	// wait sync block
 	if targetEth1BlockHeight > s.latestBlockOfSyncBlock {
-		logrus.Debugf("targetEth1BlockHeight: %d  latestBlockOfSyncBlock: %d", targetEth1BlockHeight, s.latestBlockOfSyncBlock)
+		s.log.Debugf("targetEth1BlockHeight: %d  latestBlockOfSyncBlock: %d", targetEth1BlockHeight, s.latestBlockOfSyncBlock)
 		return 0, 0, 0, false, nil
 	}
 
-	return dealedEpochOnchain, targetEpoch, targetEth1BlockHeight, true, nil
+	return dealtEpochOnchain, targetEpoch, targetEth1BlockHeight, true, nil
 }
 
 func (s *Service) sendSetMerkleRootTx(targetEpoch int64, rootHash [32]byte, cid string) error {
@@ -267,7 +273,7 @@ func (s *Service) sendSetMerkleRootTx(targetEpoch int64, rootHash [32]byte, cid 
 	}
 	defer s.connection.UnlockTxOpts()
 
-	encodeBts, err := s.networkWithdrdawAbi.Pack("setMerkleRoot", big.NewInt(targetEpoch), rootHash, cid)
+	encodeBts, err := s.networkWithdrawAbi.Pack("setMerkleRoot", big.NewInt(targetEpoch), rootHash, cid)
 	if err != nil {
 		return err
 	}
@@ -275,7 +281,7 @@ func (s *Service) sendSetMerkleRootTx(targetEpoch int64, rootHash [32]byte, cid 
 	proposalId := utils.ProposalId(s.networkWithdrawAddress, encodeBts, big.NewInt(targetEpoch))
 
 	// check voted
-	hasVoted, err := s.networkProposalContract.HasVoted(nil, proposalId, s.keyPair.CommonAddress())
+	hasVoted, err := s.networkProposalContract.HasVoted(nil, proposalId, s.connection.Keypair().CommonAddress())
 	if err != nil {
 		return fmt.Errorf("networkProposalContract.HasVoted err: %s", err)
 	}
@@ -283,7 +289,7 @@ func (s *Service) sendSetMerkleRootTx(targetEpoch int64, rootHash [32]byte, cid 
 		return nil
 	}
 
-	logrus.WithFields(logrus.Fields{
+	s.log.WithFields(logrus.Fields{
 		"cid": cid,
 	}).Info("will sendSetMerkleRootTx")
 
@@ -292,7 +298,7 @@ func (s *Service) sendSetMerkleRootTx(targetEpoch int64, rootHash [32]byte, cid 
 		return err
 	}
 
-	logrus.Info("send setMerkleRoot tx hash: ", tx.Hash().String())
+	s.log.Info("send setMerkleRoot tx hash: ", tx.Hash().String())
 
 	return s.waitProposalTxOk(tx.Hash(), proposalId)
 }

@@ -9,7 +9,7 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/pkg/errors"
-	ethpb "github.com/prysmaticlabs/prysm/v3/proto/eth/v1"
+	ethpb "github.com/prysmaticlabs/prysm/v4/proto/eth/v1"
 	"github.com/shopspring/decimal"
 	"github.com/sirupsen/logrus"
 	"github.com/stafiprotocol/eth-lsd-relay/pkg/connection/beacon"
@@ -22,7 +22,7 @@ func init() {
 }
 
 func (s *Service) waitProposalTxOk(txHash common.Hash, proposalId [32]byte) error {
-	_, err := utils.WaitTxOkCommon(s.eth1Client, txHash)
+	_, err := s.connection.Eth1Client().WaitTxOkCommon(txHash)
 	if err != nil {
 		p, err := s.networkProposalContract.Proposals(nil, proposalId)
 		if err != nil {
@@ -39,7 +39,7 @@ func (s *Service) waitProposalTxOk(txHash common.Hash, proposalId [32]byte) erro
 }
 
 func (s *Service) waitProposalsTxOk(txHash common.Hash, proposalIds [][32]byte) error {
-	_, err := utils.WaitTxOkCommon(s.eth1Client, txHash)
+	_, err := s.connection.Eth1Client().WaitTxOkCommon(txHash)
 	if err != nil {
 		allProposalsExecuted := true
 		for _, proposalId := range proposalIds {
@@ -64,14 +64,22 @@ func (s *Service) waitProposalsTxOk(txHash common.Hash, proposalIds [][32]byte) 
 }
 
 func (s *Service) getEpochStartBlocknumberWithCheck(epoch uint64) (uint64, error) {
+	s.cacheEpochToBlockIDMutex.Lock()
+	defer s.cacheEpochToBlockIDMutex.Unlock()
+
+	if blockID, ok := s.cacheEpochToBlockID.Get(epoch); ok {
+		return blockID, nil
+	}
+
 	targetBlock, err := s.getEpochStartBlocknumber(epoch)
 	if err != nil {
 		return 0, err
 	}
 
-	if targetBlock < s.networkCreateBlock {
-		targetBlock = s.networkCreateBlock + 1
+	if targetBlock < s.startAtBlock {
+		targetBlock = s.startAtBlock + 1
 	}
+	s.cacheEpochToBlockID.Add(epoch, targetBlock)
 	return targetBlock, nil
 }
 
@@ -85,7 +93,7 @@ func (s *Service) getEpochStartBlocknumber(epoch uint64) (uint64, error) {
 
 		targetBeaconBlock, exist, err := s.connection.GetBeaconBlock(eth2ValidatorBalanceSyncerStartSlot)
 		if err != nil {
-			return 0, err
+			return 0, fmt.Errorf("fail to get beacon block[%d]: %w", eth2ValidatorBalanceSyncerStartSlot, err)
 		}
 		// we will use next slot if not exist
 		if !exist {
@@ -150,7 +158,7 @@ func (s *Service) getUserNodePlatformFromWithdrawals(latestDistributeHeight, tar
 			}
 
 			// distribute reward
-			userRewardDeci, nodeRewardDeci, platformFeeDeci := utils.GetUserNodePlatformReward(s.nodeCommissionRate, s.platfromCommissionRate, val.NodeDepositAmountDeci, decimal.NewFromInt(int64(totalReward)).Mul(utils.GweiDeci))
+			userRewardDeci, nodeRewardDeci, platformFeeDeci := utils.GetUserNodePlatformReward(s.nodeCommissionRate, s.platformCommissionRate, val.NodeDepositAmountDeci, decimal.NewFromInt(int64(totalReward)).Mul(utils.GweiDeci))
 			userDepositDeci := decimal.NewFromInt(int64(userDeposit)).Mul(utils.GweiDeci)
 			nodeDepositDeci := decimal.NewFromInt(int64(nodeDeposit)).Mul(utils.GweiDeci)
 
@@ -200,11 +208,11 @@ func (s *Service) getUserNodePlatformFromPriorityFee(latestDistributeHeight, tar
 
 		preBlockNumber := big.NewInt(int64(i - 1))
 		curBlockNumber := big.NewInt(int64(i))
-		feePoolPreBalance, err := s.eth1Client.BalanceAt(context.Background(), s.feePoolAddress, preBlockNumber)
+		feePoolPreBalance, err := s.connection.Eth1Client().BalanceAt(context.Background(), s.feePoolAddress, preBlockNumber)
 		if err != nil {
 			return decimal.Zero, decimal.Zero, decimal.Zero, nil, err
 		}
-		feePoolCurBalance, err := s.eth1Client.BalanceAt(context.Background(), s.feePoolAddress, curBlockNumber)
+		feePoolCurBalance, err := s.connection.Eth1Client().BalanceAt(context.Background(), s.feePoolAddress, curBlockNumber)
 		if err != nil {
 			return decimal.Zero, decimal.Zero, decimal.Zero, nil, err
 		}
@@ -235,7 +243,7 @@ func (s *Service) getUserNodePlatformFromPriorityFee(latestDistributeHeight, tar
 		}
 
 		// cal rewards
-		userRewardDeci, nodeRewardDeci, platformFeeDeci := utils.GetUserNodePlatformReward(s.nodeCommissionRate, s.platfromCommissionRate, val.NodeDepositAmountDeci, feeAmountAtThisBlock)
+		userRewardDeci, nodeRewardDeci, platformFeeDeci := utils.GetUserNodePlatformReward(s.nodeCommissionRate, s.platformCommissionRate, val.NodeDepositAmountDeci, feeAmountAtThisBlock)
 
 		// cal node reward
 		nodeNewReward, exist := nodeNewRewardsMap[val.NodeAddress]
@@ -304,7 +312,7 @@ func (s *Service) getNodeNewRewardsBetween(latestDistributeHeight, targetEth1Blo
 	return finalNodeRewardsMap, nil
 }
 
-func (s *Service) getValidatorsOfTargetEpoch(targetEpoch uint64) ([]*Validator, error) {
+func (s *Service) getValidatorsOfTargetEpoch(ctx context.Context, targetEpoch uint64) ([]*Validator, error) {
 	vals := make([]*Validator, 0)
 	pubkeys := make([]types.ValidatorPubkey, 0)
 	for _, val := range s.validators {
@@ -314,14 +322,14 @@ func (s *Service) getValidatorsOfTargetEpoch(targetEpoch uint64) ([]*Validator, 
 		return nil, nil
 	}
 
-	validatorStatusMap, err := s.connection.GetValidatorStatuses(pubkeys, &beacon.ValidatorStatusOptions{
+	validatorStatusMap, err := s.connection.GetValidatorStatuses(ctx, pubkeys, &beacon.ValidatorStatusOptions{
 		Epoch: &targetEpoch,
 	})
 	if err != nil {
 		return nil, errors.Wrap(err, "syncValidatorLatestInfo GetValidatorStatuses failed")
 	}
 
-	logrus.WithFields(logrus.Fields{
+	s.log.WithFields(logrus.Fields{
 		"validatorStatuses len": len(validatorStatusMap),
 	}).Debug("validator statuses")
 
@@ -410,7 +418,7 @@ func (s *Service) getValidatorsOfTargetEpoch(targetEpoch uint64) ([]*Validator, 
 	return vals, nil
 }
 
-func (s *Service) exitButNotFullWithdrawedValidatorListAtEpoch(epoch uint64) ([]*Validator, error) {
+func (s *Service) exitButNotFullWithdrawedValidatorListAtEpoch(ctx context.Context, epoch uint64) ([]*Validator, error) {
 	vals := make([]*Validator, 0)
 
 	pubkeys := make([]types.ValidatorPubkey, 0)
@@ -425,14 +433,14 @@ func (s *Service) exitButNotFullWithdrawedValidatorListAtEpoch(epoch uint64) ([]
 		return nil, nil
 	}
 
-	validatorStatusMap, err := s.connection.GetValidatorStatuses(pubkeys, &beacon.ValidatorStatusOptions{
+	validatorStatusMap, err := s.connection.GetValidatorStatuses(ctx, pubkeys, &beacon.ValidatorStatusOptions{
 		Epoch: &epoch,
 	})
 	if err != nil {
 		return nil, errors.Wrap(err, "exitButNotFullWithdrawedValidatorListAtEpoch GetValidatorStatuses failed")
 	}
 
-	logrus.WithFields(logrus.Fields{
+	s.log.WithFields(logrus.Fields{
 		"validatorStatuses len": len(validatorStatusMap),
 	}).Debug("validator statuses")
 

@@ -17,6 +17,7 @@ coverage.txt
 .idea/
 .vscode/
 .history
+__debug_bin*
 
 # Builds
 build/
@@ -42,3 +43,4 @@ log_file/
 log_data/
 conf_dev.*
 conf_main.*
+.env-go-test

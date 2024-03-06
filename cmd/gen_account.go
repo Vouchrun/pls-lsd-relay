@@ -10,6 +10,7 @@ import (
 	"github.com/stafiprotocol/chainbridge/utils/crypto"
 	"github.com/stafiprotocol/chainbridge/utils/crypto/secp256k1"
 	"github.com/stafiprotocol/chainbridge/utils/keystore"
+	"github.com/stafiprotocol/eth-lsd-relay/pkg/config"
 )
 
 func importAccountCmd() *cobra.Command {
@@ -18,11 +19,11 @@ func importAccountCmd() *cobra.Command {
 		Args:  cobra.ExactArgs(0),
 		Short: "Import account",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			keystorePath, err := cmd.Flags().GetString(flagKeystorePath)
+			basePath, err := cmd.Flags().GetString(flagBasePath)
 			if err != nil {
 				return err
 			}
-			fmt.Printf("keystore path: %s\n", keystorePath)
+
 			logLevelStr, err := cmd.Flags().GetString(flagLogLevel)
 			if err != nil {
 				return err
@@ -33,10 +34,13 @@ func importAccountCmd() *cobra.Command {
 			}
 			logrus.SetLevel(logLevel)
 
+			keystorePath := config.KeyStoreFilePath(basePath)
+			fmt.Printf("keystore path: %s\n", keystorePath)
+
 			return generateKeyFileByPrivateKey(keystorePath)
 		},
 	}
-	cmd.Flags().String(flagKeystorePath, defaultKeystorePath, "Keystore file path")
+	cmd.Flags().String(flagBasePath, defaultBasePath, "base path a directory where your config.toml resids")
 	cmd.Flags().String(flagLogLevel, logrus.InfoLevel.String(), "The logging level (trace|debug|info|warn|error|fatal|panic)")
 	return cmd
 }

@@ -12,12 +12,9 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
-	"github.com/ethereum/go-ethereum/rpc"
-	"github.com/ipfs/go-cid"
 	"github.com/shopspring/decimal"
 	"github.com/stafiprotocol/eth-lsd-relay/pkg/connection"
 	"github.com/stafiprotocol/eth-lsd-relay/pkg/utils"
-	"github.com/web3-storage/go-w3s-client"
 )
 
 func TestAppendFile(t *testing.T) {
@@ -38,6 +35,7 @@ func TestAppendFile(t *testing.T) {
 }
 
 func TestDecodeInputData(t *testing.T) {
+	return
 	client, err := ethclient.Dial("https://rpc.zhejiang.ethpandaops.io")
 	if err != nil {
 		t.Fatal(err)
@@ -176,48 +174,6 @@ func TestTx(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Logf("%+v", txr)
-
-	blockReceipts, err := client.BlockReceipts(context.Background(), rpc.BlockNumberOrHashWithNumber(9824110))
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Log(blockReceipts)
-
-}
-
-func TestUploadFileToWeb3Storage(t *testing.T) {
-	client, err := w3s.NewClient(w3s.WithToken("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJkaWQ6ZXRocjoweDNhZGRkOEUyZENjN2E3NDhmMzQ5NUYwYmNDQTUyYzgzQjVEOTQxMDYiLCJpc3MiOiJ3ZWIzLXN0b3JhZ2UiLCJpYXQiOjE2OTM3MDc2NzcyNTcsIm5hbWUiOiJ0ZXN0In0.2oOoiCvqjRGiVYNFH6UpRqVWtvE2NQQvzaJdjhC5jSQ"))
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	// f, err := os.Open("/Users/tpkeeper/gowork/stafi/eth-lsd-relay/bindings/Erc20/erc20_abi.json")
-	f, err := os.Open("/Users/tpkeeper/gowork/stafi/eth-lsd-relay/bindings/UserDeposit/userdeposit_abi.json")
-	if err != nil {
-		t.Fatal(err)
-	}
-	cid, err := client.Put(context.Background(), f)
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Log(cid.String())
-}
-
-func TestGetFileFromWeb3Storage(t *testing.T) {
-	client, err := w3s.NewClient(w3s.WithToken("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJkaWQ6ZXRocjoweDNhZGRkOEUyZENjN2E3NDhmMzQ5NUYwYmNDQTUyYzgzQjVEOTQxMDYiLCJpc3MiOiJ3ZWIzLXN0b3JhZ2UiLCJpYXQiOjE2OTM3MDc2NzcyNTcsIm5hbWUiOiJ0ZXN0In0.2oOoiCvqjRGiVYNFH6UpRqVWtvE2NQQvzaJdjhC5jSQ"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	c, err := cid.Decode("bafybeia3y3ch5fykhmmesfiyfx3vn7jfzg4dz7lki7olwt2ydiksaqkqne")
-	if err != nil {
-		t.Fatal(err)
-	}
-	s, err := client.Status(context.Background(), c)
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Logf("%+v", s)
-
 }
 
 type NodeReward struct {
@@ -240,11 +196,15 @@ func TestMarshal(t *testing.T) {
 	t.Log(hex.EncodeToString(proposalId[:]))
 }
 func TestConfig(t *testing.T) {
-	c, err := connection.NewConnection("https://mainnet.infura.io/v3/4d058381a4d64d31b00a4e15df3ddb94", "https://beacon-lighthouse.stafi.io", nil, nil, nil)
+	c, err := connection.NewConnection(os.Getenv("ETH1_ENDPOINT"), os.Getenv("ETH2_ENDPOINT"), nil, nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	block, err := c.Eth1Client().BlockByNumber(context.Background(), big.NewInt(18124493))
+	latestBlock, err := c.Eth1LatestBlock()
+	if err != nil {
+		t.Fatal(err)
+	}
+	block, err := c.Eth1Client().BlockByNumber(context.Background(), big.NewInt(int64(latestBlock)))
 	if err != nil {
 		t.Fatal(err)
 	}

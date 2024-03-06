@@ -21,11 +21,15 @@ func startRelayCmd() *cobra.Command {
 		Use:   "start",
 		Short: "Start lsd relay",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			configPath, err := cmd.Flags().GetString(flagConfigPath)
+			basePath, err := cmd.Flags().GetString(flagBasePath)
 			if err != nil {
 				return err
 			}
-			fmt.Printf("config path: %s\n", configPath)
+			cfg, err := config.Load(basePath)
+			if err != nil {
+				return err
+			}
+			fmt.Printf("keystore path: %s\n", cfg.KeystorePath)
 
 			logLevelStr, err := cmd.Flags().GetString(flagLogLevel)
 			if err != nil {
@@ -37,22 +41,19 @@ func startRelayCmd() *cobra.Command {
 			}
 			logrus.SetLevel(logLevel)
 
-			cfg, err := config.Load(configPath)
-			if err != nil {
-				return err
-			}
 			logrus.Infof(
 				`config info:
   logFilePath: %s
   logLevel: %s
-  eth1Endpoint: %s
-  eth2Endpoint: %s
   account: %s
+  runForEntrustedLsdNetwork: %v
   lsdTokenAddress: %s
   factoryAddress: %s
-  batchRequestBlocksNumber: %d`,
-				cfg.LogFilePath, logLevelStr, cfg.Eth1Endpoint, cfg.Eth2Endpoint, cfg.Account,
-				cfg.Contracts.LsdTokenAddress, cfg.Contracts.LsdFactoryAddress, cfg.BatchRequestBlocksNumber)
+  batchRequestBlocksNumber: %d
+  endpoints: %v`,
+				cfg.LogFilePath, logLevelStr, cfg.Account,
+				cfg.RunForEntrustedLsdNetwork, cfg.Contracts.LsdTokenAddress, cfg.Contracts.LsdFactoryAddress,
+				cfg.BatchRequestBlocksNumber, cfg.Endpoints)
 
 			err = log.InitLogFile(cfg.LogFilePath + "/relay")
 			if err != nil {
@@ -71,20 +72,18 @@ func startRelayCmd() *cobra.Command {
 			if !ok {
 				return fmt.Errorf(" keypair err")
 			}
-
-			t, err := service.NewService(cfg, kp)
+			srvManager, err := service.NewServiceManager(cfg, kp)
 			if err != nil {
-				return fmt.Errorf("NewService err: %w", err)
+				return fmt.Errorf("NewServiceManager err: %w", err)
 			}
-
-			err = t.Start()
-			if err != nil {
-				logrus.Errorf("start err: %s", err)
+			if err = srvManager.Start(); err != nil {
+				logrus.Errorf("start service manager err: %s", err)
 				return err
 			}
+
 			defer func() {
 				logrus.Infof("shutting down task ...")
-				t.Stop()
+				srvManager.Stop()
 			}()
 
 			<-ctx.Done()
@@ -92,7 +91,7 @@ func startRelayCmd() *cobra.Command {
 		},
 	}
 
-	cmd.Flags().String(flagConfigPath, defaultConfigPath, "Config file path")
+	cmd.Flags().String(flagBasePath, defaultBasePath, "base path a directory where your config.toml resids")
 	cmd.Flags().String(flagLogLevel, logrus.InfoLevel.String(), "The logging level (trace|debug|info|warn|error|fatal|panic)")
 
 	return cmd

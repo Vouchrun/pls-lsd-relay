@@ -11,7 +11,7 @@ import (
 )
 
 const (
-	fetchEventBlockLimit      = uint64(4900)
+	fetchEventBlockLimit      = uint64(3000)
 	fetchEth1WaitBlockNumbers = uint64(2)
 	depositEventPreBlocks     = 14400 // 2days
 )
@@ -44,7 +44,7 @@ func (s *Service) syncEvents() error {
 		latestBlockNumber -= fetchEth1WaitBlockNumbers
 	}
 
-	logrus.Debugf("latestBlockNumber: %d, latestBlockOfSyncEvents: %d", latestBlockNumber, s.latestBlockOfSyncEvents)
+	s.log.Debugf("latestBlockNumber: %d, latestBlockOfSyncEvents: %d", latestBlockNumber, s.latestBlockOfSyncEvents)
 
 	if latestBlockNumber <= uint64(s.latestBlockOfSyncEvents) {
 		return nil
@@ -82,10 +82,10 @@ func (s *Service) syncEvents() error {
 		// update
 		s.latestBlockOfSyncEvents = subEnd
 
-		logrus.WithFields(logrus.Fields{
+		s.log.WithFields(logrus.Fields{
 			"start": subStart,
 			"end":   subEnd,
-		}).Debug("syncEvents already dealed blocks")
+		}).Debug("syncEvents already dealt blocks")
 	}
 
 	return nil
