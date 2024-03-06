@@ -152,7 +152,6 @@ func (c *StandardHttpClient) GetEth2DepositContract() (beacon.Eth2DepositContrac
 
 // Get the beacon head
 func (c *StandardHttpClient) GetBeaconHead() (beacon.BeaconHead, error) {
-
 	var finalityCheckpoints FinalityCheckpointsResponse
 	finalityCheckpoints, err := c.getFinalityCheckpoints("head")
 
@@ -170,7 +169,6 @@ func (c *StandardHttpClient) GetBeaconHead() (beacon.BeaconHead, error) {
 		JustifiedEpoch:         uint64(finalityCheckpoints.Data.CurrentJustified.Epoch),
 		PreviousJustifiedEpoch: uint64(finalityCheckpoints.Data.PreviousJustified.Epoch),
 	}, nil
-
 }
 
 // Get a validator's status

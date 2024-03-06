@@ -143,7 +143,7 @@ func (s *Service) sendDistributeTx(distributeType uint8, targetEth1BlockHeight, 
 	}
 	defer s.connection.UnlockTxOpts()
 
-	encodeBts, err := s.networkWithdrdawAbi.Pack("distribute", distributeType, targetEth1BlockHeight,
+	encodeBts, err := s.networkWithdrawAbi.Pack("distribute", distributeType, targetEth1BlockHeight,
 		totalUserEth, totalNodeEth, totalPlatformEth, newMaxClaimableWithdrawIndex)
 	if err != nil {
 		return err

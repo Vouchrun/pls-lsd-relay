@@ -68,9 +68,9 @@ type Service struct {
 	networkBalancesAddress   common.Address
 	nodeDepositAddress       common.Address
 
-	networkWithdrdawAbi abi.ABI
-	networkBalancesAbi  abi.ABI
-	nodeDepositAbi      abi.ABI
+	networkWithdrawAbi abi.ABI
+	networkBalancesAbi abi.ABI
+	nodeDepositAbi     abi.ABI
 
 	lsdNetworkFactoryContract *lsd_network_factory.LsdNetworkFactory
 	nodeDepositContract       *node_deposit.CustomNodeDeposit
@@ -395,7 +395,7 @@ func (s *Service) Start() error {
 	s.log.Debugf("latestSlotOfSyncBlock: %d, latestBlockOfSyncBlock: %d", s.latestSlotOfSyncBlock, s.latestBlockOfSyncBlock)
 
 	// init abi
-	s.networkWithdrdawAbi, err = abi.JSON(strings.NewReader(network_withdraw.NetworkWithdrawABI))
+	s.networkWithdrawAbi, err = abi.JSON(strings.NewReader(network_withdraw.NetworkWithdrawABI))
 	if err != nil {
 		return err
 	}
