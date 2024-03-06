@@ -2,12 +2,15 @@ package connection
 
 import (
 	"context"
+	"fmt"
 	"math/big"
+	"sync"
 	"time"
 
 	"github.com/avast/retry-go/v4"
 	"github.com/sirupsen/logrus"
 	"github.com/stafiprotocol/eth-lsd-relay/pkg/connection/beacon"
+	"github.com/stafiprotocol/eth-lsd-relay/pkg/connection/types"
 	"github.com/stafiprotocol/eth-lsd-relay/pkg/utils"
 )
 
@@ -21,14 +24,16 @@ type CachedConnection struct {
 	eth1LatestBlockNumber    uint64
 	eth1LatestBlockNumberErr error
 
-	chainId    *big.Int
-	eth2Config *beacon.Eth2Config
+	chainId              *big.Int
+	eth2Config           *beacon.Eth2Config
+	validatorStatusCache sync.Map
 }
 
 func NewCachedConnection(conn *Connection) (*CachedConnection, error) {
 	cc := CachedConnection{
-		Connection: conn,
-		stop:       make(chan struct{}),
+		Connection:           conn,
+		stop:                 make(chan struct{}),
+		validatorStatusCache: sync.Map{},
 	}
 	return &cc, nil
 }
@@ -129,15 +134,32 @@ func (c *CachedConnection) cacheChainID() (err error) {
 	return
 }
 
-// func (c *CachedConnection) GetBeaconBlock(blockId uint64) (beacon.BeaconBlock, bool, error) {
-// 	// lock block for concurrent
-// 	unlock := c.beaconBlockMutex.Lock(blockId)
-// 	defer unlock()
+func (c *CachedConnection) GetValidatorStatus(ctx context.Context, pubkey types.ValidatorPubkey, opts *beacon.ValidatorStatusOptions) (validatorStatus beacon.ValidatorStatus, err error) {
+	cacheKey := ""
+	if opts != nil {
+		if opts.Epoch != nil {
+			cacheKey += fmt.Sprintf("%d", *opts.Epoch)
+		}
+		if opts.Slot != nil {
+			cacheKey += fmt.Sprintf("_%d", *opts.Slot)
+		}
+	}
+	if cacheKey != "" {
+		cacheKey += "_" + pubkey.Hex()
+		status, ok := c.validatorStatusCache.Load(cacheKey)
+		if ok {
+			return status.(beacon.ValidatorStatus), nil
+		}
+	}
 
-// 	block, exist, err := c.Connection.GetBeaconBlock(blockId)
-// 	if err != nil {
-// 		return beacon.BeaconBlock{}, exist, err
-// 	}
+	status, err := c.Connection.GetValidatorStatus(ctx, pubkey, opts)
+	if err != nil {
+		return status, err
+	}
 
-// 	return block, exist, nil
-// }
+	if cacheKey != "" {
+		c.validatorStatusCache.Store(cacheKey, status)
+	}
+
+	return status, nil
+}
