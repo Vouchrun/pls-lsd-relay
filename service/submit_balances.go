@@ -254,6 +254,7 @@ func (s *Service) sendSubmitBalancesTx(block, totalUserEth, lsdTokenTotalSupply 
 		return fmt.Errorf("networkProposalContract.HasVoted err: %s", err)
 	}
 	if hasVoted {
+		s.log.Info("already voted wait other voters")
 		return nil
 	}
 
