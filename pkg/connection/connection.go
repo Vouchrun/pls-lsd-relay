@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"math/big"
+	"strings"
 	"sync"
 	"time"
 
@@ -153,14 +154,21 @@ func (c *Connection) connectEth2(chainId *big.Int) error {
 
 func (c *Connection) getHealthyEth2Clients() ([]*eth2Client, error) {
 	clients := make([]*eth2Client, 0, len(c.eth2Clients))
+	errMsgs := make([]string, 0, len(c.eth2Clients))
 	for _, client := range c.eth2Clients {
-		if client.healthCheckError == nil &&
-			!client.outOfSync {
-			clients = append(clients, client)
+		if client.healthCheckError != nil {
+			errMsgs = append(errMsgs, fmt.Sprintf("endpoint: %s checked at %s health check err: %s", client.endpoint, client.lastCheckedAt, client.healthCheckError.Error()))
+			continue
 		}
+		if client.outOfSync {
+			errMsgs = append(errMsgs, fmt.Sprintf("endpoint: %s checked at %s slot number: %d", client.endpoint, client.lastCheckedAt, client.latestBeaconHead.Slot))
+			continue
+		}
+
+		clients = append(clients, client)
 	}
 	if len(clients) == 0 {
-		return nil, fmt.Errorf("all eth2 endpoints are out of sync")
+		return nil, fmt.Errorf("all eth2 endpoints are out of sync: %s", strings.Join(errMsgs, ";"))
 	}
 	return clients, nil
 }
@@ -177,7 +185,7 @@ func checkEth2Health(client *eth2Client) {
 	} else if client.latestBeaconHead == nil {
 		client.healthCheckError = fmt.Errorf("failed to get latest beacon head")
 	} else {
-		client.outOfSync = utils.TimestampOfSlot(client.config, beaconHead.Slot) < uint64(time.Now().Add(-time.Minute*3).Unix())
+		client.outOfSync = utils.TimestampOfSlot(client.config, beaconHead.Slot) < uint64(time.Now().Add(-time.Minute*10).Unix())
 	}
 	client.lastCheckedAt = time.Now()
 }

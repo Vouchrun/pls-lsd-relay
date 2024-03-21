@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math/big"
 	"net/url"
+	"strings"
 	"time"
 
 	"github.com/avast/retry-go/v4"
@@ -92,14 +93,21 @@ func NewEth1Client(endpoints []string) (*Eth1Client, error) {
 
 func (c *Eth1Client) getHealthyClients() ([]*underlyingEth1Client, error) {
 	clients := make([]*underlyingEth1Client, 0, len(c.clients))
+	errMsgs := make([]string, 0, len(c.clients))
 	for _, client := range c.clients {
-		if client.healthCheckError == nil &&
-			!client.outOfSync {
-			clients = append(clients, client)
+		if client.healthCheckError != nil {
+			errMsgs = append(errMsgs, fmt.Sprintf("endpoint: %s checked at %s health check err: %s", client.endpoint, client.lastCheckedAt, client.healthCheckError.Error()))
+			continue
 		}
+		if client.outOfSync {
+			errMsgs = append(errMsgs, fmt.Sprintf("endpoint: %s checked at %s latest block number: %d", client.endpoint, client.lastCheckedAt, client.latestBlock.NumberU64()))
+			continue
+		}
+
+		clients = append(clients, client)
 	}
 	if len(clients) == 0 {
-		return nil, fmt.Errorf("all eth1 endpoints are out of sync")
+		return nil, fmt.Errorf("all eth1 endpoints are out of sync: %s", strings.Join(errMsgs, ";"))
 	}
 	return clients, nil
 }
@@ -120,7 +128,7 @@ func checkHealth(client *underlyingEth1Client) {
 	} else if client.latestBlock == nil {
 		client.healthCheckError = fmt.Errorf("failed to get latest block")
 	} else {
-		client.outOfSync = block.Time() < uint64(time.Now().Add(-time.Minute*3).Unix())
+		client.outOfSync = block.Time() < uint64(time.Now().Add(-time.Minute*5).Unix())
 	}
 	client.lastCheckedAt = time.Now()
 }
