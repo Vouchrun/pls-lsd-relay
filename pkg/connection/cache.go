@@ -51,8 +51,8 @@ func (c *CachedConnection) Start() error {
 		return err
 	}
 
-	utils.SafeGo(c.syncBeaconHeadService)
-	utils.SafeGo(c.syncEth1LatestBlockService)
+	utils.SafeGoWithRestart(c.syncBeaconHeadService)
+	utils.SafeGoWithRestart(c.syncEth1LatestBlockService)
 
 	return nil
 }

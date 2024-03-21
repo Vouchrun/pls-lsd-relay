@@ -22,11 +22,23 @@ import (
 	"github.com/stafiprotocol/eth-lsd-relay/pkg/connection/beacon/client"
 	"github.com/stafiprotocol/eth-lsd-relay/pkg/connection/types"
 	"github.com/stafiprotocol/eth-lsd-relay/pkg/gomicrobee"
+	"github.com/stafiprotocol/eth-lsd-relay/pkg/utils"
 )
 
 var Gwei5 = big.NewInt(5e9)
 var Gwei10 = big.NewInt(10e9)
 var Gwei20 = big.NewInt(20e9)
+
+type eth2Client struct {
+	*client.StandardHttpClient
+	endpoint string
+
+	config           beacon.Eth2Config
+	latestBeaconHead *beacon.BeaconHead
+	outOfSync        bool
+	healthCheckError error
+	lastCheckedAt    time.Time
+}
 
 type Connection struct {
 	endpoints   []config.Endpoint
@@ -35,7 +47,7 @@ type Connection struct {
 	maxGasPrice *big.Int
 
 	eth1Client  ContractBackend
-	eth2Clients []*client.StandardHttpClient
+	eth2Clients []*eth2Client
 
 	txOpts      *bind.TransactOpts
 	callOpts    bind.CallOpts
@@ -109,15 +121,65 @@ func (c *Connection) connectEth1() (err error) {
 }
 
 func (c *Connection) connectEth2(chainId *big.Int) error {
-	c.eth2Clients = make([]*client.StandardHttpClient, 0, len(c.endpoints))
+	c.eth2Clients = make([]*eth2Client, 0, len(c.endpoints))
 	for _, e := range c.endpoints {
-		client, err := client.NewStandardHttpClient(e.Eth2, chainId)
+		stdClient, err := client.NewStandardHttpClient(e.Eth2, chainId)
 		if err != nil {
 			return err
 		}
-		c.eth2Clients = append(c.eth2Clients, client)
+
+		config, err := stdClient.GetEth2Config()
+		if err != nil {
+			return err
+		}
+		client := eth2Client{
+			StandardHttpClient: stdClient,
+			endpoint:           e.Eth2,
+			config:             config,
+		}
+		checkEth2Health(&client)
+		c.eth2Clients = append(c.eth2Clients, &client)
 	}
+
+	utils.SafeGoWithRestart(func() {
+		time.Sleep(time.Minute)
+		for i := range c.eth2Clients {
+			checkEth2Health(c.eth2Clients[i])
+		}
+	})
+
 	return nil
+}
+
+func (c *Connection) getHealthyEth2Clients() ([]*eth2Client, error) {
+	clients := make([]*eth2Client, 0, len(c.eth2Clients))
+	for _, client := range c.eth2Clients {
+		if client.healthCheckError == nil &&
+			!client.outOfSync {
+			clients = append(clients, client)
+		}
+	}
+	if len(clients) == 0 {
+		return nil, fmt.Errorf("all eth2 endpoints are out of sync")
+	}
+	return clients, nil
+}
+
+func checkEth2Health(client *eth2Client) {
+	beaconHead, err := retry.DoWithData(
+		client.GetBeaconHead,
+		retry.Delay(time.Second),
+		retry.Attempts(5),
+	)
+	client.latestBeaconHead = &beaconHead
+	if err != nil {
+		client.healthCheckError = err
+	} else if client.latestBeaconHead == nil {
+		client.healthCheckError = fmt.Errorf("failed to get latest beacon head")
+	} else {
+		client.outOfSync = utils.TimestampOfSlot(client.config, beaconHead.Slot) < uint64(time.Now().Add(-time.Minute*3).Unix())
+	}
+	client.lastCheckedAt = time.Now()
 }
 
 // newTransactOpts builds the TransactOpts for the connection's keypair.
@@ -234,7 +296,13 @@ func (c *Connection) Eth1LatestBlock() (uint64, error) {
 }
 
 func (c *Connection) GetValidatorStatus(ctx context.Context, pubkey types.ValidatorPubkey, opts *beacon.ValidatorStatusOptions) (validatorStatus beacon.ValidatorStatus, err error) {
-	for _, client := range c.eth2Clients {
+	var clients []*eth2Client
+	clients, err = c.getHealthyEth2Clients()
+	if err != nil {
+		return
+	}
+
+	for _, client := range clients {
 		validatorStatus, err = client.GetValidatorStatus(ctx, pubkey, opts)
 		if err == nil {
 			return
@@ -244,7 +312,13 @@ func (c *Connection) GetValidatorStatus(ctx context.Context, pubkey types.Valida
 }
 
 func (c *Connection) GetValidatorStatuses(ctx context.Context, pubkeys []types.ValidatorPubkey, opts *beacon.ValidatorStatusOptions) (validatorStatus map[types.ValidatorPubkey]beacon.ValidatorStatus, err error) {
-	for _, client := range c.eth2Clients {
+	var clients []*eth2Client
+	clients, err = c.getHealthyEth2Clients()
+	if err != nil {
+		return
+	}
+
+	for _, client := range clients {
 		validatorStatus, err = client.GetValidatorStatuses(ctx, pubkeys, opts)
 		if err == nil {
 			return
@@ -254,7 +328,13 @@ func (c *Connection) GetValidatorStatuses(ctx context.Context, pubkeys []types.V
 }
 
 func (c *Connection) GetBeaconBlock(blockId uint64) (block beacon.BeaconBlock, exist bool, err error) {
-	for _, client := range c.eth2Clients {
+	var clients []*eth2Client
+	clients, err = c.getHealthyEth2Clients()
+	if err != nil {
+		return
+	}
+
+	for _, client := range clients {
 		block, exist, err = client.GetBeaconBlock(blockId)
 		if exist {
 			return
@@ -264,7 +344,13 @@ func (c *Connection) GetBeaconBlock(blockId uint64) (block beacon.BeaconBlock, e
 }
 
 func (c *Connection) GetEth2Config() (cfg beacon.Eth2Config, err error) {
-	for _, client := range c.eth2Clients {
+	var clients []*eth2Client
+	clients, err = c.getHealthyEth2Clients()
+	if err != nil {
+		return
+	}
+
+	for _, client := range clients {
 		cfg, err = client.GetEth2Config()
 		if err == nil {
 			return
@@ -274,7 +360,13 @@ func (c *Connection) GetEth2Config() (cfg beacon.Eth2Config, err error) {
 }
 
 func (c *Connection) GetBeaconHead() (head beacon.BeaconHead, err error) {
-	for _, client := range c.eth2Clients {
+	var clients []*eth2Client
+	clients, err = c.getHealthyEth2Clients()
+	if err != nil {
+		return
+	}
+
+	for _, client := range clients {
 		head, err = client.GetBeaconHead()
 		if err == nil {
 			return

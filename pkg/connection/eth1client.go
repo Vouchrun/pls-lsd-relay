@@ -7,6 +7,7 @@ import (
 	"net/url"
 	"time"
 
+	"github.com/avast/retry-go/v4"
 	ethereum "github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
@@ -29,8 +30,18 @@ type ContractBackend interface {
 
 var _ ContractBackend = &Eth1Client{}
 
+type underlyingEth1Client struct {
+	*ethclient.Client
+	endpoint string
+
+	latestBlock      *types.Block
+	outOfSync        bool
+	healthCheckError error
+	lastCheckedAt    time.Time
+}
+
 type Eth1Client struct {
-	clients []*ethclient.Client
+	clients []*underlyingEth1Client
 }
 
 func NewEth1Client(endpoints []string) (*Eth1Client, error) {
@@ -38,7 +49,7 @@ func NewEth1Client(endpoints []string) (*Eth1Client, error) {
 		return nil, fmt.Errorf("endpoints can not be empty")
 	}
 
-	clients := make([]*ethclient.Client, len(endpoints))
+	clients := make([]*underlyingEth1Client, len(endpoints))
 	for i, e := range endpoints {
 		var rpcClient *rpc.Client
 		var err error
@@ -59,16 +70,69 @@ func NewEth1Client(endpoints []string) (*Eth1Client, error) {
 			return nil, err
 		}
 
-		clients[i] = ethclient.NewClient(rpcClient)
+		client := &underlyingEth1Client{
+			Client:   ethclient.NewClient(rpcClient),
+			endpoint: e,
+		}
+		checkHealth(client)
+		clients[i] = client
 	}
+
+	utils.SafeGoWithRestart(func() {
+		time.Sleep(time.Minute)
+		for i := range clients {
+			checkHealth(clients[i])
+		}
+	})
 
 	return &Eth1Client{
 		clients,
 	}, nil
 }
 
-func (c *Eth1Client) BalanceAt(ctx context.Context, account common.Address, blockNumber *big.Int) (balance *big.Int, err error) {
+func (c *Eth1Client) getHealthyClients() ([]*underlyingEth1Client, error) {
+	clients := make([]*underlyingEth1Client, 0, len(c.clients))
 	for _, client := range c.clients {
+		if client.healthCheckError == nil &&
+			!client.outOfSync {
+			clients = append(clients, client)
+		}
+	}
+	if len(clients) == 0 {
+		return nil, fmt.Errorf("all eth1 endpoints are out of sync")
+	}
+	return clients, nil
+}
+
+func checkHealth(client *underlyingEth1Client) {
+	block, err := retry.DoWithData(
+		func() (*types.Block, error) {
+			ctx, cancel := context.WithTimeout(context.Background(), time.Second*30)
+			defer cancel()
+			return client.BlockByNumber(ctx, nil)
+		},
+		retry.Delay(time.Second),
+		retry.Attempts(5),
+	)
+	client.latestBlock = block
+	if err != nil {
+		client.healthCheckError = err
+	} else if client.latestBlock == nil {
+		client.healthCheckError = fmt.Errorf("failed to get latest block")
+	} else {
+		client.outOfSync = block.Time() < uint64(time.Now().Add(-time.Minute*3).Unix())
+	}
+	client.lastCheckedAt = time.Now()
+}
+
+func (c *Eth1Client) BalanceAt(ctx context.Context, account common.Address, blockNumber *big.Int) (balance *big.Int, err error) {
+	var clients []*underlyingEth1Client
+	clients, err = c.getHealthyClients()
+	if err != nil {
+		return
+	}
+
+	for _, client := range clients {
 		balance, err = client.BalanceAt(ctx, account, blockNumber)
 		if err == nil {
 			return
@@ -78,7 +142,13 @@ func (c *Eth1Client) BalanceAt(ctx context.Context, account common.Address, bloc
 }
 
 func (c *Eth1Client) BlockByNumber(ctx context.Context, number *big.Int) (block *types.Block, err error) {
-	for _, client := range c.clients {
+	var clients []*underlyingEth1Client
+	clients, err = c.getHealthyClients()
+	if err != nil {
+		return
+	}
+
+	for _, client := range clients {
 		block, err = client.BlockByNumber(ctx, number)
 		if err == nil {
 			return
@@ -88,7 +158,13 @@ func (c *Eth1Client) BlockByNumber(ctx context.Context, number *big.Int) (block 
 }
 
 func (c *Eth1Client) ChainID(ctx context.Context) (id *big.Int, err error) {
-	for _, client := range c.clients {
+	var clients []*underlyingEth1Client
+	clients, err = c.getHealthyClients()
+	if err != nil {
+		return
+	}
+
+	for _, client := range clients {
 		id, err = client.ChainID(ctx)
 		if err == nil {
 			return
@@ -98,7 +174,13 @@ func (c *Eth1Client) ChainID(ctx context.Context) (id *big.Int, err error) {
 }
 
 func (c *Eth1Client) NonceAt(ctx context.Context, account common.Address, blockNumber *big.Int) (nonce uint64, err error) {
-	for _, client := range c.clients {
+	var clients []*underlyingEth1Client
+	clients, err = c.getHealthyClients()
+	if err != nil {
+		return
+	}
+
+	for _, client := range clients {
 		nonce, err = client.NonceAt(ctx, account, blockNumber)
 		if err == nil {
 			return
@@ -108,7 +190,13 @@ func (c *Eth1Client) NonceAt(ctx context.Context, account common.Address, blockN
 }
 
 func (c *Eth1Client) BlockNumber(ctx context.Context) (number uint64, err error) {
-	for _, client := range c.clients {
+	var clients []*underlyingEth1Client
+	clients, err = c.getHealthyClients()
+	if err != nil {
+		return
+	}
+
+	for _, client := range clients {
 		number, err = client.BlockNumber(ctx)
 		if err == nil {
 			return
@@ -118,7 +206,13 @@ func (c *Eth1Client) BlockNumber(ctx context.Context) (number uint64, err error)
 }
 
 func (c *Eth1Client) CallContract(ctx context.Context, call ethereum.CallMsg, blockNumber *big.Int) (bytes []byte, err error) {
-	for _, client := range c.clients {
+	var clients []*underlyingEth1Client
+	clients, err = c.getHealthyClients()
+	if err != nil {
+		return
+	}
+
+	for _, client := range clients {
 		bytes, err = client.CallContract(ctx, call, blockNumber)
 		if err == nil {
 			return
@@ -128,7 +222,13 @@ func (c *Eth1Client) CallContract(ctx context.Context, call ethereum.CallMsg, bl
 }
 
 func (c *Eth1Client) CodeAt(ctx context.Context, contract common.Address, blockNumber *big.Int) (bytes []byte, err error) {
-	for _, client := range c.clients {
+	var clients []*underlyingEth1Client
+	clients, err = c.getHealthyClients()
+	if err != nil {
+		return
+	}
+
+	for _, client := range clients {
 		bytes, err = client.CodeAt(ctx, contract, blockNumber)
 		if err == nil {
 			return
@@ -138,7 +238,13 @@ func (c *Eth1Client) CodeAt(ctx context.Context, contract common.Address, blockN
 }
 
 func (c *Eth1Client) EstimateGas(ctx context.Context, call ethereum.CallMsg) (gas uint64, err error) {
-	for _, client := range c.clients {
+	var clients []*underlyingEth1Client
+	clients, err = c.getHealthyClients()
+	if err != nil {
+		return
+	}
+
+	for _, client := range clients {
 		gas, err = client.EstimateGas(ctx, call)
 		if err == nil {
 			return
@@ -148,7 +254,13 @@ func (c *Eth1Client) EstimateGas(ctx context.Context, call ethereum.CallMsg) (ga
 }
 
 func (c *Eth1Client) FilterLogs(ctx context.Context, query ethereum.FilterQuery) (logs []types.Log, err error) {
-	for _, client := range c.clients {
+	var clients []*underlyingEth1Client
+	clients, err = c.getHealthyClients()
+	if err != nil {
+		return
+	}
+
+	for _, client := range clients {
 		logs, err = client.FilterLogs(ctx, query)
 		if err == nil {
 			return
@@ -158,7 +270,13 @@ func (c *Eth1Client) FilterLogs(ctx context.Context, query ethereum.FilterQuery)
 }
 
 func (c *Eth1Client) HeaderByNumber(ctx context.Context, number *big.Int) (header *types.Header, err error) {
-	for _, client := range c.clients {
+	var clients []*underlyingEth1Client
+	clients, err = c.getHealthyClients()
+	if err != nil {
+		return
+	}
+
+	for _, client := range clients {
 		header, err = client.HeaderByNumber(ctx, number)
 		if err == nil {
 			return
@@ -168,7 +286,13 @@ func (c *Eth1Client) HeaderByNumber(ctx context.Context, number *big.Int) (heade
 }
 
 func (c *Eth1Client) PendingCodeAt(ctx context.Context, account common.Address) (bytes []byte, err error) {
-	for _, client := range c.clients {
+	var clients []*underlyingEth1Client
+	clients, err = c.getHealthyClients()
+	if err != nil {
+		return
+	}
+
+	for _, client := range clients {
 		bytes, err = client.PendingCodeAt(ctx, account)
 		if err == nil {
 			return
@@ -178,7 +302,13 @@ func (c *Eth1Client) PendingCodeAt(ctx context.Context, account common.Address) 
 }
 
 func (c *Eth1Client) PendingNonceAt(ctx context.Context, account common.Address) (nonce uint64, err error) {
-	for _, client := range c.clients {
+	var clients []*underlyingEth1Client
+	clients, err = c.getHealthyClients()
+	if err != nil {
+		return
+	}
+
+	for _, client := range clients {
 		nonce, err = client.PendingNonceAt(ctx, account)
 		if err == nil {
 			return
@@ -188,7 +318,13 @@ func (c *Eth1Client) PendingNonceAt(ctx context.Context, account common.Address)
 }
 
 func (c *Eth1Client) SendTransaction(ctx context.Context, tx *types.Transaction) (err error) {
-	for _, client := range c.clients {
+	var clients []*underlyingEth1Client
+	clients, err = c.getHealthyClients()
+	if err != nil {
+		return
+	}
+
+	for _, client := range clients {
 		err = client.SendTransaction(ctx, tx)
 		if err == nil {
 			return
@@ -198,7 +334,13 @@ func (c *Eth1Client) SendTransaction(ctx context.Context, tx *types.Transaction)
 }
 
 func (c *Eth1Client) SubscribeFilterLogs(ctx context.Context, query ethereum.FilterQuery, ch chan<- types.Log) (sub ethereum.Subscription, err error) {
-	for _, client := range c.clients {
+	var clients []*underlyingEth1Client
+	clients, err = c.getHealthyClients()
+	if err != nil {
+		return
+	}
+
+	for _, client := range clients {
 		sub, err = client.SubscribeFilterLogs(ctx, query, ch)
 		if err == nil {
 			return
@@ -208,7 +350,13 @@ func (c *Eth1Client) SubscribeFilterLogs(ctx context.Context, query ethereum.Fil
 }
 
 func (c *Eth1Client) SuggestGasPrice(ctx context.Context) (price *big.Int, err error) {
-	for _, client := range c.clients {
+	var clients []*underlyingEth1Client
+	clients, err = c.getHealthyClients()
+	if err != nil {
+		return
+	}
+
+	for _, client := range clients {
 		price, err = client.SuggestGasPrice(ctx)
 		if err == nil {
 			return
@@ -218,7 +366,13 @@ func (c *Eth1Client) SuggestGasPrice(ctx context.Context) (price *big.Int, err e
 }
 
 func (c *Eth1Client) SuggestGasTipCap(ctx context.Context) (cap *big.Int, err error) {
-	for _, client := range c.clients {
+	var clients []*underlyingEth1Client
+	clients, err = c.getHealthyClients()
+	if err != nil {
+		return
+	}
+
+	for _, client := range clients {
 		cap, err = client.SuggestGasTipCap(ctx)
 		if err == nil {
 			return
@@ -228,7 +382,13 @@ func (c *Eth1Client) SuggestGasTipCap(ctx context.Context) (cap *big.Int, err er
 }
 
 func (c *Eth1Client) WaitTxOkCommon(txHash common.Hash) (blockNumber uint64, err error) {
-	for _, client := range c.clients {
+	var clients []*underlyingEth1Client
+	clients, err = c.getHealthyClients()
+	if err != nil {
+		return
+	}
+
+	for _, client := range clients {
 		blockNumber, err = waitTxOkCommon(client, txHash)
 		if err == nil {
 			return
@@ -241,7 +401,7 @@ func (c *Eth1Client) WaitTxOkCommon(txHash common.Hash) (blockNumber uint64, err
 	return
 }
 
-func waitTxOkCommon(client *ethclient.Client, txHash common.Hash) (blockNumber uint64, err error) {
+func waitTxOkCommon(client *underlyingEth1Client, txHash common.Hash) (blockNumber uint64, err error) {
 	retry := 0
 	for {
 		if retry > utils.RetryLimit {
