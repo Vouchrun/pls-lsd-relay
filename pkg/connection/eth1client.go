@@ -80,9 +80,11 @@ func NewEth1Client(endpoints []string) (*Eth1Client, error) {
 	}
 
 	utils.SafeGoWithRestart(func() {
-		time.Sleep(time.Minute)
-		for i := range clients {
-			checkHealth(clients[i])
+		for {
+			time.Sleep(time.Minute)
+			for i := range clients {
+				checkHealth(clients[i])
+			}
 		}
 	})
 

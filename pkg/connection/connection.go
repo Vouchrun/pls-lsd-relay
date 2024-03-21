@@ -143,9 +143,11 @@ func (c *Connection) connectEth2(chainId *big.Int) error {
 	}
 
 	utils.SafeGoWithRestart(func() {
-		time.Sleep(time.Minute)
-		for i := range c.eth2Clients {
-			checkEth2Health(c.eth2Clients[i])
+		for {
+			time.Sleep(time.Minute)
+			for i := range c.eth2Clients {
+				checkEth2Health(c.eth2Clients[i])
+			}
 		}
 	})
 
