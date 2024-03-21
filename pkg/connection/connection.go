@@ -187,7 +187,7 @@ func checkEth2Health(client *eth2Client) {
 	} else if client.latestBeaconHead == nil {
 		client.healthCheckError = fmt.Errorf("failed to get latest beacon head")
 	} else {
-		client.outOfSync = utils.TimestampOfSlot(client.config, beaconHead.Slot) < uint64(time.Now().Add(-time.Minute*10).Unix())
+		client.outOfSync = utils.TimestampOfSlot(client.config, beaconHead.FinalizedSlot) < uint64(time.Now().Add(-time.Minute*20).Unix())
 	}
 	client.lastCheckedAt = time.Now()
 }
