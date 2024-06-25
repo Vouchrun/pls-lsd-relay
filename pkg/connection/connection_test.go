@@ -2,7 +2,7 @@ package connection_test
 
 import (
 	"context"
-	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"math/big"
 	"os"
@@ -17,14 +17,17 @@ import (
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/sirupsen/logrus"
 	node_deposit "github.com/stafiprotocol/eth-lsd-relay/bindings/NodeDeposit"
+	"github.com/stafiprotocol/eth-lsd-relay/pkg/config"
 	"github.com/stafiprotocol/eth-lsd-relay/pkg/connection"
-	"github.com/stafiprotocol/eth-lsd-relay/pkg/connection/beacon"
-	"github.com/stafiprotocol/eth-lsd-relay/pkg/connection/types"
 	"github.com/stafiprotocol/eth-lsd-relay/pkg/utils"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestCallOpts(t *testing.T) {
-	c, err := connection.NewConnection(os.Getenv("ETH1_ENDPOINT"), os.Getenv("ETH2_ENDPOINT"), nil, nil, nil)
+	endpoints := []config.Endpoint{
+		{Eth1: os.Getenv("ETH1_ENDPOINT"), Eth2: os.Getenv("ETH2_ENDPOINT")},
+	}
+	c, err := connection.NewConnection(endpoints, nil, nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -52,7 +55,10 @@ func TestCallOpts(t *testing.T) {
 }
 
 func TestBlockReward(t *testing.T) {
-	c, err := connection.NewConnection(os.Getenv("ETH1_ENDPOINT"), os.Getenv("ETH2_ENDPOINT"), nil, nil, nil)
+	endpoints := []config.Endpoint{
+		{Eth1: os.Getenv("ETH1_ENDPOINT"), Eth2: os.Getenv("ETH2_ENDPOINT")},
+	}
+	c, err := connection.NewConnection(endpoints, nil, nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -62,18 +68,6 @@ func TestBlockReward(t *testing.T) {
 	}
 
 	t.Logf("%v", eth1Block.Coinbase())
-	totalFee := big.NewInt(0)
-	for _, tx := range eth1Block.Transactions() {
-		receipt, err := c.Eth1Client().TransactionReceipt(context.Background(), tx.Hash())
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		priorityGasFee := tx.EffectiveGasTipValue(eth1Block.BaseFee())
-
-		totalFee = new(big.Int).Add(totalFee, new(big.Int).Mul(priorityGasFee, big.NewInt(int64(receipt.GasUsed))))
-	}
-	t.Log(totalFee)
 
 	eth1Block, err = c.Eth1Client().BlockByNumber(context.Background(), big.NewInt(859543))
 	if err != nil {
@@ -81,19 +75,25 @@ func TestBlockReward(t *testing.T) {
 	}
 
 	t.Logf("%v", eth1Block.Coinbase())
-	totalFee = big.NewInt(0)
-	for _, tx := range eth1Block.Transactions() {
-		receipt, err := c.Eth1Client().TransactionReceipt(context.Background(), tx.Hash())
-		if err != nil {
-			t.Fatal(err)
-		}
+}
 
-		priorityGasFee := tx.EffectiveGasTipValue(eth1Block.BaseFee())
+func TestEth2Config(t *testing.T) {
+	s := make([]int64, 0)
+	sort.SliceStable(s, func(i, j int) bool { return s[i] < s[j] })
 
-		totalFee = new(big.Int).Add(totalFee, new(big.Int).Mul(priorityGasFee, big.NewInt(int64(receipt.GasUsed))))
+	logrus.SetLevel(logrus.DebugLevel)
+	endpoints := []config.Endpoint{
+		{Eth1: os.Getenv("ETH1_ENDPOINT"), Eth2: os.Getenv("ETH2_ENDPOINT")},
 	}
-	t.Log(totalFee)
-
+	c, err := connection.NewConnection(endpoints, nil, nil, nil)
+	assert.Nil(t, err)
+	config, err := c.GetEth2Config()
+	assert.Nil(t, err)
+	cfgBytes, err := json.MarshalIndent(config, "", "  ")
+	assert.Nil(t, err)
+	t.Log(string(cfgBytes))
+	timestamp := utils.StartTimestampOfEpoch(config, 10383)
+	t.Log(timestamp)
 }
 
 func TestBlockDetail(t *testing.T) {
@@ -101,53 +101,17 @@ func TestBlockDetail(t *testing.T) {
 	sort.SliceStable(s, func(i, j int) bool { return s[i] < s[j] })
 
 	logrus.SetLevel(logrus.DebugLevel)
-	c, err := connection.NewConnection(os.Getenv("ETH1_ENDPOINT"), os.Getenv("ETH2_ENDPOINT"), nil, nil, nil)
+	endpoints := []config.Endpoint{
+		{Eth1: os.Getenv("ETH1_ENDPOINT"), Eth2: os.Getenv("ETH2_ENDPOINT")},
+	}
+	c, err := connection.NewConnection(endpoints, nil, nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	beaconBlock, _, err := c.GetBeaconBlock(7312423)
+	_, _, err = c.GetBeaconBlock(7312423)
 	if err != nil {
 		t.Fatal(err)
 	}
-	// t.Logf("%+v", beaconBlock)
-	for _, tx := range beaconBlock.Transactions {
-		t.Logf("%s", hex.EncodeToString(tx.TxHash))
-		t.Logf("%s", hex.EncodeToString(tx.Recipient))
-		t.Logf("%s", new(big.Int).SetBytes(tx.Amount).String())
-	}
-
-	return
-
-	var slot uint64 = 1
-
-	pubkey, _ := types.HexToValidatorPubkey("93ce5068db907b2e5055dbb7805a3a3d7c56c9e82d010e864403e10a61235db4795949f01302dc2ad2b6225963599ed5")
-	status, err := c.Eth2Client().GetValidatorStatus(context.TODO(), pubkey, &beacon.ValidatorStatusOptions{
-		Epoch: new(uint64),
-		Slot:  &slot,
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	t.Log(hex.EncodeToString(status.WithdrawalCredentials.Bytes()))
-	eth1Block, err := c.Eth1Client().BlockByNumber(context.Background(), big.NewInt(190767))
-	if err != nil {
-		t.Fatal(err)
-	}
-	for _, w := range eth1Block.Withdrawals() {
-		t.Logf("%+v", w)
-
-	}
-
-	beaconBlock, _, err = c.Eth2Client().GetBeaconBlock(199214)
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Logf("%+v", beaconBlock.Withdrawals)
-	config, err := c.Eth2Client().GetEth2Config()
-	timestamp := utils.StartTimestampOfEpoch(config, 10383)
-	t.Log(timestamp)
-
 }
 
 func TestBalance(t *testing.T) {
@@ -168,7 +132,10 @@ func TestBalance(t *testing.T) {
 }
 
 func TestGettingFirstNodeStakeEvent(t *testing.T) {
-	c, err := connection.NewConnection(os.Getenv("ETH1_ENDPOINT"), os.Getenv("ETH2_ENDPOINT"), nil, nil, nil)
+	endpoints := []config.Endpoint{
+		{Eth1: os.Getenv("ETH1_ENDPOINT"), Eth2: os.Getenv("ETH2_ENDPOINT")},
+	}
+	c, err := connection.NewConnection(endpoints, nil, nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
