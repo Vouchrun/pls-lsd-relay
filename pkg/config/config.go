@@ -17,7 +17,6 @@ type Endpoint struct {
 }
 
 type Config struct {
-	StorageApiToken          string //
 	LogFilePath              string
 	Account                  string
 	KeystorePath             string
@@ -28,8 +27,15 @@ type Config struct {
 
 	RunForEntrustedLsdNetwork bool
 
-	Contracts Contracts
-	Endpoints []Endpoint
+	Contracts   Contracts
+	Endpoints   []Endpoint
+	Web3Storage Web3Storage
+}
+
+type Web3Storage struct {
+	PrivateKey string
+	SpaceDid   string
+	ProofFile  string
 }
 
 type Contracts struct {

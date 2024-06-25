@@ -1,3 +1,3 @@
-Decentralized Storage
+Decentralized Data Storage
 =======================
-- Nft.storage
+- Web3.storage

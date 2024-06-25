@@ -37,7 +37,7 @@ import (
 	"github.com/stafiprotocol/eth-lsd-relay/pkg/connection"
 	"github.com/stafiprotocol/eth-lsd-relay/pkg/connection/beacon"
 	"github.com/stafiprotocol/eth-lsd-relay/pkg/destorage"
-	"github.com/stafiprotocol/eth-lsd-relay/pkg/destorage/nftstorage"
+	"github.com/stafiprotocol/eth-lsd-relay/pkg/destorage/web3storage"
 	"github.com/stafiprotocol/eth-lsd-relay/pkg/local_store"
 	"github.com/stafiprotocol/eth-lsd-relay/pkg/utils"
 )
@@ -205,9 +205,6 @@ func NewService(
 	} else if !isDir {
 		return nil, fmt.Errorf("logFilePath %s is not dir", cfg.LogFilePath)
 	}
-	if len(cfg.StorageApiToken) == 0 {
-		return nil, fmt.Errorf("storageApiToken empty")
-	}
 	if cfg.BatchRequestBlocksNumber == 0 {
 		return nil, fmt.Errorf("BatchRequestBlocksNumber is zero")
 	}
@@ -223,9 +220,14 @@ func NewService(
 	log := logrus.WithFields(logrus.Fields{
 		"lsdToken": cfg.Contracts.LsdTokenAddress,
 	})
-	dds, err := nftstorage.NewNftStorage(cfg.StorageApiToken, log)
+
+	dds, err := web3storage.NewStorage(
+		cfg.Web3Storage.ProofFile,
+		cfg.Web3Storage.SpaceDid,
+		cfg.Web3Storage.PrivateKey,
+	)
 	if err != nil {
-		return nil, fmt.Errorf("error creating new nft.storage client: %w", err)
+		return nil, fmt.Errorf("fail to new web3.storage client: %w", err)
 	}
 
 	cacheEpochToBlockID, err := lru.New[uint64, uint64](1024 * 1000)
