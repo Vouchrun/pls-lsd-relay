@@ -37,7 +37,7 @@ import (
 	"github.com/stafiprotocol/eth-lsd-relay/pkg/connection"
 	"github.com/stafiprotocol/eth-lsd-relay/pkg/connection/beacon"
 	"github.com/stafiprotocol/eth-lsd-relay/pkg/destorage"
-	"github.com/stafiprotocol/eth-lsd-relay/pkg/destorage/web3storage"
+	"github.com/stafiprotocol/eth-lsd-relay/pkg/destorage/pinata"
 	"github.com/stafiprotocol/eth-lsd-relay/pkg/local_store"
 	"github.com/stafiprotocol/eth-lsd-relay/pkg/utils"
 )
@@ -221,14 +221,14 @@ func NewService(
 		"lsdToken": cfg.Contracts.LsdTokenAddress,
 	})
 
-	dds, err := web3storage.NewStorage(
-		cfg.Web3Storage.ProofFile,
-		cfg.Web3Storage.SpaceDid,
-		cfg.Web3Storage.PrivateKey,
+	dds, err := pinata.NewClient(
+		cfg.Pinata.Endpoint,
+		cfg.Pinata.Jwt,
 	)
 	if err != nil {
-		return nil, fmt.Errorf("fail to new web3.storage client: %w", err)
+		return nil, fmt.Errorf("fail to new pinata client: %w", err)
 	}
+	dds.StartUnpinFiles(utils.Day * time.Duration(cfg.Pinata.PinDays))
 
 	cacheEpochToBlockID, err := lru.New[uint64, uint64](1024 * 1000)
 	if err != nil {

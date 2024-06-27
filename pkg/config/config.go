@@ -30,12 +30,19 @@ type Config struct {
 	Contracts   Contracts
 	Endpoints   []Endpoint
 	Web3Storage Web3Storage
+	Pinata      Pinata
 }
 
 type Web3Storage struct {
 	PrivateKey string
 	SpaceDid   string
 	ProofFile  string
+}
+
+type Pinata struct {
+	Jwt      string
+	Endpoint string
+	PinDays  uint
 }
 
 type Contracts struct {
