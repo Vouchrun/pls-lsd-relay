@@ -40,7 +40,7 @@ type Web3Storage struct {
 }
 
 type Pinata struct {
-	Jwt      string
+	Apikey   string
 	Endpoint string
 	PinDays  uint
 }

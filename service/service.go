@@ -223,7 +223,7 @@ func NewService(
 
 	dds, err := pinata.NewClient(
 		cfg.Pinata.Endpoint,
-		cfg.Pinata.Jwt,
+		cfg.Pinata.Apikey,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("fail to new pinata client: %w", err)
