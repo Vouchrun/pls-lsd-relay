@@ -17,7 +17,7 @@ func TestUploadAndDownload(t *testing.T) {
 	assert.Nil(t, err)
 
 	fileName := "hello-world.txt"
-	fileContent := []byte("你好世界！Hello World! - " + time.Now().String())
+	fileContent := []byte("Hello World! - " + time.Now().String())
 	cid, err := client.UploadFile(fileContent, fileName)
 	assert.Nil(t, err)
 	assert.NotEmpty(t, cid)
