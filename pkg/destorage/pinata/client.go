@@ -22,7 +22,7 @@ var _ destorage.DeStorage = &Client{}
 
 type Client struct {
 	endpoint string
-	jwt      string
+	apikey   string
 }
 
 const (
@@ -30,14 +30,14 @@ const (
 	fileUrlFormatter = "https://%s.ipfs.dweb.link/%s"
 )
 
-func NewClient(endpoint, jwt string) (*Client, error) {
+func NewClient(endpoint, apikey string) (*Client, error) {
 	if endpoint == "" {
 		endpoint = defaultEndpoint
 	}
 
 	c := &Client{
 		endpoint,
-		jwt,
+		apikey,
 	}
 
 	return c, nil
@@ -274,7 +274,7 @@ func (c *Client) Delete(cid string) error {
 }
 
 func (c *Client) do(req *http.Request, res any) error {
-	req.Header.Set("Authorization", "Bearer "+c.jwt)
+	req.Header.Set("Authorization", "Bearer "+c.apikey)
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {

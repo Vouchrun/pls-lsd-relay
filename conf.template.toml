@@ -6,7 +6,7 @@ batchRequestBlocksNumber = 32
 runForEntrustedLsdNetwork = false
 
 [pinata]
-jwt     = ""
+apikey     = ""
 pinDays = 180
 
 [contracts]
