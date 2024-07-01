@@ -28,7 +28,7 @@ func (s *Service) voteWithdrawCredentials() error {
 		validatorListNeedVote = append(validatorListNeedVote, val)
 	}
 	validatorPubkeys := make([][]byte, 0)
-	validatorMatchs := make([]bool, 0)
+	validatorMatches := make([]bool, 0)
 	for _, validator := range validatorListNeedVote {
 		// skip if not sync to deposit block
 		if validator.DepositBlock > s.latestBlockOfSyncEvents {
@@ -59,7 +59,7 @@ func (s *Service) voteWithdrawCredentials() error {
 
 			s.log.WithFields(logrus.Fields{
 				"validatorStatus.WithdrawalCredentials": validatorStatus.WithdrawalCredentials.String(),
-				"task.withdrawCredientials":             hex.EncodeToString(s.withdrawCredentials),
+				"task.withdrawCredentials":              hex.EncodeToString(s.withdrawCredentials),
 			}).Warn("withdrawalCredentials not match")
 		}
 
@@ -79,7 +79,7 @@ func (s *Service) voteWithdrawCredentials() error {
 			match = false
 
 			s.log.WithFields(logrus.Fields{
-				"task.withdrawCredientials":             s.withdrawCredentials,
+				"task.withdrawCredentials":              s.withdrawCredentials,
 				"validatorStatus.WithdrawalCredentials": validatorStatus.WithdrawalCredentials.String(),
 			}).Warn("signature not match")
 		}
@@ -90,18 +90,18 @@ func (s *Service) voteWithdrawCredentials() error {
 		}).Debug("match info")
 
 		validatorPubkeys = append(validatorPubkeys, validator.Pubkey)
-		validatorMatchs = append(validatorMatchs, match)
+		validatorMatches = append(validatorMatches, match)
 	}
 
-	return s.voteWithdrawCredentialsTx(validatorPubkeys, validatorMatchs)
+	return s.voteWithdrawCredentialsTx(validatorPubkeys, validatorMatches)
 }
 
-func (s *Service) voteWithdrawCredentialsTx(validatorPubkeys [][]byte, matchs []bool) error {
+func (s *Service) voteWithdrawCredentialsTx(validatorPubkeys [][]byte, matches []bool) error {
 	if len(validatorPubkeys) == 0 {
 		return nil
 	}
-	if len(validatorPubkeys) != len(matchs) {
-		return fmt.Errorf("validators and matchs len not match")
+	if len(validatorPubkeys) != len(matches) {
+		return fmt.Errorf("validators and matches len not match")
 	}
 
 	tos := make([]common.Address, 0)
@@ -111,7 +111,7 @@ func (s *Service) voteWithdrawCredentialsTx(validatorPubkeys [][]byte, matchs []
 
 	for i := 0; i < len(validatorPubkeys); i++ {
 
-		encodeBts, err := s.nodeDepositAbi.Pack("voteWithdrawCredentials", validatorPubkeys[i], matchs[i])
+		encodeBts, err := s.nodeDepositAbi.Pack("voteWithdrawCredentials", validatorPubkeys[i], matches[i])
 		if err != nil {
 			return err
 		}
@@ -150,7 +150,7 @@ func (s *Service) voteWithdrawCredentialsTx(validatorPubkeys [][]byte, matchs []
 
 	s.log.WithFields(logrus.Fields{
 		"pubkeys": pubkeyToHex(validatorPubkeys),
-		"matchs":  matchs,
+		"matches": matches,
 	}).Info("voteForNode")
 
 	tx, err := s.networkProposalContract.BatchExecProposals(s.connection.TxOpts(), tos, callDatas, blocks)
