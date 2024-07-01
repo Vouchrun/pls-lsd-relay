@@ -327,6 +327,34 @@ func (s *Service) Start() error {
 			return err
 		}
 		s.domain = domain
+	case 369: // pulse chain mainnet
+		chainConfig := utils.PulseChainConfig()
+		if !bytes.Equal(s.eth2Config.GenesisForkVersion, chainConfig.GenesisForkVersion) {
+			return fmt.Errorf("endpoint network not match")
+		}
+		domain, err := signing.ComputeDomain(
+			chainConfig.DomainDeposit,
+			chainConfig.GenesisForkVersion,
+			chainConfig.ZeroHash[:],
+		)
+		if err != nil {
+			return err
+		}
+		s.domain = domain
+	case 943: // pulse chain testnet
+		chainConfig := utils.PulseChainTestnetV4Config()
+		if !bytes.Equal(s.eth2Config.GenesisForkVersion, chainConfig.GenesisForkVersion) {
+			return fmt.Errorf("endpoint network not match")
+		}
+		domain, err := signing.ComputeDomain(
+			chainConfig.DomainDeposit,
+			chainConfig.GenesisForkVersion,
+			chainConfig.ZeroHash[:],
+		)
+		if err != nil {
+			return err
+		}
+		s.domain = domain
 	default:
 		return fmt.Errorf("unsupport chainId: %d", chainId.Int64())
 	}
