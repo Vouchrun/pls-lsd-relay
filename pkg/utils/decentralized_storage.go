@@ -5,12 +5,10 @@ import (
 	"strings"
 )
 
-var nodeRewardsFileNameRaw string = "%s-nodeRewards-%d.json"
-
-func NodeRewardsFileNameAtEpoch(lsdToken string, epoch uint64) string {
-	return fmt.Sprintf(nodeRewardsFileNameRaw, strings.ToLower(lsdToken), epoch)
+func NodeRewardsFileNameAtEpoch(lsdToken string, chainID uint64, epoch uint64) string {
+	return fmt.Sprintf("%s-rewards-%d-%d.json", strings.ToLower(lsdToken), chainID, epoch)
 }
 
 func NodeRewardsFileNameAtEpochOld(lsdToken string, epoch uint64) string {
-	return fmt.Sprintf(nodeRewardsFileNameRaw, lsdToken, epoch)
+	return fmt.Sprintf("%s-nodeRewards-%d.json", strings.ToLower(lsdToken), epoch)
 }

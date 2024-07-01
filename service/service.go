@@ -58,6 +58,7 @@ type Service struct {
 	connection          *connection.CachedConnection
 	dds                 destorage.DeStorage
 	eth2Config          beacon.Eth2Config
+	chainID             uint64
 	withdrawCredentials []byte
 	domain              []byte // for eth2 sigs
 
@@ -356,11 +357,12 @@ func (s *Service) Start() error {
 		}
 		s.domain = domain
 	default:
-		return fmt.Errorf("unsupport chainId: %d", chainId.Int64())
+		return fmt.Errorf("unsupported chainId: %d", chainId.Int64())
 	}
 	if err != nil {
 		return err
 	}
+	s.chainID = chainId.Uint64()
 
 	s.log.Info("init contracts...")
 	err = s.initContract()

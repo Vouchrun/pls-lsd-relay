@@ -58,7 +58,7 @@ func (s *Service) setMerkleRoot() error {
 			return err
 		}
 
-		fileBytes, err := s.dds.DownloadFile(preCid, utils.NodeRewardsFileNameAtEpoch(s.lsdTokenAddress.String(), dealtEpochOnchain))
+		fileBytes, err := s.dds.DownloadFile(preCid, utils.NodeRewardsFileNameAtEpoch(s.lsdTokenAddress.String(), s.chainID, dealtEpochOnchain))
 		if err != nil {
 			if strings.Contains(err.Error(), "404") {
 				// try old
@@ -75,7 +75,7 @@ func (s *Service) setMerkleRoot() error {
 			return err
 		}
 		if preNodeRewardList.Epoch != dealtEpochOnchain {
-			return fmt.Errorf("pre node reward file epoch unmatch, cid: %s", preCid)
+			return fmt.Errorf("pre node reward file epoch does not match, cid: %s", preCid)
 		}
 
 		dealtEth1BlockHeight, err = s.getEpochStartBlocknumberWithCheck(dealtEpochOnchain)
@@ -201,7 +201,7 @@ func (s *Service) setMerkleRoot() error {
 	if err != nil {
 		return err
 	}
-	filePath := utils.NodeRewardsFileNameAtEpoch(s.lsdTokenAddress.String(), targetEpoch)
+	filePath := utils.NodeRewardsFileNameAtEpoch(s.lsdTokenAddress.String(), s.chainID, targetEpoch)
 	cid, err := s.dds.UploadFile(fileBts, filePath)
 	if err != nil {
 		return err
