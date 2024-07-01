@@ -1,4 +1,3 @@
-storageApiToken = ""
 account = "0xE6F2A8d12595fBe5D410f6CA0Be13695E61C6c35"
 gasLimit = "3000000"
 maxGasPrice = "60000000000"                            #wei
