@@ -90,7 +90,7 @@ func (c *CachedConnection) syncBeaconHeadService() {
 			return
 		default:
 			if err := c.syncBeaconHead(); err != nil {
-				logrus.Errorf("connection cache: fail to sync beacon head: %s", err.Error())
+				logrus.Errorf("connection cache: fail to sync beacon head: %s", utils.ErrToLogStr(err))
 			}
 		}
 		time.Sleep(12 * time.Second)
@@ -114,7 +114,7 @@ func (c *CachedConnection) syncEth1LatestBlockService() {
 			return
 		default:
 			if err := c.syncEth1LatestBlockNumber(); err != nil {
-				logrus.Errorf("connection cache: fail to sync eth1 latest block number: %s", err.Error())
+				logrus.Errorf("connection cache: fail to sync eth1 latest block number: %s", utils.ErrToLogStr(err))
 			}
 		}
 		time.Sleep(12 * time.Second)

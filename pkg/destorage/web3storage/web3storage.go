@@ -291,8 +291,7 @@ func (c *Storage) writeFiles(ctx context.Context, noWrap bool, bs *blockstore.Re
 			if err != nil {
 				return err
 			}
-			bs.Put(ctx, blk)
-			return nil
+			return bs.Put(ctx, blk)
 		}, nil
 	}
 

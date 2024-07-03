@@ -77,7 +77,7 @@ func startRelayCmd() *cobra.Command {
 				return fmt.Errorf("NewServiceManager err: %w", err)
 			}
 			if err = srvManager.Start(); err != nil {
-				logrus.Errorf("start service manager err: %s", err)
+				logrus.Errorf("start service manager err: %s", utils.ErrToLogStr(err))
 				return err
 			}
 

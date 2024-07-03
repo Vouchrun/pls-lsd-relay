@@ -13,6 +13,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/shopspring/decimal"
+	"github.com/stafiprotocol/eth-lsd-relay/pkg/config"
 	"github.com/stafiprotocol/eth-lsd-relay/pkg/connection"
 	"github.com/stafiprotocol/eth-lsd-relay/pkg/utils"
 )
@@ -196,7 +197,10 @@ func TestMarshal(t *testing.T) {
 	t.Log(hex.EncodeToString(proposalId[:]))
 }
 func TestConfig(t *testing.T) {
-	c, err := connection.NewConnection(os.Getenv("ETH1_ENDPOINT"), os.Getenv("ETH2_ENDPOINT"), nil, nil, nil)
+	endpoints := []config.Endpoint{
+		{Eth1: os.Getenv("ETH1_ENDPOINT"), Eth2: os.Getenv("ETH2_ENDPOINT")},
+	}
+	c, err := connection.NewConnection(endpoints, nil, nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -208,7 +212,7 @@ func TestConfig(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	config, err := c.Eth2Client().GetEth2Config()
+	config, err := c.GetEth2Config()
 	if err != nil {
 		t.Fatal(err)
 	}
