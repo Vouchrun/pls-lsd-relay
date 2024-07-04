@@ -24,6 +24,7 @@ type Config struct {
 	GasLimit                 string
 	MaxGasPrice              string
 	BatchRequestBlocksNumber uint64
+	TrustNodeDepositAmount   uint64
 
 	RunForEntrustedLsdNetwork bool
 
@@ -62,6 +63,9 @@ func Load(basePath string) (*Config, error) {
 	cfg.LogFilePath = basePath + "/log_data"
 	cfg.KeystorePath = KeyStoreFilePath(basePath)
 	cfg.BlockstoreFilePath = basePath + "/blockstore"
+	if cfg.TrustNodeDepositAmount == 0 {
+		cfg.TrustNodeDepositAmount = 1
+	}
 
 	return &cfg, nil
 }

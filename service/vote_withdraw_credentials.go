@@ -63,7 +63,7 @@ func (s *Service) voteWithdrawCredentials() error {
 			}).Warn("withdrawalCredentials not match")
 		}
 
-		govDepositAmount := uint64(1e9)
+		govDepositAmount := s.manager.cfg.TrustNodeDepositAmount * 1e9
 		if validator.NodeType == utils.NodeTypeSolo {
 			govDepositAmount = validator.NodeDepositAmountDeci.Div(utils.GweiDeci).BigInt().Uint64()
 		}
