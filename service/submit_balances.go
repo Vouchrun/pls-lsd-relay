@@ -135,12 +135,7 @@ func (s *Service) submitBalances() error {
 
 	one18 := decimal.NewFromBigInt(big.NewInt(1), 18)
 	rateChange := newExchangeRateDeci.Sub(oldExchangeRateDeci).Abs().Mul(one18).Div(oldExchangeRateDeci)
-	if rateChange.GreaterThan(decimal.NewFromBigInt(rateChangeLimit, 0)) {
-		return fmt.Errorf("exceed rate change limit %s, newExchangeRate %s, oldExchangeRate %s",
-			rateChangeLimit.String(), newExchangeRateDeci.String(), oldExchangeRateDeci.String())
-	}
-
-	s.log.WithFields(logrus.Fields{
+	rateInfoLog := s.log.WithFields(logrus.Fields{
 		"targetBlockNumber":                 targetBlock,
 		"targetEpoch":                       targetEpoch,
 		"totalUserEthFromValidator":         totalUserEthFromValidatorDeci.StringFixed(0),
@@ -152,7 +147,14 @@ func (s *Service) submitBalances() error {
 		"lsdTokenTotalSupply":               lsdTokenTotalSupplyDeci.StringFixed(0),
 		"newExchangeRate":                   newExchangeRateDeci.StringFixed(0),
 		"oldExchangeRate":                   oldExchangeRateDeci.StringFixed(0),
-	}).Info("exchangeRateInfo")
+		"rateChange":                        rateChange.StringFixed(0),
+	})
+	if rateChange.GreaterThan(decimal.NewFromBigInt(rateChangeLimit, 0)) {
+		rateInfoLog.Error("exchangeRateInfo")
+		return fmt.Errorf("exceed rate change limit %s, newExchangeRate %s, oldExchangeRate %s",
+			rateChangeLimit.String(), newExchangeRateDeci.String(), oldExchangeRateDeci.String())
+	}
+	rateInfoLog.Info("exchangeRateInfo")
 
 	return s.sendSubmitBalancesTx(big.NewInt(int64(targetBlock)), totalUserEthDeci.BigInt(), lsdTokenTotalSupply)
 
