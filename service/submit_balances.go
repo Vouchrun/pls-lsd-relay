@@ -119,6 +119,12 @@ func (s *Service) submitBalances() error {
 	// 								+ user undistributed priority fee  - totalMissingAmountForWithdraw
 	totalUserEthDeci := totalUserEthFromValidatorDeci.Add(userDepositPoolBalanceDeci).Add(userEthFromWithdrawDeci).
 		Add(userEthFromPriorityFeeDeci).Sub(totalMissingAmountDeci)
+	if totalUserEthDeci.BigInt().Cmp(lsdTokenTotalSupply) < 0 {
+		s.log.WithFields(logrus.Fields{
+			"old_totalUserEthDeci": totalUserEthDeci.StringFixed(0),
+		}).Warn("adjust totalUserEthDeci to lsdTokenTotalSupply")
+		totalUserEthDeci = decimal.NewFromBigInt(lsdTokenTotalSupply, 0)
+	}
 
 	// check exchange rate
 	oldExchangeRate, err := s.networkBalancesContract.GetExchangeRate(targetCallOpts)
