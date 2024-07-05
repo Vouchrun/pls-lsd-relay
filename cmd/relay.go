@@ -6,6 +6,7 @@ package cmd
 import (
 	"fmt"
 
+	"github.com/shopspring/decimal"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/stafiprotocol/chainbridge/utils/crypto/secp256k1"
@@ -40,6 +41,12 @@ func startRelayCmd() *cobra.Command {
 				return err
 			}
 			logrus.SetLevel(logLevel)
+
+			// init constant variables
+			utils.StandardEffectiveBalance = cfg.Eth2EffectiveBalance * 1e9                                                        // unit Gwei
+			utils.StandardEffectiveBalanceDeci = decimal.NewFromInt(int64(utils.StandardEffectiveBalance)).Mul(utils.GweiDeci)     // unit wei
+			utils.MaxPartialWithdrawalAmount = cfg.MaxPartialWithdrawalAmount * 1e9                                                // unit Gwei
+			utils.MaxPartialWithdrawalAmountDeci = decimal.NewFromInt(int64(utils.MaxPartialWithdrawalAmount)).Mul(utils.GweiDeci) // unit wei
 
 			logrus.Infof(
 				`config info:

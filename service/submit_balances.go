@@ -166,7 +166,7 @@ func (task *Service) getUserEthInfoFromValidatorBalance(ctx context.Context, val
 		case utils.NodeTypeSolo:
 			return decimal.Zero, nil
 		case utils.NodeTypeTrust:
-			return utils.StandardTrustNodeFakeDepositBalance, nil
+			return decimal.NewFromBigInt(big.NewInt(int64(task.manager.cfg.TrustNodeDepositAmount)), 18), nil
 		default:
 			// common node and trust node should not happen here
 			return decimal.Zero, fmt.Errorf("unknown node type: %d", validator.NodeType)

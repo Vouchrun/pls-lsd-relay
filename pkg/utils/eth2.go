@@ -66,13 +66,11 @@ var (
 	Percent5Deci  = decimal.NewFromFloat(0.05)
 	Percent90Deci = decimal.NewFromFloat(0.9)
 
-	StandardEffectiveBalance     = uint64(32e9)
-	StandardEffectiveBalanceDeci = decimal.NewFromBigInt(big.NewInt(32), 18)
+	StandardEffectiveBalance     uint64          // unit Gwei
+	StandardEffectiveBalanceDeci decimal.Decimal // unit Wei
 
-	StandardTrustNodeFakeDepositBalance = decimal.NewFromInt(1e18)
-
-	MaxPartialWithdrawalAmount     = uint64(8e9)
-	MaxPartialWithdrawalAmountDeci = decimal.NewFromInt(8e18)
+	MaxPartialWithdrawalAmount     uint64          // unit Gwei
+	MaxPartialWithdrawalAmountDeci decimal.Decimal // unit Wei
 )
 
 const (
@@ -199,7 +197,7 @@ func ProposalId(to common.Address, callData []byte, proposalFactor *big.Int) [32
 // platform = 5%
 // nodeDepositAmount decimals 18
 // rewardDeci decimals 18
-// return (user reward, node reward, paltform fee) decimals 18
+// return (user reward, node reward, platform fee) decimals 18
 func GetUserNodePlatformReward(nodeCommissionRate, platformCommissionRate, nodeDepositAmountDeci, rewardDeci decimal.Decimal) (decimal.Decimal, decimal.Decimal, decimal.Decimal) {
 	if !rewardDeci.IsPositive() || nodeDepositAmountDeci.GreaterThan(StandardEffectiveBalanceDeci) {
 		return decimal.Zero, decimal.Zero, decimal.Zero

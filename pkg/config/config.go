@@ -17,14 +17,16 @@ type Endpoint struct {
 }
 
 type Config struct {
-	LogFilePath              string
-	Account                  string
-	KeystorePath             string
-	BlockstoreFilePath       string
-	GasLimit                 string
-	MaxGasPrice              string
-	BatchRequestBlocksNumber uint64
-	TrustNodeDepositAmount   uint64
+	LogFilePath                string
+	Account                    string
+	KeystorePath               string
+	BlockstoreFilePath         string
+	GasLimit                   string
+	MaxGasPrice                string
+	BatchRequestBlocksNumber   uint64
+	TrustNodeDepositAmount     uint64 // ether
+	Eth2EffectiveBalance       uint64 // ether
+	MaxPartialWithdrawalAmount uint64 // ether
 
 	RunForEntrustedLsdNetwork bool
 
@@ -65,6 +67,12 @@ func Load(basePath string) (*Config, error) {
 	cfg.BlockstoreFilePath = basePath + "/blockstore"
 	if cfg.TrustNodeDepositAmount == 0 {
 		cfg.TrustNodeDepositAmount = 1
+	}
+	if cfg.Eth2EffectiveBalance == 0 {
+		cfg.Eth2EffectiveBalance = 32
+	}
+	if cfg.MaxPartialWithdrawalAmount == 0 {
+		cfg.MaxPartialWithdrawalAmount = 8
 	}
 
 	return &cfg, nil
