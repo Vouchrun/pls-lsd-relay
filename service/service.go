@@ -484,13 +484,12 @@ func (s *Service) seekFirstNodeStakeEvent() (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	start := s.latestBlockOfSyncBlock + 1
+	start := s.latestBlockOfSyncBlock
 	end := latestBlock
 
-	for i := start; i <= end; i += fetchEventBlockLimit {
-		subStart := i
-		subEnd := i + fetchEventBlockLimit - 1
-		if end < i+fetchEventBlockLimit {
+	for subStart := start; subStart <= end; subStart += fetchEventBlockLimit {
+		subEnd := subStart + fetchEventBlockLimit
+		if end < subEnd {
 			subEnd = end
 		}
 
