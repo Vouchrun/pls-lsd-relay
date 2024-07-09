@@ -268,7 +268,6 @@ func (m *ServiceManager) pruneCachedBeaconBlocks() {
 	if minHeightSrv == nil {
 		return
 	}
-	minHeight -= 86400 // retain around 10 days' blocks
 
 	var eth1RemoveCacheCount uint64 = 0
 	var maxClearableBeaconBlockId uint64 = 0
