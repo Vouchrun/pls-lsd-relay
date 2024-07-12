@@ -316,7 +316,7 @@ func (s *Service) getValidatorsOfTargetEpoch(ctx context.Context, targetEpoch ui
 	vals := make([]*Validator, 0)
 	pubkeys := make([]types.ValidatorPubkey, 0)
 	for _, val := range s.validators {
-		if val.Status < 3 {
+		if val.Status != utils.ValidatorStatusStaked {
 			continue
 		}
 		pubkeys = append(pubkeys, types.ValidatorPubkey(val.Pubkey))
@@ -430,7 +430,7 @@ func (s *Service) exitButNotFullWithdrawedValidatorListAtEpoch(ctx context.Conte
 		if val.ActiveEpoch == 0 || val.ActiveEpoch > epoch {
 			continue
 		}
-		if val.Status < 3 {
+		if val.Status != utils.ValidatorStatusStaked {
 			continue
 		}
 		pubkeys = append(pubkeys, types.ValidatorPubkey(val.Pubkey))

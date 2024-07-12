@@ -149,7 +149,7 @@ func (s *Service) updateValidatorsFromBeacon() error {
 
 	pubkeys := make([]types.ValidatorPubkey, 0)
 	for _, val := range s.validators {
-		if val.Status < 3 {
+		if val.Status != utils.ValidatorStatusStaked {
 			continue
 		}
 		pubkeys = append(pubkeys, types.ValidatorPubkey(val.Pubkey))
