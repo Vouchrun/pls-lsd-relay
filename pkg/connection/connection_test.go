@@ -16,6 +16,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/sirupsen/logrus"
+	network_withdraw "github.com/stafiprotocol/eth-lsd-relay/bindings/NetworkWithdraw"
 	node_deposit "github.com/stafiprotocol/eth-lsd-relay/bindings/NodeDeposit"
 	"github.com/stafiprotocol/eth-lsd-relay/pkg/config"
 	"github.com/stafiprotocol/eth-lsd-relay/pkg/connection"
@@ -185,4 +186,40 @@ func TestGettingFirstNodeStakeEvent(t *testing.T) {
 	}
 	// lsdTokens: 0x37a7BF277f9b1F32296aB595600eA30c55F6eE4B
 	// lsdTokens: 0xD2a1e6931e8a41043cE80C4F7EB0F7083E64Bfb8 ( created by robert)
+}
+
+func Test_FilterSetMerkleRootEvent(t *testing.T) {
+	cc, err := ethclient.Dial(os.Getenv("ETH1_ENDPOINT"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	start := uint64(19446894)
+	end := uint64(19576494)
+
+	networkWithdrawContract, err := network_withdraw.NewNetworkWithdraw(common.HexToAddress("0x93564AEBDd016c9cF621e7366Ae7F9bFF554C08E"), cc)
+	if err != nil {
+		t.Fatal(err)
+	}
+	iter, err := networkWithdrawContract.FilterSetMerkleRoot(&bind.FilterOpts{
+		Start:   start,
+		End:     &end,
+		Context: context.Background(),
+	}, nil)
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	for iter.Next() {
+		fmt.Println("SetMerkleRoot event at:", iter.Event.Raw.BlockNumber)
+		fmt.Println("cid: ", iter.Event.NodeRewardsFileCid)
+	}
+
+	// output:
+	// SetMerkleRoot event at: 19537813
+	// cid:  bafybeigxluiq6pr6vox7n66j2mypgrmuz434njjdobd2y2h3bey5em3zb4
+	// SetMerkleRoot event at: 19568460
+	// cid:  bafybeic6xhrbflx6jjl4577iitsxs6fl7dufhmfsvcqb2nbpilo4jzlqle
+	// SetMerkleRoot event at: 19574490
+	// cid:  bafybeifgyaks6tjci7e3p7m5lzxvfb42jmoj2rhmaakc2vku4f7ppgrltm
 }
