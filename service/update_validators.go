@@ -149,10 +149,9 @@ func (s *Service) updateValidatorsFromBeacon() error {
 
 	pubkeys := make([]types.ValidatorPubkey, 0)
 	for _, val := range s.validators {
-		if val.Status != utils.ValidatorStatusStaked {
-			continue
+		if val.Status == 3 || val.Status > 4 {
+			pubkeys = append(pubkeys, types.ValidatorPubkey(val.Pubkey))
 		}
-		pubkeys = append(pubkeys, types.ValidatorPubkey(val.Pubkey))
 	}
 	if len(pubkeys) == 0 {
 		s.latestEpochOfUpdateValidator = finalEpoch
