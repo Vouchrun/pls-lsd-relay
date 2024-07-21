@@ -316,7 +316,7 @@ func (s *Service) fetchNewVals(call *bind.CallOpts, pubkeys [][]byte) (map[strin
 			NodeAddress:           pubkeyInfo.Owner,
 			DepositSignature:      depositSig,
 			NodeDepositAmountDeci: decimal.NewFromBigInt(pubkeyInfo.NodeDepositAmount, 0),
-			NodeDepositAmount:     new(big.Int).Div(pubkeyInfo.NodeDepositAmount, big.NewInt(int64(s.manager.cfg.TrustNodeDepositAmount)*1e9)).Uint64(),
+			NodeDepositAmount:     new(big.Int).Div(pubkeyInfo.NodeDepositAmount, big.NewInt(1e9)).Uint64(), // convert wei to Gwei
 			DepositBlock:          pubkeyInfo.DepositBlock.Uint64(),
 			ActiveEpoch:           0,
 			EligibleEpoch:         0,
