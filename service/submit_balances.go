@@ -167,8 +167,19 @@ func (s *Service) submitBalances() error {
 }
 
 func (task *Service) getUserEthInfoFromValidatorBalance(ctx context.Context, validator *Validator, targetEpoch uint64) (decimal.Decimal, error) {
-	// todo use status on target epoch
-	switch validator.Status {
+	validatorStatus, err := task.connection.GetValidatorStatus(ctx, types.BytesToValidatorPubkey(validator.Pubkey), &beacon.ValidatorStatusOptions{
+		Epoch: &targetEpoch,
+	})
+	if err != nil {
+		return decimal.Zero, err
+	}
+
+	status, err := mapValidatorStatus(&validatorStatus)
+	if err != nil {
+		return decimal.Zero, fmt.Errorf("unknown validator status: %d", status)
+	}
+
+	switch status {
 	case utils.ValidatorStatusDeposited, utils.ValidatorStatusWithdrawMatch, utils.ValidatorStatusWithdrawUnmatch:
 		switch validator.NodeType {
 		case utils.NodeTypeSolo:
@@ -193,13 +204,6 @@ func (task *Service) getUserEthInfoFromValidatorBalance(ctx context.Context, val
 			return userDepositBalance, nil
 		}
 
-		validatorStatus, err := task.connection.GetValidatorStatus(ctx, types.BytesToValidatorPubkey(validator.Pubkey), &beacon.ValidatorStatusOptions{
-			Epoch: &targetEpoch,
-		})
-		if err != nil {
-			return decimal.Zero, err
-		}
-
 		userDepositPlusReward, err := task.getUserDepositPlusReward(validator.NodeDepositAmountDeci, decimal.NewFromInt(int64(validatorStatus.Balance)).Mul(utils.GweiDeci))
 		if err != nil {
 			return decimal.Zero, errors.Wrap(err, "getUserDepositPlusReward failed")
@@ -210,7 +214,7 @@ func (task *Service) getUserEthInfoFromValidatorBalance(ctx context.Context, val
 		return decimal.Zero, nil
 
 	default:
-		return decimal.Zero, fmt.Errorf("unknown validator status: %d", validator.Status)
+		return decimal.Zero, fmt.Errorf("unknown validator status: %d", status)
 	}
 }
 

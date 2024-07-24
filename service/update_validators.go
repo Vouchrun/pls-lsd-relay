@@ -201,47 +201,20 @@ func (s *Service) updateValidatorsFromBeacon() error {
 				validator.Balance = status.Balance
 				validator.EffectiveBalance = status.EffectiveBalance
 			}
-
-			switch status.Status {
-
-			case ethpb.ValidatorStatus_PENDING_INITIALIZED, ethpb.ValidatorStatus_PENDING_QUEUED: // pending
-				validator.Status = utils.ValidatorStatusWaiting
-				validator.ValidatorIndex = status.Index
-
-			case ethpb.ValidatorStatus_ACTIVE_ONGOING, ethpb.ValidatorStatus_ACTIVE_EXITING, ethpb.ValidatorStatus_ACTIVE_SLASHED: // active
-				validator.Status = utils.ValidatorStatusActive
-				if status.Slashed {
-					validator.Status = utils.ValidatorStatusActiveSlash
-				}
-				updateBaseInfo()
-				updateBalance()
-
-			case ethpb.ValidatorStatus_EXITED_UNSLASHED, ethpb.ValidatorStatus_EXITED_SLASHED: // exited
-				validator.Status = utils.ValidatorStatusExited
-				if status.Slashed {
-					validator.Status = utils.ValidatorStatusExitedSlash
-				}
-				updateBaseInfo()
-				updateBalance()
-			case ethpb.ValidatorStatus_WITHDRAWAL_POSSIBLE: // withdrawable
-				validator.Status = utils.ValidatorStatusWithdrawable
-				if status.Slashed {
-					validator.Status = utils.ValidatorStatusWithdrawableSlash
-				}
-				updateBaseInfo()
-				updateBalance()
-
-			case ethpb.ValidatorStatus_WITHDRAWAL_DONE: // withdrawdone
-				validator.Status = utils.ValidatorStatusWithdrawDone
-				if status.Slashed {
-					validator.Status = utils.ValidatorStatusWithdrawDoneSlash
-				}
-				updateBaseInfo()
-				updateBalance()
-			default:
+			validator.Status, err = mapValidatorStatus(&status)
+			if err != nil {
 				return fmt.Errorf("unsupported validator status %d", status.Status)
 			}
-
+			switch validator.Status {
+			case utils.ValidatorStatusWaiting:
+				validator.ValidatorIndex = status.Index
+			case utils.ValidatorStatusActive, utils.ValidatorStatusActiveSlash,
+				utils.ValidatorStatusExited, utils.ValidatorStatusExitedSlash,
+				utils.ValidatorStatusWithdrawable, utils.ValidatorStatusWithdrawableSlash,
+				utils.ValidatorStatusWithdrawDone, utils.ValidatorStatusWithdrawDoneSlash:
+				updateBaseInfo()
+				updateBalance()
+			}
 		}
 	}
 
@@ -257,6 +230,35 @@ func (s *Service) updateValidatorsFromBeacon() error {
 	s.latestEpochOfUpdateValidator = finalEpoch
 
 	return nil
+}
+
+func mapValidatorStatus(status *beacon.ValidatorStatus) (uint8, error) {
+	switch status.Status {
+	case ethpb.ValidatorStatus_PENDING_INITIALIZED, ethpb.ValidatorStatus_PENDING_QUEUED: // pending
+		return utils.ValidatorStatusWaiting, nil
+	case ethpb.ValidatorStatus_ACTIVE_ONGOING, ethpb.ValidatorStatus_ACTIVE_EXITING, ethpb.ValidatorStatus_ACTIVE_SLASHED: // active
+		if status.Slashed {
+			return utils.ValidatorStatusActiveSlash, nil
+		}
+		return utils.ValidatorStatusActive, nil
+	case ethpb.ValidatorStatus_EXITED_UNSLASHED, ethpb.ValidatorStatus_EXITED_SLASHED: // exited
+		if status.Slashed {
+			return utils.ValidatorStatusExitedSlash, nil
+		}
+		return utils.ValidatorStatusExited, nil
+	case ethpb.ValidatorStatus_WITHDRAWAL_POSSIBLE: // withdrawable
+		if status.Slashed {
+			return utils.ValidatorStatusWithdrawableSlash, nil
+		}
+		return utils.ValidatorStatusWithdrawable, nil
+	case ethpb.ValidatorStatus_WITHDRAWAL_DONE: // withdrawdone
+		if status.Slashed {
+			return utils.ValidatorStatusWithdrawDoneSlash, nil
+		}
+		return utils.ValidatorStatusWithdrawDone, nil
+	default:
+		return 0, fmt.Errorf("unsupported validator status %d", status.Status)
+	}
 }
 
 func (s *Service) fetchNewVals(call *bind.CallOpts, pubkeys [][]byte) (map[string]*Validator, error) {
