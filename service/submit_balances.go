@@ -144,6 +144,8 @@ func (s *Service) submitBalances() error {
 	rateInfoLog := s.log.WithFields(logrus.Fields{
 		"targetBlockNumber":                 targetBlock,
 		"targetEpoch":                       targetEpoch,
+		"latestDistributeWithdrawalsHeight": latestDistributeWithdrawalsHeight.String(),
+		"latestDistributePriorityFeeHeight": latestDistributePriorityFeeHeight.String(),
 		"totalUserEthFromValidator":         totalUserEthFromValidatorDeci.StringFixed(0),
 		"userDepositPoolBalanceDeci":        userDepositPoolBalanceDeci.StringFixed(0),
 		"userUndistributedWithdrawalsDeci":  userEthFromWithdrawDeci.StringFixed(0),
