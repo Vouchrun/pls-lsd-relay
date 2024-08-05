@@ -37,7 +37,7 @@ func (s *Service) voteWithdrawCredentials() error {
 
 		govCredentials := s.govDeposits[hex.EncodeToString(validator.Pubkey)]
 
-		match := true
+		match := len(govCredentials) > 0
 		for _, l := range govCredentials {
 			if !bytes.Equal(s.withdrawCredentials, l) {
 				match = false
@@ -54,10 +54,11 @@ func (s *Service) voteWithdrawCredentials() error {
 			"status": validatorStatus,
 		}).Debug("validator beacon status")
 
-		if validatorStatus.Exists && bytes.Equal(validatorStatus.WithdrawalCredentials[:], s.withdrawCredentials) {
+		if validatorStatus.Exists && !bytes.Equal(validatorStatus.WithdrawalCredentials[:], s.withdrawCredentials) {
 			match = false
 
 			s.log.WithFields(logrus.Fields{
+				"pubkey":                                validatorPubkey.String(),
 				"validatorStatus.WithdrawalCredentials": validatorStatus.WithdrawalCredentials.String(),
 				"task.withdrawCredentials":              hex.EncodeToString(s.withdrawCredentials),
 			}).Warn("withdrawalCredentials not match")
@@ -79,6 +80,7 @@ func (s *Service) voteWithdrawCredentials() error {
 			match = false
 
 			s.log.WithFields(logrus.Fields{
+				"pubkey":                                validatorPubkey.String(),
 				"task.withdrawCredentials":              s.withdrawCredentials,
 				"validatorStatus.WithdrawalCredentials": validatorStatus.WithdrawalCredentials.String(),
 			}).Warn("signature not match")
