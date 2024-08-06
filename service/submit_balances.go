@@ -169,6 +169,19 @@ func (s *Service) submitBalances() error {
 }
 
 func (task *Service) getUserEthInfoFromValidatorBalance(ctx context.Context, validator *Validator, targetEpoch uint64) (decimal.Decimal, error) {
+	switch validator.Status {
+	case utils.ValidatorStatusDeposited, utils.ValidatorStatusWithdrawMatch, utils.ValidatorStatusWithdrawUnmatch:
+		switch validator.NodeType {
+		case utils.NodeTypeSolo:
+			return decimal.Zero, nil
+		case utils.NodeTypeTrust:
+			return decimal.NewFromBigInt(big.NewInt(int64(task.manager.cfg.TrustNodeDepositAmount)), 18), nil
+		default:
+			// common node and trust node should not happen here
+			return decimal.Zero, fmt.Errorf("unknown node type: %d", validator.NodeType)
+		}
+	}
+
 	validatorStatus, err := task.connection.GetValidatorStatus(ctx, types.BytesToValidatorPubkey(validator.Pubkey), &beacon.ValidatorStatusOptions{
 		Epoch: &targetEpoch,
 	})
@@ -182,17 +195,6 @@ func (task *Service) getUserEthInfoFromValidatorBalance(ctx context.Context, val
 	}
 
 	switch status {
-	case utils.ValidatorStatusDeposited, utils.ValidatorStatusWithdrawMatch, utils.ValidatorStatusWithdrawUnmatch:
-		switch validator.NodeType {
-		case utils.NodeTypeSolo:
-			return decimal.Zero, nil
-		case utils.NodeTypeTrust:
-			return decimal.NewFromBigInt(big.NewInt(int64(task.manager.cfg.TrustNodeDepositAmount)), 18), nil
-		default:
-			// common node and trust node should not happen here
-			return decimal.Zero, fmt.Errorf("unknown node type: %d", validator.NodeType)
-		}
-
 	case utils.ValidatorStatusStaked, utils.ValidatorStatusWaiting:
 		userDepositBalance := utils.StandardEffectiveBalanceDeci.Sub(validator.NodeDepositAmountDeci)
 		return userDepositBalance, nil
