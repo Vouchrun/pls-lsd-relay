@@ -12,6 +12,7 @@ import (
 	"github.com/prysmaticlabs/prysm/v4/contracts/deposit"
 	ethpb "github.com/prysmaticlabs/prysm/v4/proto/prysm/v1alpha1"
 	"github.com/sirupsen/logrus"
+	"github.com/stafiprotocol/eth-lsd-relay/pkg/connection/beacon"
 	"github.com/stafiprotocol/eth-lsd-relay/pkg/connection/types"
 	"github.com/stafiprotocol/eth-lsd-relay/pkg/utils"
 )
@@ -45,45 +46,51 @@ func (s *Service) voteWithdrawCredentials() error {
 		}
 
 		validatorPubkey := types.BytesToValidatorPubkey(validator.Pubkey)
-		validatorStatus, err := s.connection.GetValidatorStatus(ctx, validatorPubkey, nil)
-		if err != nil {
-			return err
-		}
-
-		s.log.WithFields(logrus.Fields{
-			"status": validatorStatus,
-		}).Debug("validator beacon status")
-
-		if validatorStatus.Exists && !bytes.Equal(validatorStatus.WithdrawalCredentials[:], s.withdrawCredentials) {
-			match = false
+		var validatorStatus beacon.ValidatorStatus
+		var err error
+		if match {
+			validatorStatus, err = s.connection.GetValidatorStatus(ctx, validatorPubkey, nil)
+			if err != nil {
+				return err
+			}
 
 			s.log.WithFields(logrus.Fields{
-				"pubkey":                                validatorPubkey.String(),
-				"validatorStatus.WithdrawalCredentials": validatorStatus.WithdrawalCredentials.String(),
-				"task.withdrawCredentials":              hex.EncodeToString(s.withdrawCredentials),
-			}).Warn("withdrawalCredentials not match")
+				"status": validatorStatus,
+			}).Debug("validator beacon status")
+
+			if validatorStatus.Exists && !bytes.Equal(validatorStatus.WithdrawalCredentials[:], s.withdrawCredentials) {
+				match = false
+
+				s.log.WithFields(logrus.Fields{
+					"pubkey":                                validatorPubkey.String(),
+					"validatorStatus.WithdrawalCredentials": validatorStatus.WithdrawalCredentials.String(),
+					"task.withdrawCredentials":              hex.EncodeToString(s.withdrawCredentials),
+				}).Warn("withdrawalCredentials not match")
+			}
 		}
 
-		govDepositAmount := s.manager.cfg.TrustNodeDepositAmount * 1e9
-		if validator.NodeType == utils.NodeTypeSolo {
-			govDepositAmount = validator.NodeDepositAmountDeci.Div(utils.GweiDeci).BigInt().Uint64()
-		}
+		if match {
+			govDepositAmount := s.manager.cfg.TrustNodeDepositAmount * 1e9
+			if validator.NodeType == utils.NodeTypeSolo {
+				govDepositAmount = validator.NodeDepositAmountDeci.Div(utils.GweiDeci).BigInt().Uint64()
+			}
 
-		dp := ethpb.Deposit_Data{
-			PublicKey:             validatorPubkey.Bytes(),
-			WithdrawalCredentials: s.withdrawCredentials,
-			Amount:                govDepositAmount,
-			Signature:             validator.DepositSignature,
-		}
+			dp := ethpb.Deposit_Data{
+				PublicKey:             validatorPubkey.Bytes(),
+				WithdrawalCredentials: s.withdrawCredentials,
+				Amount:                govDepositAmount,
+				Signature:             validator.DepositSignature,
+			}
 
-		if err := deposit.VerifyDepositSignature(&dp, s.domain); err != nil {
-			match = false
+			if err := deposit.VerifyDepositSignature(&dp, s.domain); err != nil {
+				match = false
 
-			s.log.WithFields(logrus.Fields{
-				"pubkey":                                validatorPubkey.String(),
-				"task.withdrawCredentials":              s.withdrawCredentials,
-				"validatorStatus.WithdrawalCredentials": validatorStatus.WithdrawalCredentials.String(),
-			}).Warn("signature not match")
+				s.log.WithFields(logrus.Fields{
+					"pubkey":                                validatorPubkey.String(),
+					"task.withdrawCredentials":              s.withdrawCredentials,
+					"validatorStatus.WithdrawalCredentials": validatorStatus.WithdrawalCredentials.String(),
+				}).Warn("signature not match")
+			}
 		}
 
 		s.log.WithFields(logrus.Fields{
