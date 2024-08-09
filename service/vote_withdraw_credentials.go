@@ -22,20 +22,14 @@ func (s *Service) voteWithdrawCredentials() error {
 	defer cancel()
 	validatorListNeedVote := make([]*Validator, 0, len(s.validators))
 	for _, val := range s.validators {
-		if !(val.Status == utils.ValidatorStatusDeposited || val.Status == utils.ValidatorStatusWithdrawUnmatch) {
-			continue
+		if val.Status == utils.ValidatorStatusDeposited &&
+			val.DepositBlock > s.latestBlockOfSyncEvents {
+			validatorListNeedVote = append(validatorListNeedVote, val)
 		}
-
-		validatorListNeedVote = append(validatorListNeedVote, val)
 	}
-	validatorPubkeys := make([][]byte, 0)
-	validatorMatches := make([]bool, 0)
+	validatorPubkeys := make([][]byte, 0, len(validatorListNeedVote))
+	validatorMatches := make([]bool, 0, len(validatorListNeedVote))
 	for _, validator := range validatorListNeedVote {
-		// skip if not sync to deposit block
-		if validator.DepositBlock > s.latestBlockOfSyncEvents {
-			continue
-		}
-
 		govCredentials := s.govDeposits[hex.EncodeToString(validator.Pubkey)]
 
 		match := len(govCredentials) > 0
