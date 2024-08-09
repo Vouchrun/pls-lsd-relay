@@ -23,7 +23,7 @@ func (s *Service) voteWithdrawCredentials() error {
 	validatorListNeedVote := make([]*Validator, 0, len(s.validators))
 	for _, val := range s.validators {
 		if val.Status == utils.ValidatorStatusDeposited &&
-			val.DepositBlock > s.latestBlockOfSyncEvents {
+			val.DepositBlock <= s.latestBlockOfSyncEvents {
 			validatorListNeedVote = append(validatorListNeedVote, val)
 		}
 	}
