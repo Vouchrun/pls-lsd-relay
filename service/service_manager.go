@@ -38,7 +38,7 @@ func NewServiceManager(cfg *config.Config, keyPair *secp256k1.Keypair) (*Service
 
 	gasLimitDeci, err := decimal.NewFromString(cfg.GasLimit)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("parse config gasLimit error: %w", err)
 	}
 	if gasLimitDeci.LessThanOrEqual(decimal.Zero) {
 		return nil, fmt.Errorf("gas limit is zero")
@@ -46,7 +46,7 @@ func NewServiceManager(cfg *config.Config, keyPair *secp256k1.Keypair) (*Service
 
 	maxGasPriceDeci, err := decimal.NewFromString(cfg.MaxGasPrice)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("parse config maxGasPrice error: %w", err)
 	}
 	if maxGasPriceDeci.LessThanOrEqual(decimal.Zero) {
 		return nil, fmt.Errorf("max gas price is zero")

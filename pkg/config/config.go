@@ -74,6 +74,12 @@ func Load(basePath string) (*Config, error) {
 	if cfg.MaxPartialWithdrawalAmount == 0 {
 		cfg.MaxPartialWithdrawalAmount = 8
 	}
+	if cfg.GasLimit == "" {
+		cfg.GasLimit = "3000000"
+	}
+	if cfg.MaxGasPrice == "" {
+		cfg.MaxGasPrice = "600000000000"
+	}
 
 	return &cfg, nil
 }
