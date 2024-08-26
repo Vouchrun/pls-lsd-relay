@@ -91,6 +91,7 @@ func (s *Service) setMerkleRoot() error {
 		if exist {
 			return fmt.Errorf("duplicate node address: %s", nodeReward.Address)
 		}
+		nodeReward.TotalRewardAmount = nodeReward.TotalRewardAmount.Floor()
 		preNodeRewardMap[address] = nodeReward
 	}
 

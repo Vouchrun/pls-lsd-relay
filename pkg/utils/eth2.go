@@ -204,12 +204,12 @@ func GetUserNodePlatformReward(nodeCommissionRate, platformCommissionRate, nodeD
 	}
 
 	// platform Fee
-	platformFee := rewardDeci.Mul(platformCommissionRate)
+	platformFee := rewardDeci.Mul(platformCommissionRate).Floor()
 
 	// node fee
 	leftRate := decimal.NewFromInt(1).Sub(nodeCommissionRate.Add(platformCommissionRate))
 	nodeTotalRate := nodeCommissionRate.Add(leftRate.Mul(nodeDepositAmountDeci.Div(StandardEffectiveBalanceDeci)))
-	nodeFee := rewardDeci.Mul(nodeTotalRate)
+	nodeFee := rewardDeci.Mul(nodeTotalRate).Floor()
 
 	// user fee
 
