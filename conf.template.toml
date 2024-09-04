@@ -1,20 +1,21 @@
-account = "0xE6F2A8d12595fBe5D410f6CA0Be13695E61C6c35"
-trustNodeDepositAmount     = 1  # ether
-eth2EffectiveBalance       = 32 # ether
-maxPartialWithdrawalAmount = 8  # ether
+account = "0xE6F2A8d12595fBe5D410f6CA0Be13695E61C6c35" # Your Imported Account
+
+trustNodeDepositAmount     = 1000000  # PLS
+eth2EffectiveBalance       = 32000000 # PLS
+maxPartialWithdrawalAmount = 8000000  # PLS
 gasLimit = "3000000"
-maxGasPrice = "600000000000"                            #wei
+maxGasPrice = "800000000000"          # wei
 batchRequestBlocksNumber = 32
 runForEntrustedLsdNetwork = false
 
 [pinata]
-apikey     = ""
+apikey     = "YOUR_API_KEY"
 pinDays = 180
 
 [contracts]
-lsdTokenAddress = ""
-lsdFactoryAddress = ""
+lsdTokenAddress = "0x61135C59A4Eb452b89963188eD6B6a7487049764" # Testnet Contract
+lsdFactoryAddress = "0x98f51f52A8FeE5a469d1910ff1F00A3D333bc9A6" # Testnet Contract
 
 [[endpoints]]
-eth1 = ""
-eth2 = ""
+eth1 = "https://rpc-testnet-pulsechain.g4mm4.io" # Testnet Endpoint
+eth2 = "https://rpc-testnet-pulsechain.g4mm4.io/beacon-api/" # Testnet Endpoint
