@@ -17,7 +17,7 @@ build:
 	go build -mod readonly $(BUILD_FLAGS) -o build/eth-lsd-relay main.go
 
 install: build
-	sudo mv build/eth-lsd-relay /usr/local/bin/
+	sudo mv build/eth-lsd-relay /usr/local/bin/pls-lsd-relay 
 
 build-linux:
 	@GOOS=linux GOARCH=amd64 go build --mod readonly $(BUILD_FLAGS) -o ./build/eth-lsd-relay main.go
