@@ -57,10 +57,11 @@ func startRelayCmd() *cobra.Command {
   lsdTokenAddress: %s
   factoryAddress: %s
   batchRequestBlocksNumber: %d
+  maxGasPrice: %s Gwei
   endpoints: %v`,
 				cfg.LogFilePath, logLevelStr, cfg.Account,
 				cfg.RunForEntrustedLsdNetwork, cfg.Contracts.LsdTokenAddress, cfg.Contracts.LsdFactoryAddress,
-				cfg.BatchRequestBlocksNumber, cfg.Endpoints)
+				cfg.BatchRequestBlocksNumber, cfg.MaxGasPrice, cfg.Endpoints)
 
 			err = log.InitLogFile(cfg.LogFilePath + "/relay")
 			if err != nil {
