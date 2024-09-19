@@ -80,6 +80,9 @@ func Load(basePath string) (*Config, error) {
 	if cfg.MaxGasPrice == "" {
 		cfg.MaxGasPrice = "600000000000"
 	}
+	if cfg.BatchRequestBlocksNumber > 32 {
+		return nil, fmt.Errorf("batchRequestBlocksNumber can not be greater than 32")
+	}
 
 	return &cfg, nil
 }
