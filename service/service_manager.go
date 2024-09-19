@@ -48,6 +48,7 @@ func NewServiceManager(cfg *config.Config, keyPair *secp256k1.Keypair) (*Service
 	if err != nil {
 		return nil, fmt.Errorf("parse config maxGasPrice error: %w", err)
 	}
+	maxGasPriceDeci = maxGasPriceDeci.Mul(utils.GweiDeci)
 	if maxGasPriceDeci.LessThanOrEqual(decimal.Zero) {
 		return nil, fmt.Errorf("max gas price is zero")
 	}
