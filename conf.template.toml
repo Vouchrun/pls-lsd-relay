@@ -4,13 +4,8 @@ trustNodeDepositAmount     = 1000000  # PLS
 eth2EffectiveBalance       = 32000000 # PLS
 maxPartialWithdrawalAmount = 8000000  # PLS
 gasLimit = "3000000"
-<<<<<<< HEAD
-maxGasPrice = "800000000000"          # wei
-batchRequestBlocksNumber = 32
-=======
 maxGasPrice = "600"                            # Gwei
 batchRequestBlocksNumber = 16       # max=32
->>>>>>> b20ff56ba01d829d5e0b21db648f3cd443435cb0
 runForEntrustedLsdNetwork = false
 
 [pinata]
