@@ -3,7 +3,7 @@ trustNodeDepositAmount     = 1  # ether
 eth2EffectiveBalance       = 32 # ether
 maxPartialWithdrawalAmount = 8  # ether
 gasLimit = "3000000"
-maxGasPrice = "600000000000"                            #wei
+maxGasPrice = "600"                            # Gwei
 batchRequestBlocksNumber = 16       # max=32
 runForEntrustedLsdNetwork = false
 

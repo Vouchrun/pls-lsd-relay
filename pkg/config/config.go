@@ -22,7 +22,7 @@ type Config struct {
 	KeystorePath               string
 	BlockstoreFilePath         string
 	GasLimit                   string
-	MaxGasPrice                string
+	MaxGasPrice                string // Gwei
 	BatchRequestBlocksNumber   uint64
 	TrustNodeDepositAmount     uint64 // ether
 	Eth2EffectiveBalance       uint64 // ether
@@ -78,7 +78,7 @@ func Load(basePath string) (*Config, error) {
 		cfg.GasLimit = "3000000"
 	}
 	if cfg.MaxGasPrice == "" {
-		cfg.MaxGasPrice = "600000000000"
+		cfg.MaxGasPrice = "600"
 	}
 	if cfg.BatchRequestBlocksNumber > 32 {
 		return nil, fmt.Errorf("batchRequestBlocksNumber can not be greater than 32")
