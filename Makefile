@@ -22,6 +22,10 @@ install: build
 build-linux:
 	@GOOS=linux GOARCH=amd64 go build --mod readonly $(BUILD_FLAGS) -o ./build/eth-lsd-relay main.go
 
+build-static:
+	@echo " > \033[32mBuilding ETH LSD Ejector...\033[0m "
+	go build -mod readonly $(BUILD_FLAGS) -o build/eth-lsd-relay --ldflags '-extldflags "-static"' main.go
+
 abi:
 	@echo " > \033[32mGenabi...\033[0m "
 	abigen --abi ./bindings/Erc20/erc20_abi.json --pkg erc20 --type Erc20 --out ./bindings/Erc20/Erc20.go
