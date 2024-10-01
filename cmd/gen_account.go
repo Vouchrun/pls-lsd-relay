@@ -49,7 +49,10 @@ func generateKeyFileByPrivateKey(keypath string) error {
 	var kp crypto.Keypair
 	var err error
 
-	key := keystore.GetPassword("Enter private key:")
+	key := []byte(os.Getenv("KEYSTORE_PASSWORD"))
+	if len(key) == 0 {
+		key = keystore.GetPassword("Enter private key:")
+	}
 	skey := string(key)
 
 	if skey[0:2] == "0x" {
