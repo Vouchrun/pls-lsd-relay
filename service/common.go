@@ -204,8 +204,6 @@ func (s *Service) getUserNodePlatformFromPriorityFee(latestDistributeHeight, tar
 		}
 
 		// cal priority fee at this block
-		feeAmountAtThisBlock := decimal.Zero
-
 		preBlockNumber := big.NewInt(int64(i - 1))
 		curBlockNumber := big.NewInt(int64(i))
 		feePoolPreBalance, err := s.connection.Eth1Client().BalanceAt(context.Background(), s.feePoolAddress, preBlockNumber)
@@ -230,17 +228,11 @@ func (s *Service) getUserNodePlatformFromPriorityFee(latestDistributeHeight, tar
 		for withdrawIter.Next() {
 			decreaseAmount = new(big.Int).Add(decreaseAmount, withdrawIter.Event.Amount)
 		}
-		totalPreBalanceAddDecrease := new(big.Int).Add(feePoolPreBalance, decreaseAmount)
-
-		switch {
-		case feePoolCurBalance.Cmp(totalPreBalanceAddDecrease) == 0:
-		case feePoolCurBalance.Cmp(totalPreBalanceAddDecrease) < 0:
-			return decimal.Zero, decimal.Zero, decimal.Zero, nil, fmt.Errorf("should not happend here when cal priority fee, block: %d", i)
-		case feePoolCurBalance.Cmp(totalPreBalanceAddDecrease) > 0:
-			feeAmountAtThisBlock = decimal.NewFromBigInt(new(big.Int).Sub(feePoolCurBalance, totalPreBalanceAddDecrease), 0)
-		default:
-			return decimal.Zero, decimal.Zero, decimal.Zero, nil, fmt.Errorf("should not happend here when cal priority fee")
+		totalFeePoolCurBalance := new(big.Int).Add(feePoolCurBalance, decreaseAmount)
+		if totalFeePoolCurBalance.Cmp(feePoolPreBalance) < 0 {
+			return decimal.Zero, decimal.Zero, decimal.Zero, nil, fmt.Errorf("should not happened here when cal priority fee, block: %d", i)
 		}
+		feeAmountAtThisBlock := decimal.NewFromBigInt(new(big.Int).Sub(totalFeePoolCurBalance, feePoolPreBalance), 0)
 
 		// cal rewards
 		userRewardDeci, nodeRewardDeci, platformFeeDeci := utils.GetUserNodePlatformReward(s.nodeCommissionRate, s.platformCommissionRate, val.NodeDepositAmountDeci, feeAmountAtThisBlock)
