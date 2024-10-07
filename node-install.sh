@@ -11,30 +11,26 @@ fi
 
 set -euo pipefail
 
-# echo -n "Please enter keystore password (input will be hidden): "
-# # shellcheck disable=SC2034
-# read -rs KEYSTORE_PASSWORD
-
 echo ""
 echo -n "Please enter your voter account address: "
 # shellcheck disable=SC2034
-read -r ACCOUNT
+read -r ACCOUNT <&1
 
 echo ""
 echo -n "Please enter your Pinata API key: "
 # shellcheck disable=SC2034
-read -r PINATA
+read -r PINATA <&1
 
 
 echo ""
 echo -n "Please enter your keystore password (your keys will be imported later): "
 # shellcheck disable=SC2034
-read -r KEYSTORE_PASSWORD
+read -r KEYSTORE_PASSWORD <&1
 
 echo ""
 echo -n "Use testnet settings [y/n]: "
 # shellcheck disable=SC2034
-read -r -n 1 TESTNET
+read -r -n 1 TESTNET <&1
 
 mkdir -p /blockchain/relay
 
@@ -74,6 +70,7 @@ eth2 = \"https://rpc-pulsechain.g4mm4.io/beacon-api/\"
 fi
 
 
+echo ""
 echo "Created default config.toml"
 
 # Set the keystore to be readable by the relay docker user
@@ -91,13 +88,13 @@ echo \
   "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu \
   $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | \
   tee /etc/apt/sources.list.d/docker.list > /dev/null
-apt-get update
+apt-get -qq update
 
-apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin unattended-upgrades apt-listchanges
+apt-get -qq install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin unattended-upgrades apt-listchanges
 
 arch=$(uname -i)
 if [[ $arch == arm* ]] || [[ $arch == aarch* ]]; then
-    apt-get -y install binfmt-support qemu-user-static
+    apt-get -qq -y install binfmt-support qemu-user-static
 fi
 
 
