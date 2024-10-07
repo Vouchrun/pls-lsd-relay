@@ -4,39 +4,80 @@ if [ "$1" == "debug" ]; then
     set -x
 fi
 
+if [ "$EUID" -ne 0 ]
+  then echo "Please run as root"
+  exit
+fi
+
 set -euo pipefail
 
-echo -n "Please enter keystore password (input will be hidden): "
-# shellcheck disable=SC2034
-read -rs KEYSTORE_PASSWORD
+# echo -n "Please enter keystore password (input will be hidden): "
+# # shellcheck disable=SC2034
+# read -rs KEYSTORE_PASSWORD
 
 echo ""
-echo -n "Please enter consensus endpoint: "
+echo -n "Please enter your voter account address: "
 # shellcheck disable=SC2034
-read -r CONSENSUS_ENDPOINT
+read -r ACCOUNT
 
 echo ""
-echo -n "Please enter execution endpoint: "
+echo -n "Please enter your Pinata API key: "
 # shellcheck disable=SC2034
-read -r EXECUTION_ENDPOINT
+read -r PINATA
+
 
 echo ""
-echo -n "Please enter wallet withdraw address: "
+echo -n "Please enter your keystore password (your keys will be imported later): "
 # shellcheck disable=SC2034
-read -r WITHDRAW_ADDRESS
+read -r KEYSTORE_PASSWORD
 
 echo ""
-echo -n "Please paste in the contents of your keystore file: "
+echo -n "Use testnet settings [y/n]: "
 # shellcheck disable=SC2034
-read -r KEYSTORE_FILE
+read -r -n 1 TESTNET
 
-mkdir -p /blockchain/validator_keys
+mkdir -p /blockchain/relay
 
-echo "$KEYSTORE_FILE" > /blockchain/validator_keys/keys.json
+echo "account = \"$ACCOUNT\"
+trustNodeDepositAmount     = 1000000  # PLS
+eth2EffectiveBalance       = 32000000 # PLS
+maxPartialWithdrawalAmount = 8000000  # PLS
+gasLimit = \"3000000\"
+maxGasPrice = \"1200\"                            #Gwei
+batchRequestBlocksNumber = 16
+runForEntrustedLsdNetwork = false
+
+[pinata]
+apikey = \"$PINATA\"
+pinDays = 180
+" > /blockchain/relay/config.toml
+
+if [[ $TESTNET =~ ^[Yy]$ ]]
+then
+echo "[contracts]
+lsdTokenAddress = \"0x61135C59A4Eb452b89963188eD6B6a7487049764\"
+lsdFactoryAddress = \"0x98f51f52A8FeE5a469d1910ff1F00A3D333bc9A6\"
+
+[[endpoints]]
+eth1 = \"https://rpc-testnet-pulsechain.g4mm4.io\"
+eth2 = \"https://rpc-testnet-pulsechain.g4mm4.io/beacon-api/\"
+" >> /blockchain/relay/config.toml
+else
+echo "[contracts]
+lsdTokenAddress = \"0xLSD_TOKEN_ADDRESS\"
+lsdFactoryAddress = \"0xLSD_FACTORY_ADDRESS\"
+
+[[endpoints]]
+eth1 = \"https://rpc-pulsechain.g4mm4.io\"
+eth2 = \"https://rpc-pulsechain.g4mm4.io/beacon-api/\"
+" >> /blockchain/relay/config.toml
+fi
+
+
+echo "Created default config.toml"
 
 # Set the keystore to be readable by the relay docker user
-chown -R 65532:65532 /blockchain/validator_keys/keys.json
-chmod 600 /blockchain/validator_keys/keys.json
+chown -R 65532:65532 /blockchain/relay
 
 # Add Docker's official GPG key:
 apt-get update
@@ -62,15 +103,13 @@ fi
 
 echo unattended-upgrades unattended-upgrades/enable_auto_updates boolean true | debconf-set-selections
 dpkg-reconfigure -f noninteractive unattended-upgrades
-echo 'Unattended-Upgrade::Automatic-Reboot "false";' >> /etc/apt/apt.conf.d/50unattended-upgrades
+echo 'Unattended-Upgrade::Automatic-Reboot "true";' >> /etc/apt/apt.conf.d/50unattended-upgrades
 
 docker run --detach \
     --name watchtower \
     --volume /var/run/docker.sock:/var/run/docker.sock \
     containrrr/watchtower
 
-docker run --platform linux/amd64 --detach --name ejector -it -e KEYSTORE_PASSWORD --restart always -v "/blockchain/validator_keys":/keys ghcr.io/vouchrun/pls-lsd-relay:main start \
-    --consensus_endpoint "$(echo "$CONSENSUS_ENDPOINT" | xargs)" \
-    --execution_endpoint "$(echo "$EXECUTION_ENDPOINT" | xargs)" \
-    --keys_dir /keys \
-    --withdraw_address "$(echo "$WITHDRAW_ADDRESS" | xargs)"
+docker run --name relay -it --restart always -v /blockchain/relay:/keys ghcr.io/vouchrun/pls-lsd-relay:main import-account --base-path /keys
+
+docker run --name relay -it -e KEYSTORE_PASSWORD --restart always -v /blockchain/relay:/keys ghcr.io/vouchrun/pls-lsd-relay:main start --base-path /keys
