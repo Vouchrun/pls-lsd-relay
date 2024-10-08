@@ -9,7 +9,7 @@ To learn more about PLS LSD, see [**PLS LSD Documentation and Guide**](https://v
 On a fresh machine, run the following command to install the relay and setup automatic OS and relay updates:
 
 ```bash
-curl -sL https://raw.githubusercontent.com/J-tt/pls-lsd-relay/refs/heads/feature/node-install/node-install.sh | bash -s
+curl -sL https://raw.githubusercontent.com/J-tt/pls-lsd-relay/refs/heads/feature/node-install/node-install.sh > node-install.sh; bash node-install.sh
 ```
 
 Note: this command needs to be run as root.
