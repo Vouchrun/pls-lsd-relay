@@ -49,10 +49,7 @@ func generateKeyFileByPrivateKey(keypath string) error {
 	var kp crypto.Keypair
 	var err error
 
-	key := []byte(os.Getenv("KEYSTORE_PASSWORD"))
-	if len(key) == 0 {
-		key = keystore.GetPassword("Enter private key:")
-	}
+	key := keystore.GetPassword("Enter private key:")
 	skey := string(key)
 
 	if skey[0:2] == "0x" {
@@ -88,7 +85,11 @@ func generateKeyFileByPrivateKey(keypath string) error {
 		}
 	}()
 
-	password := keystore.GetPassword("password for key:")
+	password := []byte(os.Getenv("KEYSTORE_PASSWORD"))
+	if len(key) == 0 {
+		password = keystore.GetPassword("password for key:")
+	}
+
 	err = keystore.EncryptAndWriteToFile(file, kp, password)
 	if err != nil {
 		return fmt.Errorf("could not write key to file: %s", err)
