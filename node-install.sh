@@ -19,17 +19,24 @@ echo ""
 echo -n "Please enter your Pinata Secret Access Token: "
 read -r PINATA
 
-
 echo ""
-echo -n "Please enter your keystore password (your keys will be imported later): "
+echo -n "Please enter your keystore password (your keys will be imported later, your password won't be displayed as you type): "
 # shellcheck disable=SC2034
-read -r KEYSTORE_PASSWORD
+read -r -s KEYSTORE_PASSWORD
 
 echo ""
 echo -n "Use testnet settings [y/n]: "
 read -r -n 1 TESTNET
 
-mkdir -p /blockchain/relay
+echo ""
+echo "If you require a customised relay location enter the path (default)[/blockchain/relay]: "
+read -r CONFIG_PATH
+
+if [ -z "${CONFIG_PATH}" ]; then
+    CONFIG_PATH="/blockchain/relay"
+fi
+
+mkdir -p "$CONFIG_PATH"
 
 echo "account = \"$ACCOUNT\"
 trustNodeDepositAmount     = 1000000  # PLS
@@ -43,7 +50,7 @@ runForEntrustedLsdNetwork = false
 [pinata]
 apikey = \"$PINATA\"
 pinDays = 180
-" > /blockchain/relay/config.toml
+" > "$CONFIG_PATH/config.toml"
 
 if [[ $TESTNET =~ ^[Yy]$ ]]
 then
@@ -54,7 +61,7 @@ lsdFactoryAddress = \"0x98f51f52A8FeE5a469d1910ff1F00A3D333bc9A6\"
 [[endpoints]]
 eth1 = \"https://rpc-testnet-pulsechain.g4mm4.io\"
 eth2 = \"https://rpc-testnet-pulsechain.g4mm4.io/beacon-api/\"
-" >> /blockchain/relay/config.toml
+" >> "$CONFIG_PATH/config.toml"
 else
     echo "[contracts]
 lsdTokenAddress = \"0xLSD_TOKEN_ADDRESS\"
@@ -63,7 +70,7 @@ lsdFactoryAddress = \"0xLSD_FACTORY_ADDRESS\"
 [[endpoints]]
 eth1 = \"https://rpc-pulsechain.g4mm4.io\"
 eth2 = \"https://rpc-pulsechain.g4mm4.io/beacon-api/\"
-" >> /blockchain/relay/config.toml
+" >> "$CONFIG_PATH/config.toml"
 fi
 
 
@@ -71,7 +78,7 @@ echo ""
 echo "Created default config.toml"
 
 # Set the keystore to be readable by the relay docker user
-chown -R 65532:65532 /blockchain/relay
+chown -R 65532:65532 "$CONFIG_PATH" 
 
 if docker --version ; then
     echo "Detected existing docker installation, skipping install..."
@@ -113,20 +120,23 @@ if [[ $AUTOMATIC_UPDATES =~ ^[Yy]$ ]]; then
         containrrr/watchtower
 fi
 
+echo ""
 echo -n "Would you like to import the Private Key for your selected Relay Account? [y/n]: "
-read -r -n 1 START_SERVICE
+read -r -n 1 IMPORT_KEY
 
-if [[ $START_SERVICE =~ ^[Yy]$ ]]; then
-    docker run --name relay-key-import -it -e KEYSTORE_PASSWORD -v /blockchain/relay:/keys ghcr.io/vouchrun/pls-lsd-relay:main import-account --base-path /keys
+if [[ $IMPORT_KEY =~ ^[Yy]$ ]]; then
+    docker run --name relay-key-import -it -e KEYSTORE_PASSWORD -v "$CONFIG_PATH":/keys ghcr.io/vouchrun/pls-lsd-relay:main import-account --base-path /keys
 fi
 
+echo ""
 echo -n "Start relay service? (starting now will pass through your key password) [y/n]: "
 read -r -n 1 START_SERVICE
 
 if [[ $START_SERVICE =~ ^[Yy]$ ]]; then
-    docker run --name relay -d -e KEYSTORE_PASSWORD --restart always -v /blockchain/relay:/keys ghcr.io/vouchrun/pls-lsd-relay:main start --base-path /keys
+    docker run --name relay -d -e KEYSTORE_PASSWORD --restart always -v "$CONFIG_PATH":/keys ghcr.io/vouchrun/pls-lsd-relay:main start --base-path /keys
 else
     echo ""
+    echo ""
     echo "To start the relay client, run: "
-    echo "docker run --name relay -d  --restart always -v /blockchain/relay:/keys ghcr.io/vouchrun/pls-lsd-relay:main start --base-path /keys"
+    echo "docker run --name relay -d  --restart always -v \"$CONFIG_PATH\":/keys ghcr.io/vouchrun/pls-lsd-relay:main start --base-path /keys"
 fi
