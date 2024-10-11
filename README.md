@@ -6,10 +6,20 @@ To learn more about PLS LSD, see [**PLS LSD Documentation and Guide**](https://v
 
 ## Quick Install
 
-Run the following command to install the relay and setup automatic OS and relay updates:
+The below command will:
+- Install Docker (if not already installed)
+- Configure relay directory and config.toml file
+- Import Relay account private keys
+- Enable automatic OS and relay updates (optional)
+- Start the Relay docker container
 
-```bash
-curl -sL https://github.com/Vouchrun/pls-lsd-relay/blob/main/node-install.sh > node-install.sh; bash node-install.sh
-```
 
 Note: this command needs to be run as root.
+
+```bash
+curl -sL https://raw.githubusercontent.com/Vouchrun/pls-lsd-relay/refs/heads/main/node-install.sh > node-install.sh; bash node-install.sh
+```
+
+## Detailed Install
+
+More information and installation options can be found at the [**Relay Client Documentation**](https://vouch.run/docs/governance/relay_client.html)
