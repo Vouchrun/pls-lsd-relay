@@ -130,41 +130,33 @@ if [[ ${AUTOMATIC_UPDATES:0:1} =~ ^[Yy]$ ]]; then
 fi
 
 echo ""
-# echo -n "Would you like to import the Private Key for your selected Relay Account? [y/n]: "
-# read -r -n 1 IMPORT_KEY
-
-
-
 
 read -r -p "Would you like to import the Private Key for your selected Relay Account? [y/n] (press Enter to confirm): " IMPORT_KEY
 
 
 if [[ $IMPORT_KEY =~ ^[Yy]$ ]]; then
+    docker stop relay-key-import
+    docker rm relay-key-import
     docker run --name relay-key-import -it -e KEYSTORE_PASSWORD -v "$CONFIG_PATH":/keys ghcr.io/vouchrun/pls-lsd-relay:main import-account --base-path /keys
     docker stop relay-key-import
     docker rm relay-key-import
 fi
 
-
-
-
 echo ""
-echo -n "Start relay service? (starting now will pass through your key password) [y/n]: "
-read -r -n 1 START_SERVICE
-echo ""
+read -r -p "Start relay service? (starting now will pass through your key password) [y/n] (press Enter to confirm): " START_SERVICE
 
-echo -n "Enter a customised container name for the relay service (default)[relay]: "
-read -r RELAY_CONTAINER_NAME
+if [[ ${START_SERVICE:0:1} =~ ^[Yy]$ ]]; then
+    echo -n "Enter a customised container name for the relay service (default)[relay]: "
+    read -r RELAY_CONTAINER_NAME
 
-if [ -z "${RELAY_CONTAINER_NAME}" ]; then
-    RELAY_CONTAINER_NAME="relay"
-fi
+    if [ -z "${RELAY_CONTAINER_NAME}" ]; then
+        RELAY_CONTAINER_NAME="relay"
+    fi
 
-if [[ $START_SERVICE =~ ^[Yy]$ ]]; then
     docker run --name "$RELAY_CONTAINER_NAME" -d -e KEYSTORE_PASSWORD --restart always -v "$CONFIG_PATH":/keys ghcr.io/vouchrun/pls-lsd-relay:main start --base-path /keys
 else
     echo ""
     echo ""
     echo "To start the relay client, run: "
-    echo "docker run --name \"$RELAY_CONTAINER_NAME\" -d  --restart always -v \"$CONFIG_PATH\":/keys ghcr.io/vouchrun/pls-lsd-relay:main start --base-path /keys"
+    echo "docker run --name relay -d  --restart always -v \"$CONFIG_PATH\":/keys ghcr.io/vouchrun/pls-lsd-relay:main start --base-path /keys"
 fi
