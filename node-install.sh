@@ -136,11 +136,10 @@ read -r -p "Would you like to import the Private Key for your selected Relay Acc
 
 
 if [[ $IMPORT_KEY =~ ^[Yy]$ ]]; then
-#    docker stop relay-key-import
- #   docker rm relay-key-import
+    docker container prune -f
     docker run --name relay-key-import -it -e KEYSTORE_PASSWORD="$KEYSTORE_PASSWORD" -v "$CONFIG_PATH":/keys ghcr.io/vouchrun/pls-lsd-relay:main import-account --base-path /keys
     docker stop relay-key-import
-    docker rm relay-key-import
+    docker container prune -f
 fi
 
 echo ""
