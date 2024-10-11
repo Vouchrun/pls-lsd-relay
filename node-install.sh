@@ -23,6 +23,7 @@ echo ""
 echo -n "Please enter your keystore password (your keys will be imported later, your password won't be displayed as you type): "
 # shellcheck disable=SC2034
 read -r -s KEYSTORE_PASSWORD
+echo
 
 echo ""
 read -r -p "Use testnet settings [y/n] (press Enter to confirm): " TESTNET
@@ -135,9 +136,9 @@ read -r -p "Would you like to import the Private Key for your selected Relay Acc
 
 
 if [[ $IMPORT_KEY =~ ^[Yy]$ ]]; then
-    docker stop relay-key-import
-    docker rm relay-key-import
-    docker run --name relay-key-import -it -e KEYSTORE_PASSWORD -v "$CONFIG_PATH":/keys ghcr.io/vouchrun/pls-lsd-relay:main import-account --base-path /keys
+#    docker stop relay-key-import
+ #   docker rm relay-key-import
+    docker run --name relay-key-import -it -e KEYSTORE_PASSWORD="$KEYSTORE_PASSWORD" -v "$CONFIG_PATH":/keys ghcr.io/vouchrun/pls-lsd-relay:main import-account --base-path /keys
     docker stop relay-key-import
     docker rm relay-key-import
 fi
@@ -153,7 +154,7 @@ if [[ ${START_SERVICE:0:1} =~ ^[Yy]$ ]]; then
         RELAY_CONTAINER_NAME="relay"
     fi
 
-    docker run --name "$RELAY_CONTAINER_NAME" -d -e KEYSTORE_PASSWORD --restart always -v "$CONFIG_PATH":/keys ghcr.io/vouchrun/pls-lsd-relay:main start --base-path /keys
+    docker run --name "$RELAY_CONTAINER_NAME" -d -e KEYSTORE_PASSWORD="$KEYSTORE_PASSWORD" --restart always -v "$CONFIG_PATH":/keys ghcr.io/vouchrun/pls-lsd-relay:main start --base-path /keys
 else
     echo ""
     echo ""
