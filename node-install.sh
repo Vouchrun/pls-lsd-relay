@@ -25,8 +25,6 @@ echo -n "Please enter your keystore password (your keys will be imported later, 
 read -r -s KEYSTORE_PASSWORD
 echo
 
-echo "$KEYSTORE_PASSWORD" > keystore_password.txt
-
 echo ""
 read -r -p "Use testnet settings [y/n] (press Enter to confirm): " TESTNET
 
