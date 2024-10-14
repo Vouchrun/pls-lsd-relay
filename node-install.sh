@@ -119,7 +119,6 @@ if [[ ${AUTOMATIC_UPDATES:0:1} =~ ^[Yy]$ ]]; then
     echo unattended-upgrades unattended-upgrades/enable_auto_updates boolean true | debconf-set-selections
     dpkg-reconfigure -f noninteractive unattended-upgrades
     echo 'Unattended-Upgrade::Automatic-Reboot "true";' >> /etc/apt/apt.conf.d/50unattended-upgrades
-
     if ! docker ps -q -f name=watchtower | grep -q .; then
         docker run --detach \
             --name watchtower \
