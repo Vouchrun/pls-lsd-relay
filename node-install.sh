@@ -118,7 +118,13 @@ read -r -p "Enable automatic updates? [y/n] (press Enter to confirm): " AUTOMATI
 if [[ ${AUTOMATIC_UPDATES:0:1} =~ ^[Yy]$ ]]; then
     echo unattended-upgrades unattended-upgrades/enable_auto_updates boolean true | debconf-set-selections
     dpkg-reconfigure -f noninteractive unattended-upgrades
-    echo 'Unattended-Upgrade::Automatic-Reboot "true";' >> /etc/apt/apt.conf.d/50unattended-upgrades
+    cat > /etc/apt/apt.conf.d/50unattended-upgrades <<EOF
+APT::Periodic::Update-Package-Lists "1";
+APT::Periodic::Download-Upgradeable-Packages "1";
+APT::Periodic::AutocleanInterval "7";
+APT::Periodic::Unattended-Upgrade "1";
+Unattended-Upgrade::Automatic-Reboot "true";
+EOF
     if ! docker ps -q -f name=watchtower | grep -q .; then
         docker run --detach \
             --name watchtower \
