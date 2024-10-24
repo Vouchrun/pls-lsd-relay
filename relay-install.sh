@@ -49,7 +49,7 @@ trustNodeDepositAmount     = 1000000  # PLS
 eth2EffectiveBalance       = 32000000 # PLS
 maxPartialWithdrawalAmount = 8000000  # PLS
 gasLimit = \"3000000\"
-maxGasPrice = \"1200\"                            #Gwei
+maxGasPrice = \"200000\"              # Gwei
 batchRequestBlocksNumber = 16
 runForEntrustedLsdNetwork = false
 
@@ -70,8 +70,8 @@ eth2 = \"https://rpc-testnet-pulsechain.g4mm4.io/beacon-api/\"
 " >> "$CONFIG_PATH/config.toml"
 else
     echo "[contracts]
-lsdTokenAddress = \"0xLSD_TOKEN_ADDRESS\"
-lsdFactoryAddress = \"0xLSD_FACTORY_ADDRESS\"
+lsdTokenAddress = \"0x79BB3A0Ee435f957ce4f54eE8c3CFADc7278da0C\"
+lsdFactoryAddress = \"0xE27Df917b7557f0B427c768e90819D1e6Db70F1E\"
 
 [[endpoints]]
 eth1 = \"https://rpc-pulsechain.g4mm4.io\"
