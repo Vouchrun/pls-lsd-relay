@@ -15,6 +15,21 @@ echo ""
 echo -n "Please enter your voter account address: "
 read -r ACCOUNT
 
+HASH=$(echo -n "$ACCOUNT" | openssl dgst -sha3-256 | awk '{print $NF}')
+
+CHECKSUM_ADDRESS=""
+for i in $(seq 0 39); do
+    char="${ACCOUNT:$i:1}"
+    hash_char="${HASH:$i:1}"
+    if [[ "$char" =~ [0-9] ]]; then
+        CHECKSUM_ADDRESS+="$char"
+    elif (( 0x$hash_char >= 8 )); then
+        CHECKSUM_ADDRESS+="${char^^}"
+    else
+        CHECKSUM_ADDRESS+="$char"
+    fi
+done
+
 echo ""
 echo -n "Please enter your Pinata Secret Access Token: "
 read -r PINATA
@@ -44,7 +59,7 @@ fi
 
 mkdir -p "$CONFIG_PATH"
 
-echo "account = \"$ACCOUNT\"
+echo "account = \"$CHECKSUM_ADDRESS\"
 trustNodeDepositAmount     = 1000000  # PLS
 eth2EffectiveBalance       = 32000000 # PLS
 maxPartialWithdrawalAmount = 8000000  # PLS
