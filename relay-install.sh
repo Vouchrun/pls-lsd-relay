@@ -71,7 +71,7 @@ eth2 = \"https://rpc-testnet-pulsechain.g4mm4.io/beacon-api/\"
 else
     echo "[contracts]
 lsdTokenAddress = \"0x79BB3A0Ee435f957ce4f54eE8c3CFADc7278da0C\"
-lsdFactoryAddress = \"0xE27Df917b7557f0B427c768e90819D1e6Db70F1E\"
+lsdFactoryAddress = \"0x4bf4df49f8bc72a4e484443a14b827cb8c47c716\"
 
 [[endpoints]]
 eth1 = \"https://rpc-pulsechain.g4mm4.io\"
