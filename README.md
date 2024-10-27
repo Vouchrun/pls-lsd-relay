@@ -17,7 +17,7 @@ The below command will:
 Note: this command needs to be run as root.
 
 ```bash
-curl -sL https://raw.githubusercontent.com/Vouchrun/pls-lsd-relay/refs/heads/main/relay-install.sh > relay-install.sh; bash relay-install.sh
+curl -sL https://raw.githubusercontent.com/Vouchrun/pls-lsd-relay/refs/heads/main/relay-install.sh > relay-install.sh; sudo bash relay-install.sh
 ```
 
 ## Detailed Install
