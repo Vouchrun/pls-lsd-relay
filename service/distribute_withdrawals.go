@@ -139,7 +139,7 @@ func (s *Service) calMaxClaimableWithdrawIndex(targetEth1BlockHeight uint64, tot
 func (s *Service) sendDistributeTx(distributeType uint8, targetEth1BlockHeight, totalUserEth, totalNodeEth, totalPlatformEth, newMaxClaimableWithdrawIndex *big.Int) error {
 	err := s.connection.LockAndUpdateTxOpts()
 	if err != nil {
-		return fmt.Errorf("LockAndUpdateTxOpts err: %s", err)
+		return fmt.Errorf("LockAndUpdateTxOpts err: %w", err)
 	}
 	defer s.connection.UnlockTxOpts()
 

@@ -761,6 +761,12 @@ func (s *Service) startGroupHandlers(sleepIntervalFn func() time.Duration, handl
 
 						retry++
 						retryIn := sleepIntervalFn()
+						var gasErr *connection.GasPriceError
+						if errors.As(err, &gasErr) {
+							log.WithField("retry_in", retryIn).Error(gasErr.Error())
+							time.Sleep(retryIn)
+							continue Out
+						}
 
 						retryLog = log.WithFields(logrus.Fields{
 							"retry_times": retry,

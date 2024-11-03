@@ -3,6 +3,7 @@ package connection_test
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"math/big"
 	"os"
@@ -15,6 +16,7 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
+	"github.com/shopspring/decimal"
 	"github.com/sirupsen/logrus"
 	network_withdraw "github.com/stafiprotocol/eth-lsd-relay/bindings/NetworkWithdraw"
 	node_deposit "github.com/stafiprotocol/eth-lsd-relay/bindings/NodeDeposit"
@@ -53,6 +55,31 @@ func TestCallOpts(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Log(gasPrice.String(), gasTip.String())
+}
+
+func TestSafeEstimateFee(t *testing.T) {
+	endpoints := []config.Endpoint{
+		{Eth1: os.Getenv("ETH1_ENDPOINT"), Eth2: os.Getenv("ETH2_ENDPOINT")},
+	}
+
+	maxGasPriceDeci := decimal.RequireFromString("51").Mul(utils.GweiDeci)
+	c, err := connection.NewConnection(endpoints, nil, nil, maxGasPriceDeci.BigInt())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	gasTipCap, gasFeeCap, err := c.SafeEstimateFee(context.Background())
+	if err != nil {
+		newErr := fmt.Errorf("LockAndUpdateTxOpts err: %w", err)
+		var gasErr *connection.GasPriceError
+		if errors.As(newErr, &gasErr) {
+			t.Fatal("gas error:", gasErr)
+		} else {
+			t.Fatal("not gas err", err)
+		}
+	}
+	fmt.Println(gasTipCap)
+	fmt.Println(gasFeeCap)
 }
 
 func TestBlockReward(t *testing.T) {

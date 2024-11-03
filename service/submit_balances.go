@@ -253,7 +253,7 @@ func (s *Service) getUserDepositPlusReward(nodeDepositAmount, validatorBalance d
 func (s *Service) sendSubmitBalancesTx(block, totalUserEth, lsdTokenTotalSupply *big.Int) error {
 	err := s.connection.LockAndUpdateTxOpts()
 	if err != nil {
-		return fmt.Errorf("LockAndUpdateTxOpts err: %s", err)
+		return fmt.Errorf("LockAndUpdateTxOpts err: %w", err)
 	}
 	defer s.connection.UnlockTxOpts()
 

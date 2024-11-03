@@ -270,7 +270,7 @@ func (s *Service) checkStateForSetMerkleRoot() (uint64, uint64, uint64, bool, er
 func (s *Service) sendSetMerkleRootTx(targetEpoch int64, rootHash [32]byte, cid string) error {
 	err := s.connection.LockAndUpdateTxOpts()
 	if err != nil {
-		return fmt.Errorf("LockAndUpdateTxOpts err: %s", err)
+		return fmt.Errorf("LockAndUpdateTxOpts err: %w", err)
 	}
 	defer s.connection.UnlockTxOpts()
 
