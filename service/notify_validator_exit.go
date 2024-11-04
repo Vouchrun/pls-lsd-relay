@@ -134,7 +134,7 @@ func (s *Service) notifyValidatorExit() error {
 func (s *Service) sendNotifyExitTx(withdrawCycle, startCycle uint64, selectVals []*big.Int) error {
 	err := s.connection.LockAndUpdateTxOpts()
 	if err != nil {
-		return fmt.Errorf("LockAndUpdateTxOpts err: %s", err)
+		return fmt.Errorf("LockAndUpdateTxOpts err: %w", err)
 	}
 	defer s.connection.UnlockTxOpts()
 
