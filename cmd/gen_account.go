@@ -86,7 +86,7 @@ func generateKeyFileByPrivateKey(keypath string) error {
 	}()
 
 	password := []byte(os.Getenv("KEYSTORE_PASSWORD"))
-	if len(key) == 0 {
+	if len(password) == 0 {
 		password = keystore.GetPassword("password for key:")
 	}
 

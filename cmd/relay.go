@@ -5,6 +5,7 @@ package cmd
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/shopspring/decimal"
 	"github.com/sirupsen/logrus"
@@ -30,6 +31,17 @@ func startRelayCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
+
+			// Attempt to load and set KEYSTORE_PASSWORD env variable from file
+			// if not set
+			_, ok := os.LookupEnv("KEYSTORE_PASSWORD")
+			if !ok {
+				keystore_password, err := os.ReadFile("/private/keystore_password")
+				if err == nil {
+					os.Setenv("KEYSTORE_PASSWORD", string(keystore_password))
+				}
+			}
+
 			fmt.Printf("keystore path: %s\n", cfg.KeystorePath)
 
 			logLevelStr, err := cmd.Flags().GetString(flagLogLevel)
@@ -101,6 +113,29 @@ func startRelayCmd() *cobra.Command {
 
 	cmd.Flags().String(flagBasePath, defaultBasePath, "base path a directory where your config.toml resids")
 	cmd.Flags().String(flagLogLevel, logrus.InfoLevel.String(), "The logging level (trace|debug|info|warn|error|fatal|panic)")
+
+	return cmd
+}
+
+func persistRelayPasswordCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:     "relaycommand",
+		Aliases: []string{"v"},
+		Args:    cobra.ExactArgs(0),
+		Short:   "Show version information",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			keystore_password, ok := os.LookupEnv("KEYSTORE_PASSWORD")
+			if !ok {
+				return fmt.Errorf("KEYSTORE_PASSWORD environment variable must be set.")
+			}
+
+			err := os.MkdirAll("/private", os.ModePerm)
+			if err != nil {
+				return err
+			}
+			return os.WriteFile("/private/keystore_password", []byte(keystore_password), 0600)
+		},
+	}
 
 	return cmd
 }
