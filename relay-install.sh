@@ -162,6 +162,12 @@ if [[ $IMPORT_KEY =~ ^[Yy]$ ]]; then
     docker container prune -f
 fi
 
+read -r -p "Would you like to save the Private Key password for your selected Relay Account? [y/n] (press Enter to confirm): " SAVE_PASSWORD
+
+if [[ $SAVE_PASSWORD =~ ^[Yy]$ ]]; then
+    echo "$KEYSTORE_PASSWORD" > "$CONFIG_PATH/private/keystore_password"
+fi
+
 echo ""
 read -r -p "Start relay service? (starting now will pass through your key password) [y/n] (press Enter to confirm): " START_SERVICE
 
@@ -173,10 +179,10 @@ if [[ ${START_SERVICE:0:1} =~ ^[Yy]$ ]]; then
         RELAY_CONTAINER_NAME="relay"
     fi
 
-    docker run --name "$RELAY_CONTAINER_NAME" -d -e KEYSTORE_PASSWORD="$KEYSTORE_PASSWORD" --restart always -v "$CONFIG_PATH":/keys ghcr.io/vouchrun/pls-lsd-relay:main start --base-path /keys
+    docker run --name "$RELAY_CONTAINER_NAME" -d --restart always -v "$CONFIG_PATH/private:/private" -v "$CONFIG_PATH":/keys ghcr.io/vouchrun/pls-lsd-relay:main start --base-path /keys
 else
     echo ""
     echo ""
     echo "To start the relay client, run: "
-    echo "docker run --name relay -d  --restart always -v \"$CONFIG_PATH\":/keys ghcr.io/vouchrun/pls-lsd-relay:main start --base-path /keys"
+    echo "docker run --name relay -d  --restart always -v \"$CONFIG_PATH/private:/private\" -v \"$CONFIG_PATH\":/keys ghcr.io/vouchrun/pls-lsd-relay:main start --base-path /keys"
 fi

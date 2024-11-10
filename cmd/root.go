@@ -32,7 +32,6 @@ func NewRootCmd() *cobra.Command {
 
 	rootCmd.AddCommand(
 		importAccountCmd(),
-		persistRelayPasswordCmd(),
 		startRelayCmd(),
 		versionCmd(),
 	)
