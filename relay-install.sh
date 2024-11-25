@@ -15,21 +15,6 @@ echo ""
 echo -n "Please enter your voter account address: "
 read -r ACCOUNT
 
-HASH=$(echo -n "$ACCOUNT" | openssl dgst -sha3-256 | awk '{print $NF}')
-
-CHECKSUM_ADDRESS=""
-for i in $(seq 0 39); do
-    char="${ACCOUNT:$i:1}"
-    hash_char="${HASH:$i:1}"
-    if [[ "$char" =~ [0-9] ]]; then
-        CHECKSUM_ADDRESS+="$char"
-    elif (( 0x$hash_char >= 8 )); then
-        CHECKSUM_ADDRESS+="${char^^}"
-    else
-        CHECKSUM_ADDRESS+="$char"
-    fi
-done
-
 echo ""
 echo -n "Please enter your Pinata Secret Access Token: "
 read -r PINATA
@@ -59,12 +44,12 @@ fi
 
 mkdir -p "$CONFIG_PATH"
 
-echo "account = \"$CHECKSUM_ADDRESS\"
+echo "account = \"$ACCOUNT\"
 trustNodeDepositAmount     = 1000000  # PLS
 eth2EffectiveBalance       = 32000000 # PLS
 maxPartialWithdrawalAmount = 8000000  # PLS
 gasLimit = \"3000000\"
-maxGasPrice = \"200000\"              # Gwei
+maxGasPrice = \"500000\"              # Gwei
 batchRequestBlocksNumber = 16
 runForEntrustedLsdNetwork = false
 
@@ -86,7 +71,7 @@ eth2 = \"https://rpc-testnet-pulsechain.g4mm4.io/beacon-api/\"
 else
     echo "[contracts]
 lsdTokenAddress = \"0x79BB3A0Ee435f957ce4f54eE8c3CFADc7278da0C\"
-lsdFactoryAddress = \"0xE27Df917b7557f0B427c768e90819D1e6Db70F1E\"
+lsdFactoryAddress = \"0x4bf4df49f8bc72a4e484443a14b827cb8c47c716\"
 
 [[endpoints]]
 eth1 = \"https://rpc-pulsechain.g4mm4.io\"
@@ -184,5 +169,5 @@ else
     echo ""
     echo ""
     echo "To start the relay client, run: "
-    echo "docker run --name relay -d  --restart always -v \"$CONFIG_PATH/private:/private\" -v \"$CONFIG_PATH\":/keys ghcr.io/vouchrun/pls-lsd-relay:main start --base-path /keys"
+    echo "docker run --name relay -d  --restart always -v \"$CONFIG_PATH\":/keys ghcr.io/vouchrun/pls-lsd-relay:main start --base-path /keys"
 fi
