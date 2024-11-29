@@ -11,6 +11,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/prysmaticlabs/prysm/v4/contracts/deposit"
 	ethpb "github.com/prysmaticlabs/prysm/v4/proto/prysm/v1alpha1"
+	"github.com/samber/lo"
 	"github.com/sirupsen/logrus"
 	"github.com/stafiprotocol/eth-lsd-relay/pkg/connection/beacon"
 	"github.com/stafiprotocol/eth-lsd-relay/pkg/connection/types"
@@ -96,7 +97,18 @@ func (s *Service) voteWithdrawCredentials() error {
 		validatorMatches = append(validatorMatches, match)
 	}
 
-	return s.voteWithdrawCredentialsTx(validatorPubkeys, validatorMatches)
+	return s.batchVoteWithdrawCredentialsTx(validatorPubkeys, validatorMatches, 20)
+}
+
+func (s *Service) batchVoteWithdrawCredentialsTx(validatorPubkeys [][]byte, matches []bool, chunkSize int) error {
+	matchChunks := lo.Chunk[bool](matches, chunkSize)
+	valPubkeyChunks := lo.Chunk[[]byte](validatorPubkeys, chunkSize)
+	for i := range matchChunks {
+		if err := s.voteWithdrawCredentialsTx(valPubkeyChunks[i], matchChunks[i]); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (s *Service) voteWithdrawCredentialsTx(validatorPubkeys [][]byte, matches []bool) error {
@@ -113,7 +125,6 @@ func (s *Service) voteWithdrawCredentialsTx(validatorPubkeys [][]byte, matches [
 	proposalIds := make([][32]byte, 0)
 
 	for i := 0; i < len(validatorPubkeys); i++ {
-
 		encodeBts, err := s.nodeDepositAbi.Pack("voteWithdrawCredentials", validatorPubkeys[i], matches[i])
 		if err != nil {
 			return err

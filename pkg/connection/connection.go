@@ -26,6 +26,18 @@ import (
 	"github.com/stafiprotocol/eth-lsd-relay/pkg/utils"
 )
 
+type GasPriceError struct {
+	Max     *big.Int
+	Current *big.Int
+}
+
+func (e *GasPriceError) Error() string {
+	return fmt.Sprintf("exceed max gas price(Gwei), current: %d, max: %d",
+		new(big.Int).Div(e.Current, utils.GweiDeci.BigInt()),
+		new(big.Int).Div(e.Max, utils.GweiDeci.BigInt()),
+	)
+}
+
 var Gwei5 = big.NewInt(5e9)
 var Gwei10 = big.NewInt(10e9)
 var Gwei20 = big.NewInt(20e9)
@@ -264,7 +276,7 @@ func (c *Connection) SafeEstimateFee(ctx context.Context) (*big.Int, *big.Int, e
 	}
 
 	if gasFeeCap.Cmp(c.maxGasPrice) > 0 {
-		gasFeeCap = c.maxGasPrice
+		return nil, nil, &GasPriceError{Current: gasFeeCap, Max: c.maxGasPrice}
 	}
 
 	return gasTipCap, gasFeeCap, nil
