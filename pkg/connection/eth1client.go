@@ -404,10 +404,6 @@ func (c *Eth1Client) WaitTxOkCommon(txHash common.Hash) (blockNumber uint64, err
 			return
 		}
 	}
-	if err != nil {
-		logrus.Errorf("find err: %s, will shutdown.", utils.ErrToLogStr(err))
-		utils.ShutdownRequestChannel <- struct{}{}
-	}
 	return
 }
 
