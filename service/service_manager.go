@@ -53,10 +53,10 @@ func NewServiceManager(cfg *config.Config, keyPair *secp256k1.Keypair) (*Service
 	if maxGasPriceDeci.LessThanOrEqual(decimal.Zero) {
 		return nil, fmt.Errorf("max gas price is zero")
 	}
-	gasPriceBoost := new(big.Float).SetFloat64(cfg.GasPriceBoost)
+	gasPriceMultiplier := new(big.Float).SetFloat64(cfg.GasPriceMultiplier)
 
 	conn, err := connection.NewConnection(cfg.Endpoints, keyPair,
-		gasLimitDeci.BigInt(), maxGasPriceDeci.BigInt(), gasPriceBoost)
+		gasLimitDeci.BigInt(), maxGasPriceDeci.BigInt(), gasPriceMultiplier)
 	if err != nil {
 		return nil, err
 	}

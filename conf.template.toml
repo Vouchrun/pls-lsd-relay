@@ -4,7 +4,7 @@ eth2EffectiveBalance       = 32 # ether
 maxPartialWithdrawalAmount = 8  # ether
 gasLimit = "3000000"
 maxGasPrice = "600"                            # Gwei
-gasPriceBoost = 2.5
+gasPriceMultiplier = 1.5
 batchRequestBlocksNumber = 16       # max=32
 runForEntrustedLsdNetwork = false
 
