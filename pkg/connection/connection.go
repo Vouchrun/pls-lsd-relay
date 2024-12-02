@@ -54,10 +54,11 @@ type eth2Client struct {
 }
 
 type Connection struct {
-	endpoints   []config.Endpoint
-	kp          *secp256k1.Keypair
-	gasLimit    *big.Int
-	maxGasPrice *big.Int
+	endpoints     []config.Endpoint
+	kp            *secp256k1.Keypair
+	gasLimit      *big.Int
+	maxGasPrice   *big.Int
+	gasPriceBoost *big.Float
 
 	eth1Client  ContractBackend
 	eth2Clients []*eth2Client
@@ -71,7 +72,7 @@ type Connection struct {
 }
 
 // NewConnection returns an uninitialized connection, must call Connection.Connect() before using.
-func NewConnection(endpoints []config.Endpoint, kp *secp256k1.Keypair, gasLimit, maxGasPrice *big.Int) (*Connection, error) {
+func NewConnection(endpoints []config.Endpoint, kp *secp256k1.Keypair, gasLimit, maxGasPrice *big.Int, gasPriceBoost *big.Float) (*Connection, error) {
 	if kp != nil {
 		if maxGasPrice.Cmp(big.NewInt(0)) <= 0 {
 			return nil, fmt.Errorf("max gas price empty")
@@ -81,10 +82,11 @@ func NewConnection(endpoints []config.Endpoint, kp *secp256k1.Keypair, gasLimit,
 		}
 	}
 	c := &Connection{
-		endpoints:   endpoints,
-		kp:          kp,
-		gasLimit:    gasLimit,
-		maxGasPrice: maxGasPrice,
+		endpoints:     endpoints,
+		kp:            kp,
+		gasLimit:      gasLimit,
+		maxGasPrice:   maxGasPrice,
+		gasPriceBoost: gasPriceBoost,
 	}
 
 	err := retry.Do(c.connect, retry.Delay(time.Second), retry.Attempts(3))
@@ -260,26 +262,29 @@ func (c *Connection) CallOptsOn(targetBlockNumber uint64) *bind.CallOpts {
 
 // return suggest gastipcap gasfeecap
 func (c *Connection) SafeEstimateFee(ctx context.Context) (*big.Int, *big.Int, error) {
-	gasTipCap, err := c.eth1Client.SuggestGasTipCap(ctx)
+	marketGasTipCap, err := c.eth1Client.SuggestGasTipCap(ctx)
 	if err != nil {
 		return nil, nil, err
 	}
-	gasFeeCap, err := c.eth1Client.SuggestGasPrice(ctx)
+	marketGasFeeCap, err := c.eth1Client.SuggestGasPrice(ctx)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	if gasFeeCap.Cmp(Gwei20) < 0 {
-		gasFeeCap = new(big.Int).Add(gasFeeCap, Gwei5)
+	if marketGasFeeCap.Cmp(Gwei20) < 0 {
+		marketGasFeeCap = new(big.Int).Add(marketGasFeeCap, Gwei5)
 	} else {
-		gasFeeCap = new(big.Int).Add(gasFeeCap, Gwei10)
+		marketGasFeeCap = new(big.Int).Add(marketGasFeeCap, Gwei10)
 	}
 
-	if gasFeeCap.Cmp(c.maxGasPrice) > 0 {
-		return nil, nil, &GasPriceError{Current: gasFeeCap, Max: c.maxGasPrice}
+	boostedGasFeeCap, _ := new(big.Float).Mul(new(big.Float).SetInt(marketGasFeeCap), c.gasPriceBoost).Int(nil)
+	boostedGasTipCap, _ := new(big.Float).Mul(new(big.Float).SetInt(marketGasTipCap), c.gasPriceBoost).Int(nil)
+
+	if boostedGasFeeCap.Cmp(c.maxGasPrice) > 0 {
+		return nil, nil, &GasPriceError{Current: boostedGasFeeCap, Max: c.maxGasPrice}
 	}
 
-	return gasTipCap, gasFeeCap, nil
+	return boostedGasTipCap, boostedGasFeeCap, nil
 }
 
 // LockAndUpdateOpts acquires a lock on the opts before updating the nonce

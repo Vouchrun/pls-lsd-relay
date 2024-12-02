@@ -23,6 +23,7 @@ type Config struct {
 	BlockstoreFilePath         string
 	GasLimit                   string
 	MaxGasPrice                string // Gwei
+	GasPriceBoost              float64
 	BatchRequestBlocksNumber   uint64
 	TrustNodeDepositAmount     uint64 // ether
 	Eth2EffectiveBalance       uint64 // ether
@@ -79,6 +80,15 @@ func Load(basePath string) (*Config, error) {
 	}
 	if cfg.MaxGasPrice == "" {
 		cfg.MaxGasPrice = "600"
+	}
+	if cfg.GasPriceBoost == 0 {
+		cfg.GasPriceBoost = 1
+	}
+	if cfg.GasPriceBoost < 1 {
+		return nil, fmt.Errorf("gas price boost can not be less than 1")
+	}
+	if cfg.GasPriceBoost > 10 {
+		return nil, fmt.Errorf("gas price boost can not be greater than 10")
 	}
 	if cfg.BatchRequestBlocksNumber > 32 {
 		return nil, fmt.Errorf("batchRequestBlocksNumber can not be greater than 32")
