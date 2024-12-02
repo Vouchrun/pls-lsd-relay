@@ -405,13 +405,15 @@ func (c *StandardHttpClient) GetBeaconBlock(blockId uint64) (beacon.BeaconBlock,
 		beaconBlock.AttesterSlashing = append(beaconBlock.AttesterSlashing, newAttesterSalsh)
 	}
 
-	for _, withdrawal := range block.Data.Message.Body.ExecutionPayload.Withdrawals {
-		beaconBlock.Withdrawals = append(beaconBlock.Withdrawals, beacon.Withdrawal{
-			WithdrawIndex:  uint64(withdrawal.Index),
-			ValidatorIndex: uint64(withdrawal.ValidatorIndex),
-			Address:        common.HexToAddress(withdrawal.Address),
-			Amount:         uint64(withdrawal.Amount),
-		})
+	if block.Data.Message.Body.ExecutionPayload != nil {
+		for _, withdrawal := range block.Data.Message.Body.ExecutionPayload.Withdrawals {
+			beaconBlock.Withdrawals = append(beaconBlock.Withdrawals, beacon.Withdrawal{
+				WithdrawIndex:  uint64(withdrawal.Index),
+				ValidatorIndex: uint64(withdrawal.ValidatorIndex),
+				Address:        common.HexToAddress(withdrawal.Address),
+				Amount:         uint64(withdrawal.Amount),
+			})
+		}
 	}
 
 	for _, exitMsg := range block.Data.Message.Body.VoluntaryExits {
