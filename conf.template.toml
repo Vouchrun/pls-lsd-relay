@@ -5,6 +5,7 @@ eth2EffectiveBalance       = 32000000 # PLS
 maxPartialWithdrawalAmount = 8000000  # PLS
 gasLimit = "3000000"
 maxGasPrice = "600"                            # Gwei
+gasPriceMultiplier = 1.5
 batchRequestBlocksNumber = 16       # max=32
 runForEntrustedLsdNetwork = false
 

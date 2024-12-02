@@ -3,6 +3,7 @@ package service
 import (
 	"fmt"
 	"math"
+	"math/big"
 	"time"
 
 	"github.com/avast/retry-go/v4"
@@ -52,9 +53,10 @@ func NewServiceManager(cfg *config.Config, keyPair *secp256k1.Keypair) (*Service
 	if maxGasPriceDeci.LessThanOrEqual(decimal.Zero) {
 		return nil, fmt.Errorf("max gas price is zero")
 	}
+	gasPriceMultiplier := new(big.Float).SetFloat64(cfg.GasPriceMultiplier)
 
 	conn, err := connection.NewConnection(cfg.Endpoints, keyPair,
-		gasLimitDeci.BigInt(), maxGasPriceDeci.BigInt())
+		gasLimitDeci.BigInt(), maxGasPriceDeci.BigInt(), gasPriceMultiplier)
 	if err != nil {
 		return nil, err
 	}

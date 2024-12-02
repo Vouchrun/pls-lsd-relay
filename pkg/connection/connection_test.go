@@ -30,7 +30,7 @@ func TestCallOpts(t *testing.T) {
 	endpoints := []config.Endpoint{
 		{Eth1: os.Getenv("ETH1_ENDPOINT"), Eth2: os.Getenv("ETH2_ENDPOINT")},
 	}
-	c, err := connection.NewConnection(endpoints, nil, nil, nil)
+	c, err := connection.NewConnection(endpoints, nil, nil, nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -62,8 +62,8 @@ func TestSafeEstimateFee(t *testing.T) {
 		{Eth1: os.Getenv("ETH1_ENDPOINT"), Eth2: os.Getenv("ETH2_ENDPOINT")},
 	}
 
-	maxGasPriceDeci := decimal.RequireFromString("51").Mul(utils.GweiDeci)
-	c, err := connection.NewConnection(endpoints, nil, nil, maxGasPriceDeci.BigInt())
+	maxGasPriceDeci := decimal.RequireFromString("1100").Mul(utils.GweiDeci)
+	c, err := connection.NewConnection(endpoints, nil, nil, maxGasPriceDeci.BigInt(), new(big.Float).SetFloat64(2))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -86,7 +86,7 @@ func TestBlockReward(t *testing.T) {
 	endpoints := []config.Endpoint{
 		{Eth1: os.Getenv("ETH1_ENDPOINT"), Eth2: os.Getenv("ETH2_ENDPOINT")},
 	}
-	c, err := connection.NewConnection(endpoints, nil, nil, nil)
+	c, err := connection.NewConnection(endpoints, nil, nil, nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -113,7 +113,7 @@ func TestEth2Config(t *testing.T) {
 	endpoints := []config.Endpoint{
 		{Eth1: os.Getenv("ETH1_ENDPOINT"), Eth2: os.Getenv("ETH2_ENDPOINT")},
 	}
-	c, err := connection.NewConnection(endpoints, nil, nil, nil)
+	c, err := connection.NewConnection(endpoints, nil, nil, nil, nil)
 	assert.Nil(t, err)
 	config, err := c.GetEth2Config()
 	assert.Nil(t, err)
@@ -132,7 +132,7 @@ func TestBlockDetail(t *testing.T) {
 	endpoints := []config.Endpoint{
 		{Eth1: os.Getenv("ETH1_ENDPOINT"), Eth2: os.Getenv("ETH2_ENDPOINT")},
 	}
-	c, err := connection.NewConnection(endpoints, nil, nil, nil)
+	c, err := connection.NewConnection(endpoints, nil, nil, nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -163,7 +163,7 @@ func TestGettingFirstNodeStakeEvent(t *testing.T) {
 	endpoints := []config.Endpoint{
 		{Eth1: os.Getenv("ETH1_ENDPOINT"), Eth2: os.Getenv("ETH2_ENDPOINT")},
 	}
-	c, err := connection.NewConnection(endpoints, nil, nil, nil)
+	c, err := connection.NewConnection(endpoints, nil, nil, nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
