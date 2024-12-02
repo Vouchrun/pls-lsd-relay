@@ -49,7 +49,8 @@ trustNodeDepositAmount     = 1000000  # PLS
 eth2EffectiveBalance       = 32000000 # PLS
 maxPartialWithdrawalAmount = 8000000  # PLS
 gasLimit = \"3000000\"
-maxGasPrice = \"10000000\"              # Gwei
+maxGasPrice = \"20000000\"              # Gwei
+gasPriceMultiplier = \"2.5\"              # Gwei
 batchRequestBlocksNumber = 16
 runForEntrustedLsdNetwork = false
 
