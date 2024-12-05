@@ -84,7 +84,7 @@ func (s *Service) updateValidatorsFromNetwork() error {
 	// 1 fetch node's new pubkey
 	nodesPubkeyList, err := s.nodeDepositContract.GetPubkeysOfNodes(opts, lo.Keys(s.nodes))
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "get pubkeys of nodes, len: %d", len(s.nodes))
 	}
 	for addr, node := range s.nodes {
 		pubkeys := nodesPubkeyList[addr]
@@ -125,7 +125,7 @@ func (s *Service) updateValidatorsFromNetwork() error {
 	}
 	pubkeyInfo, err := s.nodeDepositContract.GetPubkeyInfoList(opts, validValidatorPubkeys)
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "get pubkey info list, len: %d", len(validValidatorPubkeys))
 	}
 	for pubkeyStr, info := range pubkeyInfo {
 		s.validators[pubkeyStr].Status = info.Status

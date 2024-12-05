@@ -45,7 +45,7 @@ type GetPubkeysOfNodeOutput struct {
 	List pubkeyList
 }
 
-func (nodeDeposit *CustomNodeDeposit) GetPubkeysOfNodes(opts *bind.CallOpts, _nodes []common.Address) (map[common.Address]pubkeyList, error) {
+func (nodeDeposit *CustomNodeDeposit) getPubkeysOfNodes(opts *bind.CallOpts, _nodes []common.Address) (map[common.Address]pubkeyList, error) {
 	if len(_nodes) == 0 {
 		return nil, nil
 	}
@@ -69,6 +69,24 @@ func (nodeDeposit *CustomNodeDeposit) GetPubkeysOfNodes(opts *bind.CallOpts, _no
 	}), nil
 }
 
+func (nodeDeposit *CustomNodeDeposit) GetPubkeysOfNodes(opts *bind.CallOpts, _nodes []common.Address) (map[common.Address]pubkeyList, error) {
+	if len(_nodes) == 0 {
+		return nil, nil
+	}
+	chunks := lo.Chunk(_nodes, 100)
+	result := make(map[common.Address]pubkeyList, len(_nodes))
+	for _, chunk := range chunks {
+		out, err := nodeDeposit.getPubkeysOfNodes(opts, chunk)
+		if err != nil {
+			return nil, err
+		}
+		for k, v := range out {
+			result[k] = v
+		}
+	}
+	return result, nil
+}
+
 type GetPubkeyInfoListOutput struct {
 	Status            uint8
 	Owner             common.Address
@@ -76,7 +94,7 @@ type GetPubkeyInfoListOutput struct {
 	DepositBlock      *big.Int
 }
 
-func (nodeDeposit *CustomNodeDeposit) GetPubkeyInfoList(opts *bind.CallOpts, pubkeys [][]byte) (map[string]*GetPubkeyInfoListOutput, error) {
+func (nodeDeposit *CustomNodeDeposit) getPubkeyInfoList(opts *bind.CallOpts, pubkeys [][]byte) (map[string]*GetPubkeyInfoListOutput, error) {
 	if len(pubkeys) == 0 {
 		return nil, nil
 	}
@@ -97,6 +115,24 @@ func (nodeDeposit *CustomNodeDeposit) GetPubkeyInfoList(opts *bind.CallOpts, pub
 	return lo.Associate(calls, func(c *multicall.Call) (string, *GetPubkeyInfoListOutput) {
 		return hex.EncodeToString(c.Inputs[0].([]byte)), c.Outputs.(*GetPubkeyInfoListOutput)
 	}), nil
+}
+
+func (nodeDeposit *CustomNodeDeposit) GetPubkeyInfoList(opts *bind.CallOpts, pubkeys [][]byte) (map[string]*GetPubkeyInfoListOutput, error) {
+	if len(pubkeys) == 0 {
+		return nil, nil
+	}
+	chunks := lo.Chunk(pubkeys, 100)
+	result := make(map[string]*GetPubkeyInfoListOutput, len(pubkeys))
+	for _, chunk := range chunks {
+		out, err := nodeDeposit.getPubkeyInfoList(opts, chunk)
+		if err != nil {
+			return nil, err
+		}
+		for k, v := range out {
+			result[k] = v
+		}
+	}
+	return result, nil
 }
 
 type GetNodesLengthMultiCallOutput struct {
