@@ -39,54 +39,6 @@ func NewCustomNodeDeposit(address common.Address, backend bind.ContractBackend, 
 	}, nil
 }
 
-type pubkeyList [][]byte
-
-type GetPubkeysOfNodeOutput struct {
-	List pubkeyList
-}
-
-func (nodeDeposit *CustomNodeDeposit) getPubkeysOfNodes(opts *bind.CallOpts, _nodes []common.Address) (map[common.Address]pubkeyList, error) {
-	if len(_nodes) == 0 {
-		return nil, nil
-	}
-
-	calls := make([]*multicall.Call, len(_nodes))
-	for i, node := range _nodes {
-		calls[i] = nodeDeposit.multiContract.NewCall(
-			new(GetPubkeysOfNodeOutput),
-			"getPubkeysOfNode",
-			node,
-		)
-	}
-
-	_, err := nodeDeposit.multiCaller.Call(opts, calls...)
-	if err != nil {
-		return nil, err
-	}
-
-	return lo.Associate(calls, func(c *multicall.Call) (common.Address, pubkeyList) {
-		return c.Inputs[0].(common.Address), c.Outputs.(*GetPubkeysOfNodeOutput).List
-	}), nil
-}
-
-func (nodeDeposit *CustomNodeDeposit) GetPubkeysOfNodes(opts *bind.CallOpts, _nodes []common.Address) (map[common.Address]pubkeyList, error) {
-	if len(_nodes) == 0 {
-		return nil, nil
-	}
-	chunks := lo.Chunk(_nodes, 100)
-	result := make(map[common.Address]pubkeyList, len(_nodes))
-	for _, chunk := range chunks {
-		out, err := nodeDeposit.getPubkeysOfNodes(opts, chunk)
-		if err != nil {
-			return nil, err
-		}
-		for k, v := range out {
-			result[k] = v
-		}
-	}
-	return result, nil
-}
-
 type GetPubkeyInfoListOutput struct {
 	Status            uint8
 	Owner             common.Address

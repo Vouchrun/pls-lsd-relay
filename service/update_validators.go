@@ -11,7 +11,6 @@ import (
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/pkg/errors"
-	"github.com/samber/lo"
 	"github.com/shopspring/decimal"
 	"github.com/sirupsen/logrus"
 
@@ -82,12 +81,11 @@ func (s *Service) updateValidatorsFromNetwork() error {
 	}
 
 	// 1 fetch node's new pubkey
-	nodesPubkeyList, err := s.nodeDepositContract.GetPubkeysOfNodes(opts, lo.Keys(s.nodes))
-	if err != nil {
-		return errors.Wrapf(err, "get pubkeys of nodes, len: %d", len(s.nodes))
-	}
 	for addr, node := range s.nodes {
-		pubkeys := nodesPubkeyList[addr]
+		pubkeys, err := s.nodeDepositContract.GetPubkeysOfNode(opts, addr)
+		if err != nil {
+			return errors.Wrap(err, "get pubkeys of node: "+addr.String())
+		}
 
 		s.log.WithFields(logrus.Fields{
 			"node":              node.NodeAddress,
