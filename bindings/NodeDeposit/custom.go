@@ -39,36 +39,6 @@ func NewCustomNodeDeposit(address common.Address, backend bind.ContractBackend, 
 	}, nil
 }
 
-type pubkeyList [][]byte
-
-type GetPubkeysOfNodeOutput struct {
-	List pubkeyList
-}
-
-func (nodeDeposit *CustomNodeDeposit) GetPubkeysOfNodes(opts *bind.CallOpts, _nodes []common.Address) (map[common.Address]pubkeyList, error) {
-	if len(_nodes) == 0 {
-		return nil, nil
-	}
-
-	calls := make([]*multicall.Call, len(_nodes))
-	for i, node := range _nodes {
-		calls[i] = nodeDeposit.multiContract.NewCall(
-			new(GetPubkeysOfNodeOutput),
-			"getPubkeysOfNode",
-			node,
-		)
-	}
-
-	_, err := nodeDeposit.multiCaller.Call(opts, calls...)
-	if err != nil {
-		return nil, err
-	}
-
-	return lo.Associate(calls, func(c *multicall.Call) (common.Address, pubkeyList) {
-		return c.Inputs[0].(common.Address), c.Outputs.(*GetPubkeysOfNodeOutput).List
-	}), nil
-}
-
 type GetPubkeyInfoListOutput struct {
 	Status            uint8
 	Owner             common.Address
@@ -76,7 +46,7 @@ type GetPubkeyInfoListOutput struct {
 	DepositBlock      *big.Int
 }
 
-func (nodeDeposit *CustomNodeDeposit) GetPubkeyInfoList(opts *bind.CallOpts, pubkeys [][]byte) (map[string]*GetPubkeyInfoListOutput, error) {
+func (nodeDeposit *CustomNodeDeposit) getPubkeyInfoList(opts *bind.CallOpts, pubkeys [][]byte) (map[string]*GetPubkeyInfoListOutput, error) {
 	if len(pubkeys) == 0 {
 		return nil, nil
 	}
@@ -97,6 +67,24 @@ func (nodeDeposit *CustomNodeDeposit) GetPubkeyInfoList(opts *bind.CallOpts, pub
 	return lo.Associate(calls, func(c *multicall.Call) (string, *GetPubkeyInfoListOutput) {
 		return hex.EncodeToString(c.Inputs[0].([]byte)), c.Outputs.(*GetPubkeyInfoListOutput)
 	}), nil
+}
+
+func (nodeDeposit *CustomNodeDeposit) GetPubkeyInfoList(opts *bind.CallOpts, pubkeys [][]byte) (map[string]*GetPubkeyInfoListOutput, error) {
+	if len(pubkeys) == 0 {
+		return nil, nil
+	}
+	chunks := lo.Chunk(pubkeys, 100)
+	result := make(map[string]*GetPubkeyInfoListOutput, len(pubkeys))
+	for _, chunk := range chunks {
+		out, err := nodeDeposit.getPubkeyInfoList(opts, chunk)
+		if err != nil {
+			return nil, err
+		}
+		for k, v := range out {
+			result[k] = v
+		}
+	}
+	return result, nil
 }
 
 type GetNodesLengthMultiCallOutput struct {
