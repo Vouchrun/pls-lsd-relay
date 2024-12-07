@@ -2,11 +2,13 @@ package service
 
 import (
 	"context"
+	"encoding/hex"
 	"fmt"
 	"math/big"
 	"time"
 
 	"github.com/pkg/errors"
+	"github.com/samber/lo"
 	"github.com/shopspring/decimal"
 	"github.com/sirupsen/logrus"
 	"github.com/stafiprotocol/eth-lsd-relay/pkg/connection/beacon"
@@ -72,10 +74,22 @@ func (s *Service) submitBalances() error {
 		"validatorDepositedList len": len(targetValidators),
 	}).Debug("validatorDepositedList")
 
+	pubkeyInfoAtTargetBlock, err := s.nodeDepositContract.GetPubkeyInfoList(
+		s.connection.CallOpts(big.NewInt(int64(targetBlock))),
+		lo.Map(targetValidators, func(v *Validator, _ int) []byte { return v.Pubkey }),
+	)
+	if err != nil {
+		return errors.Wrapf(err, "get target pubkey info list, len: %d", len(targetValidators))
+	}
+
 	// user eth from validators
 	totalUserEthFromValidatorDeci := decimal.Zero
 	for _, validator := range targetValidators {
-		userAllEth, err := s.getUserEthInfoFromValidatorBalance(ctx, validator, targetEpoch)
+		targetInfo, ok := pubkeyInfoAtTargetBlock[hex.EncodeToString(validator.Pubkey)]
+		if !ok {
+			return fmt.Errorf("fail to get pubkey target info for %s", hex.EncodeToString(validator.Pubkey))
+		}
+		userAllEth, err := s.getUserEthInfoFromValidatorBalance(ctx, targetInfo.Status, validator, targetEpoch)
 		if err != nil {
 			return err
 		}
@@ -168,8 +182,8 @@ func (s *Service) submitBalances() error {
 
 }
 
-func (task *Service) getUserEthInfoFromValidatorBalance(ctx context.Context, validator *Validator, targetEpoch uint64) (decimal.Decimal, error) {
-	switch validator.Status {
+func (task *Service) getUserEthInfoFromValidatorBalance(ctx context.Context, pubkeyEth1TargetStatus uint8, validator *Validator, targetEpoch uint64) (decimal.Decimal, error) {
+	switch pubkeyEth1TargetStatus {
 	case utils.ValidatorStatusDeposited, utils.ValidatorStatusWithdrawMatch, utils.ValidatorStatusWithdrawUnmatch:
 		switch validator.NodeType {
 		case utils.NodeTypeSolo:
