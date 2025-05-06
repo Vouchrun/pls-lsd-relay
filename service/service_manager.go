@@ -254,6 +254,7 @@ func (m *ServiceManager) pruneCachedBeaconBlocksService() {
 		time.Sleep(time.Minute)
 	}
 }
+
 func (m *ServiceManager) pruneCachedBeaconBlocks() {
 	var minHeight uint64 = math.MaxUint64
 	var minHeightSrv *Service

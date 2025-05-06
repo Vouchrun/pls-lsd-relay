@@ -58,6 +58,12 @@ func (s *Service) syncEvents() error {
 		subEnd := i + fetchEventBlockLimit - 1
 		if end < i+fetchEventBlockLimit {
 			subEnd = end
+		} else {
+			s.log.WithFields(logrus.Fields{
+				"subStart": subStart,
+				"subEnd":   subEnd,
+				"end":      end,
+			}).Info("catching up events")
 		}
 
 		err = s.fetchDepositContractEventsAndCache(subStart, subEnd)
