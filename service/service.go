@@ -54,6 +54,7 @@ type Service struct {
 	merkleRootDuEpochs            uint64
 
 	batchRequestBlocksNumber uint64
+	eventFilterMaxSpanBlocks uint64
 
 	connection          *connection.CachedConnection
 	dds                 destorage.DeStorage
@@ -245,6 +246,7 @@ func NewService(
 		lsdTokenAddress:          common.HexToAddress(cfg.Contracts.LsdTokenAddress),
 		lsdNetworkFactoryAddress: common.HexToAddress(cfg.Contracts.LsdFactoryAddress),
 		batchRequestBlocksNumber: cfg.BatchRequestBlocksNumber,
+		eventFilterMaxSpanBlocks: cfg.EventFilterMaxSpanBlocks,
 		localSyncedBlockHeight:   localSyncedBlockHeight,
 		localStore:               localStore,
 
@@ -494,8 +496,8 @@ func (s *Service) seekFirstNodeStakeEvent() (bool, error) {
 	start := s.latestBlockOfSyncBlock
 	end := latestBlock
 
-	for subStart := start; subStart <= end; subStart += fetchEventBlockLimit {
-		subEnd := subStart + fetchEventBlockLimit
+	for subStart := start; subStart <= end; subStart += s.eventFilterMaxSpanBlocks {
+		subEnd := subStart + s.eventFilterMaxSpanBlocks
 		if end < subEnd {
 			subEnd = end
 		}

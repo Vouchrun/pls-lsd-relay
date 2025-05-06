@@ -11,7 +11,6 @@ import (
 )
 
 const (
-	fetchEventBlockLimit      = uint64(3000)
 	fetchEth1WaitBlockNumbers = uint64(2)
 	depositEventPreBlocks     = 14400 // 2days
 )
@@ -53,10 +52,10 @@ func (s *Service) syncEvents() error {
 	start := uint64(s.latestBlockOfSyncEvents + 1)
 	end := latestBlockNumber
 
-	for i := start; i <= end; i += fetchEventBlockLimit {
+	for i := start; i <= end; i += s.eventFilterMaxSpanBlocks {
 		subStart := i
-		subEnd := i + fetchEventBlockLimit - 1
-		if end < i+fetchEventBlockLimit {
+		subEnd := i + s.eventFilterMaxSpanBlocks - 1
+		if end < i+s.eventFilterMaxSpanBlocks {
 			subEnd = end
 		} else {
 			s.log.WithFields(logrus.Fields{
