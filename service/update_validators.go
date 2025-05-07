@@ -42,18 +42,18 @@ func (s *Service) updateValidatorsFromNetwork() error {
 		return nil
 	}
 
-	s.log.WithFields(logrus.Fields{
-		"eth1LatestBlock": eth1LatestBlock,
-		"nodesLenOnChain": nodesLength.Int64(),
-	}).Debug("updateValidatorsFromNetwork")
-
 	if len(s.nodes) < int(nodesLength.Int64()) {
 		nodesOnChain, err := s.nodeDepositContract.GetNodes(opts, big.NewInt(0), nodesLength)
 		if err != nil {
 			return fmt.Errorf("nodeDepositContract.GetNodes failed: %w", err)
 		}
 		newNodes := nodesOnChain[len(s.nodes):]
-		for _, nodeAddress := range newNodes {
+		for i, nodeAddress := range newNodes {
+			s.log.WithFields(logrus.Fields{
+				"nodeAddress": nodeAddress,
+				"total":       len(newNodes),
+				"current":     i + 1,
+			}).Info("fetching new node info")
 			nodeInfo, err := s.nodeDepositContract.NodeInfoOf(opts, nodeAddress)
 			if err != nil {
 				return err
@@ -77,6 +77,12 @@ func (s *Service) updateValidatorsFromNetwork() error {
 				NodeType:     nodeInfo.NodeType,
 				PubkeyNumber: uint64(len(newVals)),
 			}
+			s.log.WithFields(logrus.Fields{
+				"nodeAddress": nodeAddress,
+				"total":       len(newNodes),
+				"pubkeys":     len(newVals),
+				"current":     i + 1,
+			}).Info("added new node to validators list")
 		}
 	}
 

@@ -54,6 +54,7 @@ type Service struct {
 	merkleRootDuEpochs            uint64
 
 	batchRequestBlocksNumber uint64
+	eventFilterMaxSpanBlocks uint64
 
 	connection          *connection.CachedConnection
 	dds                 destorage.DeStorage
@@ -245,6 +246,7 @@ func NewService(
 		lsdTokenAddress:          common.HexToAddress(cfg.Contracts.LsdTokenAddress),
 		lsdNetworkFactoryAddress: common.HexToAddress(cfg.Contracts.LsdFactoryAddress),
 		batchRequestBlocksNumber: cfg.BatchRequestBlocksNumber,
+		eventFilterMaxSpanBlocks: cfg.EventFilterMaxSpanBlocks,
 		localSyncedBlockHeight:   localSyncedBlockHeight,
 		localStore:               localStore,
 
@@ -364,12 +366,12 @@ func (s *Service) Start() error {
 	}
 	s.chainID = chainId.Uint64()
 
-	s.log.Info("init contracts...")
+	s.log.Debug("init contracts...")
 	err = s.initContract()
 	if err != nil {
 		return err
 	}
-	s.log.Debug("init contracts end")
+	s.log.Info("contracts initiated")
 
 	credentials, err := s.nodeDepositContract.WithdrawCredentials(nil)
 	if err != nil {
@@ -403,8 +405,6 @@ func (s *Service) Start() error {
 	}
 	s.platformCommissionRate = decimal.NewFromBigInt(platformCommissionRate, 0).Div(decimal.NewFromInt(1e18))
 
-	s.log.Infof("nodeCommission rate: %s, platformCommission rate: %s", s.nodeCommissionRate.String(), s.platformCommissionRate.String())
-
 	// init cycle seconds
 	cycleSeconds, err := s.networkWithdrawContract.WithdrawCycleSeconds(nil)
 	if err != nil {
@@ -424,7 +424,16 @@ func (s *Service) Start() error {
 		return err
 	}
 	s.latestSlotOfSyncBlock = utils.SlotAtTimestamp(s.eth2Config, block.Time())
-	s.log.Debugf("latestSlotOfSyncBlock: %d, latestBlockOfSyncBlock: %d", s.latestSlotOfSyncBlock, s.latestBlockOfSyncBlock)
+
+	s.log.WithFields(logrus.Fields{
+		"nodeCommissionRate":      s.nodeCommissionRate.String(),
+		"platformCommissionRate":  s.platformCommissionRate.String(),
+		"updateBalancesEpochs":    updateBalancesEpochs.Uint64(),
+		"cycleSeconds":            cycleSeconds.Uint64(),
+		"latestSlotOfSyncBlock":   s.latestSlotOfSyncBlock,
+		"latestBlockOfSyncBlock":  s.latestBlockOfSyncBlock,
+		"waitFirstNodeStakeEvent": s.waitFirstNodeStakeEvent,
+	}).Infof("running parameters")
 
 	// init abi
 	s.networkWithdrawAbi, err = abi.JSON(strings.NewReader(network_withdraw.NetworkWithdrawABI))
@@ -487,8 +496,8 @@ func (s *Service) seekFirstNodeStakeEvent() (bool, error) {
 	start := s.latestBlockOfSyncBlock
 	end := latestBlock
 
-	for subStart := start; subStart <= end; subStart += fetchEventBlockLimit {
-		subEnd := subStart + fetchEventBlockLimit
+	for subStart := start; subStart <= end; subStart += s.eventFilterMaxSpanBlocks {
+		subEnd := subStart + s.eventFilterMaxSpanBlocks
 		if end < subEnd {
 			subEnd = end
 		}
@@ -726,7 +735,6 @@ func (s *Service) startGroupHandlers(sleepIntervalFn func() time.Duration, handl
 
 	log := s.log
 	utils.SafeGo(func() {
-		log.Info("start service")
 		retry := 0
 		var retryLog *logrus.Entry
 

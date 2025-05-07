@@ -25,6 +25,7 @@ type Config struct {
 	MaxGasPrice                string // Gwei
 	GasPriceMultiplier         float64
 	BatchRequestBlocksNumber   uint64
+	EventFilterMaxSpanBlocks   uint64
 	TrustNodeDepositAmount     uint64 // ether
 	Eth2EffectiveBalance       uint64 // ether
 	MaxPartialWithdrawalAmount uint64 // ether
@@ -66,6 +67,8 @@ func Load(basePath string) (*Config, error) {
 	cfg.LogFilePath = basePath + "/log_data"
 	cfg.KeystorePath = KeyStoreFilePath(basePath)
 	cfg.BlockstoreFilePath = basePath + "/blockstore"
+
+	// add default values
 	if cfg.TrustNodeDepositAmount == 0 {
 		cfg.TrustNodeDepositAmount = 1
 	}
@@ -84,6 +87,11 @@ func Load(basePath string) (*Config, error) {
 	if cfg.GasPriceMultiplier == 0 {
 		cfg.GasPriceMultiplier = 1
 	}
+	if cfg.EventFilterMaxSpanBlocks == 0 {
+		cfg.EventFilterMaxSpanBlocks = 3000
+	}
+
+	// handle invalid parameters
 	if cfg.GasPriceMultiplier < 1 {
 		return nil, fmt.Errorf("gas price multiplier can not be less than 1")
 	}
