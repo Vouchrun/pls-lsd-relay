@@ -14,6 +14,7 @@ import (
 )
 
 func (s *Service) notifyValidatorExit() error {
+	l := s.log.WithField("handler", "notifyValidatorExit")
 	ctx, cancel := context.WithTimeout(context.Background(), time.Minute*60)
 	defer cancel()
 	currentCycle, targetTimestamp, err := s.currentCycleAndStartTimestamp()
@@ -33,13 +34,17 @@ func (s *Service) notifyValidatorExit() error {
 
 	// wait validator updated
 	if targetEpoch > s.latestEpochOfUpdateValidator {
-		s.log.Debugf("targetEpoch: %d  latestEpochOfUpdateValidator: %d", targetEpoch, s.latestEpochOfUpdateValidator)
+		l.WithField("targetEpoch", targetEpoch).
+			WithField("latestEpochOfUpdateValidator", s.latestEpochOfUpdateValidator).
+			Debug("wait validator updated")
 		return nil
 	}
 
 	// wait sync block
 	if targetBlockNumber > s.latestBlockOfSyncBlock {
-		s.log.Debugf("targetBlockNumber: %d  latestBlockOfSyncBlock: %d", targetBlockNumber, s.latestBlockOfSyncBlock)
+		l.WithField("targetBlockNumber", targetBlockNumber).
+			WithField("latestBlockOfSyncBlock", s.latestBlockOfSyncBlock).
+			Debug("wait sync block")
 		return nil
 	}
 
@@ -53,6 +58,7 @@ func (s *Service) notifyValidatorExit() error {
 
 	// no need notify exit election
 	if totalMissingAmount.Cmp(big.NewInt(0)) == 0 {
+		l.Debug("total missing amount is zero, skip exit election")
 		return nil
 	}
 
@@ -62,7 +68,9 @@ func (s *Service) notifyValidatorExit() error {
 	}
 	// return if already dealt
 	if len(ejectedValidator) != 0 {
-		s.log.Debugf("ejectedValidator %d at cycle %d", len(ejectedValidator), willDealCycle)
+		l.WithField("ejectedValidatorLen", len(ejectedValidator)).
+			WithField("cycle", willDealCycle).
+			Debugf("already ejected validator for the cycle")
 		return nil
 	}
 
@@ -103,6 +111,9 @@ func (s *Service) notifyValidatorExit() error {
 
 	// no need notify exit
 	if totalMissingAmountDeci.LessThanOrEqual(totalPendingAmountDeci) {
+		l.WithField("totalMissingAmount", totalMissingAmountDeci.String()).
+			WithField("totalPendingAmountDeci", totalPendingAmountDeci.String()).
+			Debugf("total pending amount is able to cover total missing amount, skip exit election")
 		return nil
 	}
 
