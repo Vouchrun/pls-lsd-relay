@@ -14,7 +14,7 @@ import (
 )
 
 func (s *Service) notifyValidatorExit() error {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Minute*5)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Minute*60)
 	defer cancel()
 	currentCycle, targetTimestamp, err := s.currentCycleAndStartTimestamp()
 	if err != nil {
