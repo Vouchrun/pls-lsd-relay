@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/sirupsen/logrus"
 	"github.com/stafiprotocol/eth-lsd-relay/pkg/utils"
 	"golang.org/x/sync/errgroup"
 )
@@ -20,6 +21,10 @@ func (s *Service) syncBlocks() error {
 	}
 
 	if beaconHead.FinalizedSlot <= s.latestSlotOfSyncBlock {
+		s.log.WithField("handler", "syncBlocks").
+			WithField("latestSlotOfSyncBlock", s.latestSlotOfSyncBlock).
+			WithField("beaconHead.FinalizedSlot", beaconHead.FinalizedSlot).
+			Debug("synced to head")
 		return nil
 	}
 	latestSlotOfUpdateValidator := utils.EndSlotOfEpoch(s.eth2Config, s.latestEpochOfUpdateValidator)
@@ -39,6 +44,12 @@ func (s *Service) syncBlocks() error {
 		if end < i+s.batchRequestBlocksNumber {
 			subEnd = end
 		}
+		s.log.WithFields(logrus.Fields{
+			"subStart": subStart,
+			"subEnd":   subEnd,
+			"end":      end,
+		}).Info("syncing blocks")
+
 		preLatestSyncBlock := s.latestBlockOfSyncBlock
 		batchRequestStartTime := time.Now().Unix()
 
@@ -75,6 +86,7 @@ func (s *Service) syncBlocks() error {
 		if err != nil {
 			s.latestBlockOfSyncBlock = preLatestSyncBlock
 			if err == ErrExceedsValidatorUpdateBlock {
+				s.log.Debug("ErrExceedsValidatorUpdateBlock")
 				return nil
 			}
 			return err

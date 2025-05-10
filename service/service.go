@@ -388,10 +388,7 @@ func (s *Service) Start() error {
 		return fmt.Errorf("updateBalancesEpochs is zero")
 	}
 
-	s.submitBalancesDuEpochs = updateBalancesEpochs.Uint64()
-	s.distributeWithdrawalsDuEpochs = updateBalancesEpochs.Uint64()
-	s.distributePriorityFeeDuEpochs = updateBalancesEpochs.Uint64()
-	s.merkleRootDuEpochs = updateBalancesEpochs.Uint64()
+	s.setUpdateBalancesEpochs(updateBalancesEpochs.Uint64())
 
 	// init commission
 	nodeCommissionRate, err := s.networkWithdrawContract.NodeCommissionRate(nil)
@@ -458,6 +455,13 @@ func (s *Service) Start() error {
 	}
 
 	return nil
+}
+
+func (s *Service) setUpdateBalancesEpochs(updateBalancesEpochs uint64) {
+	s.submitBalancesDuEpochs = updateBalancesEpochs
+	s.distributeWithdrawalsDuEpochs = updateBalancesEpochs
+	s.distributePriorityFeeDuEpochs = updateBalancesEpochs
+	s.merkleRootDuEpochs = updateBalancesEpochs
 }
 
 func (s *Service) startSeekFirstNodeStakeEvent() {
@@ -546,6 +550,35 @@ func (s *Service) seekFirstNodeStakeEvent() (bool, error) {
 
 func (s *Service) startHandlers() {
 	s.startServiceOnce.Do(func() {
+		utils.SafeGoWithRestart(func() {
+			for {
+				s.log.Debug("fetching WithdrawCycleSeconds & UpdateBalancesEpochs from eth1")
+				cycleSeconds, err := s.networkWithdrawContract.WithdrawCycleSeconds(nil)
+				if err != nil || cycleSeconds.Uint64() == 0 {
+					s.log.WithError(err).Info("could not get WithdrawCycleSeconds from eth1")
+				} else if s.cycleSeconds != cycleSeconds.Uint64() {
+					s.log.WithFields(logrus.Fields{
+						"old": s.cycleSeconds,
+						"new": cycleSeconds.Uint64(),
+					}).Warn("cycle seconds changed")
+					s.cycleSeconds = cycleSeconds.Uint64()
+				}
+
+				updateBalancesEpochs, err := s.networkBalancesContract.UpdateBalancesEpochs(nil)
+				if err != nil || updateBalancesEpochs.Uint64() == 0 {
+					s.log.WithError(err).Info("could not get UpdateBalancesEpochs from eth1")
+				} else if s.submitBalancesDuEpochs != updateBalancesEpochs.Uint64() {
+					s.log.WithFields(logrus.Fields{
+						"old": s.submitBalancesDuEpochs,
+						"new": updateBalancesEpochs.Uint64(),
+					}).Warn("update balances epochs changed")
+					s.setUpdateBalancesEpochs(updateBalancesEpochs.Uint64())
+				}
+
+				time.Sleep(time.Minute * 10)
+			}
+		})
+
 		s.minExecutionBlockHeight = s.startAtBlock
 		s.log.WithFields(logrus.Fields{
 			"latestBlockOfSyncBlock": s.latestBlockOfSyncBlock,
@@ -553,10 +586,7 @@ func (s *Service) startHandlers() {
 
 		s.startGroupHandlers(func() time.Duration {
 			return time.Duration(s.eth2Config.SecondsPerSlot) * time.Second
-		}, s.syncBlocks)
-		s.startGroupHandlers(func() time.Duration {
-			return time.Duration(s.eth2Config.SecondsPerSlot) * time.Second
-		}, s.syncEvents, s.updateValidatorsFromNetwork, s.voteWithdrawCredentials)
+		}, s.syncEvents, s.updateValidatorsFromNetwork, s.syncBlocks, s.voteWithdrawCredentials, s.pruneBlocks)
 		s.startGroupHandlers(func() time.Duration {
 			slotDur := time.Duration(s.eth2Config.SecondsPerSlot) * time.Second
 			epochDur := time.Duration(s.eth2Config.SlotsPerEpoch) * slotDur
@@ -576,7 +606,7 @@ func (s *Service) startHandlers() {
 			return 2 * epochDur
 		},
 			s.updateValidatorsFromBeacon, s.submitBalances, s.distributeWithdrawals,
-			s.distributePriorityFee, s.setMerkleRoot, s.notifyValidatorExit, s.pruneBlocks)
+			s.distributePriorityFee, s.setMerkleRoot, s.notifyValidatorExit)
 	})
 }
 

@@ -307,7 +307,7 @@ func (m *ServiceManager) pruneCachedBeaconBlocks() {
 		"minHeightLsd":         minHeightSrv.lsdTokenAddress.String(),
 	})
 	if eth1RemoveCacheCount == 0 && eth2RemoveCacheCount == 0 {
-		log.Debug("prune cache blocks")
+		log.Trace("prune cache blocks")
 	} else {
 		log.Info("prune cache blocks")
 	}
