@@ -197,7 +197,8 @@ func (s *Service) mustSelectValidatorsForExit(ctx context.Context, totalMissingA
 
 	// sort by active epoch
 	sort.SliceStable(vals, func(i, j int) bool {
-		return vals[i].ActiveEpoch < vals[j].ActiveEpoch
+		return vals[i].ActiveEpoch < vals[j].ActiveEpoch ||
+			(vals[i].ActiveEpoch == vals[j].ActiveEpoch && vals[i].ValidatorIndex < vals[j].ValidatorIndex)
 	})
 
 	type ElectedValidator struct {
