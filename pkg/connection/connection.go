@@ -195,6 +195,7 @@ func checkEth2Health(client *eth2Client) {
 		retry.Delay(time.Second),
 		retry.Attempts(5),
 	)
+	client.healthCheckError = nil
 	client.latestBeaconHead = &beaconHead
 	if err != nil {
 		client.healthCheckError = err
