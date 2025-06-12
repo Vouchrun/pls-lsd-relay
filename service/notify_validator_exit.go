@@ -233,6 +233,10 @@ func (s *Service) mustSelectValidatorsForExit(ctx context.Context, totalMissingA
 		if totalExitAmountDeci.GreaterThanOrEqual(totalMissingAmount) {
 			break
 		}
+
+		if s.maxEjectedValPerCycle > 0 && len(selectVal) >= s.maxEjectedValPerCycle {
+			break
+		}
 	}
 
 	return selectVal, nil
