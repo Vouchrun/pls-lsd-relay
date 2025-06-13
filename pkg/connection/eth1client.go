@@ -124,6 +124,7 @@ func checkHealth(client *underlyingEth1Client) {
 		retry.Delay(time.Second),
 		retry.Attempts(5),
 	)
+	client.healthCheckError = nil
 	client.latestBlock = block
 	if err != nil {
 		client.healthCheckError = err

@@ -55,6 +55,7 @@ type Service struct {
 
 	batchRequestBlocksNumber uint64
 	eventFilterMaxSpanBlocks uint64
+	maxEjectedValPerCycle    int
 
 	connection          *connection.CachedConnection
 	dds                 destorage.DeStorage
@@ -247,6 +248,7 @@ func NewService(
 		lsdNetworkFactoryAddress: common.HexToAddress(cfg.Contracts.LsdFactoryAddress),
 		batchRequestBlocksNumber: cfg.BatchRequestBlocksNumber,
 		eventFilterMaxSpanBlocks: cfg.EventFilterMaxSpanBlocks,
+		maxEjectedValPerCycle:    cfg.MaxEjectedValPerCycle,
 		localSyncedBlockHeight:   localSyncedBlockHeight,
 		localStore:               localStore,
 

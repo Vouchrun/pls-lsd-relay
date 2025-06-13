@@ -8,6 +8,7 @@ maxGasPrice = "600"                            # Gwei
 gasPriceMultiplier = 1.5
 batchRequestBlocksNumber = 16       # max=32
 eventFilterMaxSpanBlocks = 3000
+maxEjectedValPerCycle  = 0          # 0 for unlimited
 runForEntrustedLsdNetwork = false
 
 [pinata]

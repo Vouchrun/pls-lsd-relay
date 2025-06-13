@@ -26,6 +26,7 @@ type Config struct {
 	GasPriceMultiplier         float64
 	BatchRequestBlocksNumber   uint64
 	EventFilterMaxSpanBlocks   uint64
+	MaxEjectedValPerCycle      int
 	TrustNodeDepositAmount     uint64 // ether
 	Eth2EffectiveBalance       uint64 // ether
 	MaxPartialWithdrawalAmount uint64 // ether
