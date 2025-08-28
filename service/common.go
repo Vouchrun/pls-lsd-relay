@@ -198,10 +198,6 @@ func (s *Service) getUserNodePlatformFromPriorityFee(latestDistributeHeight, tar
 		if err != nil {
 			return decimal.Zero, decimal.Zero, decimal.Zero, nil, err
 		}
-		val, exist := s.getValidatorByIndex(block.ProposerIndex)
-		if !exist {
-			continue
-		}
 
 		// cal priority fee at this block
 		preBlockNumber := big.NewInt(int64(i - 1))
@@ -234,20 +230,28 @@ func (s *Service) getUserNodePlatformFromPriorityFee(latestDistributeHeight, tar
 		}
 		feeAmountAtThisBlock := decimal.NewFromBigInt(new(big.Int).Sub(totalFeePoolCurBalance, feePoolPreBalance), 0)
 
-		// cal rewards
-		userRewardDeci, nodeRewardDeci, platformFeeDeci := utils.GetUserNodePlatformReward(s.nodeCommissionRate, s.platformCommissionRate, val.NodeDepositAmountDeci, feeAmountAtThisBlock)
-
-		// cal node reward
-		nodeNewReward, exist := nodeNewRewardsMap[val.NodeAddress]
-		if exist {
-			nodeNewReward.TotalRewardAmount = nodeNewReward.TotalRewardAmount.Add(nodeRewardDeci)
+		var userRewardDeci, nodeRewardDeci, platformFeeDeci decimal.Decimal
+		val, _ := s.getValidatorByIndex(block.ProposerIndex)
+		if val == nil {
+			nodeRewardDeci = decimal.Zero
+			platformFeeDeci = feeAmountAtThisBlock.Mul(s.platformCommissionRate).Floor()
+			userRewardDeci = feeAmountAtThisBlock.Sub(platformFeeDeci.Add(nodeRewardDeci))
 		} else {
-			n := NodeNewReward{
-				Address:                val.NodeAddress.String(),
-				TotalRewardAmount:      nodeRewardDeci,
-				TotalExitDepositAmount: decimal.Zero,
+			// cal rewards
+			userRewardDeci, nodeRewardDeci, platformFeeDeci = utils.GetUserNodePlatformReward(s.nodeCommissionRate, s.platformCommissionRate, val.NodeDepositAmountDeci, feeAmountAtThisBlock)
+
+			// cal node reward
+			nodeNewReward, exist := nodeNewRewardsMap[val.NodeAddress]
+			if exist {
+				nodeNewReward.TotalRewardAmount = nodeNewReward.TotalRewardAmount.Add(nodeRewardDeci)
+			} else {
+				n := NodeNewReward{
+					Address:                val.NodeAddress.String(),
+					TotalRewardAmount:      nodeRewardDeci,
+					TotalExitDepositAmount: decimal.Zero,
+				}
+				nodeNewRewardsMap[val.NodeAddress] = &n
 			}
-			nodeNewRewardsMap[val.NodeAddress] = &n
 		}
 
 		// cal total vals
