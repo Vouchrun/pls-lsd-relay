@@ -32,6 +32,7 @@ type Config struct {
 	MaxPartialWithdrawalAmount uint64 // ether
 
 	RunForEntrustedLsdNetwork bool
+	TransferFeeAddresses      []string
 
 	Contracts   Contracts
 	Endpoints   []Endpoint

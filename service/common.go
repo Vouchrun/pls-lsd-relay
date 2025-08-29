@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math"
 	"math/big"
+	"strings"
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
@@ -187,21 +188,20 @@ func (s *Service) getUserNodePlatformFromWithdrawals(latestDistributeHeight, tar
 	return totalUserEthDeci, totalNodeEthDeci, totalPlatformEthDeci, nodeNewRewardsMap, nil
 }
 
-func walkTrace(targetTo string, amount decimal.Decimal, trace connection.TxTrace) decimal.Decimal {
+func WalkTrace(seekFn func(tx *connection.TxTrace) bool, amount decimal.Decimal, trace connection.TxTrace) decimal.Decimal {
 	value := decimal.NewFromBigInt(trace.Value.ToInt(), 0)
 
-	amountInTx := decimal.Zero
-	if trace.To == targetTo {
-		amountInTx = value
+	if seekFn(&trace) {
+		amount = amount.Add(value)
 	}
 
 	if trace.Calls != nil {
 		for _, call := range trace.Calls {
-			amountInTx = amountInTx.Add(walkTrace(targetTo, decimal.Zero, call))
+			amount = WalkTrace(seekFn, amount, call)
 		}
 	}
 
-	return amount.Add(amountInTx)
+	return amount
 }
 
 // return (user reward, node reward, platform fee) decimals 18
@@ -261,19 +261,23 @@ func (s *Service) getUserNodePlatformFromPriorityFee(latestDistributeHeight, tar
 			if err != nil {
 				return decimal.Zero, decimal.Zero, decimal.Zero, nil, err
 			}
-			transferedFee := decimal.Zero
-			for _, tx := range trace {
-				transferedFee = transferedFee.Add(walkTrace(s.feePoolAddress.String(), decimal.Zero, tx.Result).DivRound(decimal.NewFromInt(1e18), 18))
+			transferFee := decimal.Zero
+			seekFn := func(tx *connection.TxTrace) bool {
+				return utils.In(s.transferFeeAddresses, strings.ToLower(tx.From)) &&
+					tx.To == s.feePoolAddress.String()
 			}
-			if transferedFee.GreaterThan(decimal.Zero) {
-				_platformFeeDeci := transferedFee.Mul(s.platformCommissionRate).Floor()
-				_userRewardDeci := transferedFee.Sub(_platformFeeDeci)
+			for _, tx := range trace {
+				transferFee = transferFee.Add(WalkTrace(seekFn, decimal.Zero, tx.Result).DivRound(decimal.NewFromInt(1e18), 18))
+			}
+			if transferFee.GreaterThan(decimal.Zero) {
+				_platformFeeDeci := transferFee.Mul(s.platformCommissionRate).Floor()
+				_userRewardDeci := transferFee.Sub(_platformFeeDeci)
 				userRewardDeci = userRewardDeci.Add(_userRewardDeci)
 				platformFeeDeci = platformFeeDeci.Add(_platformFeeDeci)
 			}
 
 			// only distribute tip fee to node
-			tipFee := feeAmountAtThisBlock.Sub(transferedFee)
+			tipFee := feeAmountAtThisBlock.Sub(transferFee)
 			if tipFee.GreaterThan(decimal.Zero) {
 				// cal rewards
 				_userRewardDeci, _nodeRewardDeci, _platformFeeDeci := utils.GetUserNodePlatformReward(s.nodeCommissionRate, s.platformCommissionRate, val.NodeDepositAmountDeci, tipFee)
