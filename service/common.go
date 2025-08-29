@@ -267,7 +267,7 @@ func (s *Service) getUserNodePlatformFromPriorityFee(latestDistributeHeight, tar
 					strings.EqualFold(tx.To, s.feePoolAddress.String())
 			}
 			for _, tx := range trace {
-				transferFee = transferFee.Add(WalkTrace(seekFn, decimal.Zero, tx.Result).DivRound(decimal.NewFromInt(1e18), 18))
+				transferFee = transferFee.Add(WalkTrace(seekFn, decimal.Zero, tx.Result))
 			}
 			if transferFee.GreaterThan(decimal.Zero) {
 				_platformFeeDeci := transferFee.Mul(s.platformCommissionRate).Floor()
