@@ -264,7 +264,7 @@ func (s *Service) getUserNodePlatformFromPriorityFee(latestDistributeHeight, tar
 			transferFee := decimal.Zero
 			seekFn := func(tx *connection.TxTrace) bool {
 				return utils.In(s.transferFeeAddresses, strings.ToLower(tx.From)) &&
-					tx.To == s.feePoolAddress.String()
+					strings.EqualFold(tx.To, s.feePoolAddress.String())
 			}
 			for _, tx := range trace {
 				transferFee = transferFee.Add(WalkTrace(seekFn, decimal.Zero, tx.Result).DivRound(decimal.NewFromInt(1e18), 18))

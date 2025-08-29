@@ -271,7 +271,8 @@ func TestDebug_TraceBlockByNumber(t *testing.T) {
 	amount := decimal.Zero
 	for _, tx := range trace {
 		seekFn := func(tx *connection.TxTrace) bool {
-			return utils.In(transferFeeAddresses, strings.ToLower(tx.From)) && tx.To == to
+			return utils.In(transferFeeAddresses, strings.ToLower(tx.From)) &&
+				strings.EqualFold(tx.To, to)
 		}
 		amountInTx := service.WalkTrace(seekFn, decimal.Zero, tx.Result).DivRound(decimal.NewFromInt(1e18), 18)
 		amount = amount.Add(amountInTx)
