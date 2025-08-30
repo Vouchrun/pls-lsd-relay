@@ -205,12 +205,17 @@ func WalkTrace(seekFn func(tx *connection.TxTrace) bool, amount decimal.Decimal,
 }
 
 // return (user reward, node reward, platform fee) decimals 18
-func (s *Service) getUserNodePlatformFromPriorityFee(latestDistributeHeight, targetEth1BlockHeight uint64) (decimal.Decimal, decimal.Decimal, decimal.Decimal, NodeNewRewardsMap, error) {
+func (s *Service) getUserNodePlatformFromPriorityFee(log *logrus.Entry, latestDistributeHeight, targetEth1BlockHeight uint64) (decimal.Decimal, decimal.Decimal, decimal.Decimal, NodeNewRewardsMap, error) {
 	ctx := context.Background()
 	totalUserEthDeci := decimal.Zero
 	totalNodeEthDeci := decimal.Zero
 	totalPlatformEthDeci := decimal.Zero
 	nodeNewRewardsMap := make(NodeNewRewardsMap)
+
+	log = log.WithFields(logrus.Fields{
+		"targetBlock":                        targetEth1BlockHeight,
+		"getUserNodePlatformFromPriorityFee": true,
+	})
 
 	for i := latestDistributeHeight + 1; i <= targetEth1BlockHeight; i++ {
 		block, err := s.getBeaconBlock(i)
@@ -252,9 +257,15 @@ func (s *Service) getUserNodePlatformFromPriorityFee(latestDistributeHeight, tar
 		var userRewardDeci, nodeRewardDeci, platformFeeDeci decimal.Decimal
 		val, _ := s.getValidatorByIndex(block.ProposerIndex)
 		if val == nil {
-			nodeRewardDeci = decimal.Zero
-			platformFeeDeci = feeAmountAtThisBlock.Mul(s.platformCommissionRate).Floor()
-			userRewardDeci = feeAmountAtThisBlock.Sub(platformFeeDeci.Add(nodeRewardDeci))
+			if feeAmountAtThisBlock.GreaterThan(decimal.Zero) {
+				nodeRewardDeci = decimal.Zero
+				platformFeeDeci = feeAmountAtThisBlock.Mul(s.platformCommissionRate).Floor()
+				userRewardDeci = feeAmountAtThisBlock.Sub(platformFeeDeci.Add(nodeRewardDeci))
+				log.WithFields(logrus.Fields{
+					"block":  i,
+					"amount": feeAmountAtThisBlock.DivRound(decimal.NewFromInt(1e18), 18).StringFixed(18),
+				}).Debug("found transferFee")
+			}
 		} else {
 			// get transfered fee from trace call
 			trace, err := s.connection.Eth1Client().Debug_TraceBlockByNumber(ctx, curBlockNumber, connection.Tracer{Tracer: "callTracer"})
@@ -267,7 +278,15 @@ func (s *Service) getUserNodePlatformFromPriorityFee(latestDistributeHeight, tar
 					strings.EqualFold(tx.To, s.feePoolAddress.String())
 			}
 			for _, tx := range trace {
-				transferFee = transferFee.Add(WalkTrace(seekFn, decimal.Zero, tx.Result))
+				amount := WalkTrace(seekFn, decimal.Zero, tx.Result)
+				if amount.GreaterThan(decimal.Zero) {
+					transferFee = transferFee.Add(amount)
+					log.WithFields(logrus.Fields{
+						"block":  i,
+						"txHash": tx.TxHash.Hex(),
+						"amount": amount.DivRound(decimal.NewFromInt(1e18), 18).StringFixed(18),
+					}).Debug("found transferFee")
+				}
 			}
 			if transferFee.GreaterThan(decimal.Zero) {
 				_platformFeeDeci := transferFee.Mul(s.platformCommissionRate).Floor()
@@ -315,7 +334,10 @@ func (s *Service) getNodeNewRewardsBetween(latestDistributeHeight, targetEth1Blo
 	if err != nil {
 		return nil, err
 	}
-	_, _, _, nodeNewRewardsMapFromPriorityFee, err := s.getUserNodePlatformFromPriorityFee(latestDistributeHeight, targetEth1BlockHeight)
+	log := s.log.WithFields(logrus.Fields{
+		"getNodeNewRewardsBetween": true,
+	})
+	_, _, _, nodeNewRewardsMapFromPriorityFee, err := s.getUserNodePlatformFromPriorityFee(log, latestDistributeHeight, targetEth1BlockHeight)
 	if err != nil {
 		return nil, err
 	}
