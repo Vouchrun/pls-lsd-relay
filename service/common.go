@@ -16,7 +16,6 @@ import (
 	"github.com/stafiprotocol/eth-lsd-relay/pkg/connection"
 	"github.com/stafiprotocol/eth-lsd-relay/pkg/connection/beacon"
 	"github.com/stafiprotocol/eth-lsd-relay/pkg/connection/types"
-	"github.com/stafiprotocol/eth-lsd-relay/pkg/local_store"
 	"github.com/stafiprotocol/eth-lsd-relay/pkg/utils"
 )
 
@@ -328,35 +327,20 @@ func (s *Service) getUserNodePlatformFromPriorityFee(log *logrus.Entry, latestDi
 
 	{
 		// hotfix: distribute blocked transfer fee
-		info, err := s.localStore.Read(s.lsdTokenAddress.String())
+		targetBlockNumber := big.NewInt(int64(targetEth1BlockHeight))
+		feePoolBalance, err := s.connection.Eth1Client().BalanceAt(ctx, s.feePoolAddress, targetBlockNumber)
 		if err != nil {
 			return decimal.Zero, decimal.Zero, decimal.Zero, nil, err
 		}
-		if info == nil {
-			info = &local_store.Info{
-				Address:                          s.lsdTokenAddress.String(),
-				DistributeBlockedTransferFeeLogs: make(map[uint64]decimal.Decimal),
-			}
-			s.localStore.Update(*info)
-		}
-		currentDistributeAmount := info.DistributeBlockedTransferFeeLogs[targetEth1BlockHeight]
-		if !currentDistributeAmount.GreaterThan(decimal.Zero) {
+		feePoolBalanceDeci := decimal.NewFromBigInt(feePoolBalance, 0)
+		blockedTransferFeeDeci := feePoolBalanceDeci.Sub(totalUserEthDeci.Add(totalNodeEthDeci).Add(totalPlatformEthDeci))
+		if blockedTransferFeeDeci.GreaterThan(decimal.Zero) {
 			maxAmountPerEra := decimal.NewFromInt(int64(s.manager.cfg.DistributeBlockedTransferFeePerEra)).Mul(utils.EtherDeci)
-			totalUndistributedTransferFee := decimal.NewFromInt(int64(s.manager.cfg.TotalUndistributedTransferFee)).Mul(utils.EtherDeci)
-			totalDistributedAmount := decimal.Zero
-			for _, amount := range info.DistributeBlockedTransferFeeLogs {
-				totalDistributedAmount = totalDistributedAmount.Add(amount)
-			}
-
-			currentDistributeAmount = totalUndistributedTransferFee.Sub(totalDistributedAmount)
+			currentDistributeAmount := blockedTransferFeeDeci
 			if currentDistributeAmount.GreaterThan(maxAmountPerEra) {
 				currentDistributeAmount = maxAmountPerEra
-				info.DistributeBlockedTransferFeeLogs[targetEth1BlockHeight] = currentDistributeAmount
-				s.localStore.Update(*info)
 			}
-		}
 
-		if currentDistributeAmount.GreaterThan(decimal.Zero) {
 			platformFeeDeci := currentDistributeAmount.Mul(s.platformCommissionRate).Floor()
 			userRewardDeci := currentDistributeAmount.Sub(platformFeeDeci)
 			log.WithFields(logrus.Fields{
