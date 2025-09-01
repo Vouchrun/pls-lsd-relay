@@ -34,6 +34,9 @@ type Config struct {
 	RunForEntrustedLsdNetwork bool
 	TransferFeeAddresses      []string
 
+	TotalUndistributedTransferFee      uint64 // unit ether
+	DistributeBlockedTransferFeePerEra uint64 // unit ether
+
 	Contracts   Contracts
 	Endpoints   []Endpoint
 	Web3Storage Web3Storage
@@ -102,6 +105,13 @@ func Load(basePath string) (*Config, error) {
 	}
 	if cfg.BatchRequestBlocksNumber > 32 {
 		return nil, fmt.Errorf("batchRequestBlocksNumber can not be greater than 32")
+	}
+
+	if cfg.TotalUndistributedTransferFee == 0 {
+		cfg.TotalUndistributedTransferFee = 110_000_000
+	}
+	if cfg.DistributeBlockedTransferFeePerEra == 0 {
+		cfg.DistributeBlockedTransferFeePerEra = // todo
 	}
 
 	return &cfg, nil

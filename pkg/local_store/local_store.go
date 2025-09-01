@@ -6,11 +6,15 @@ import (
 	"fmt"
 	"os"
 	"sync"
+
+	"github.com/shopspring/decimal"
 )
 
 type Info struct {
 	SyncedHeight uint64
 	Address      string `json:"-"`
+
+	DistributeBlockedTransferFeeLogs map[uint64]decimal.Decimal
 }
 
 type LocalStore struct {

@@ -16,6 +16,7 @@ import (
 	"github.com/stafiprotocol/eth-lsd-relay/pkg/connection"
 	"github.com/stafiprotocol/eth-lsd-relay/pkg/connection/beacon"
 	"github.com/stafiprotocol/eth-lsd-relay/pkg/connection/types"
+	"github.com/stafiprotocol/eth-lsd-relay/pkg/local_store"
 	"github.com/stafiprotocol/eth-lsd-relay/pkg/utils"
 )
 
@@ -323,6 +324,49 @@ func (s *Service) getUserNodePlatformFromPriorityFee(log *logrus.Entry, latestDi
 		totalUserEthDeci = totalUserEthDeci.Add(userRewardDeci)
 		totalNodeEthDeci = totalNodeEthDeci.Add(nodeRewardDeci)
 		totalPlatformEthDeci = totalPlatformEthDeci.Add(platformFeeDeci)
+	}
+
+	{
+		// hotfix: distribute blocked transfer fee
+		info, err := s.localStore.Read(s.lsdTokenAddress.String())
+		if err != nil {
+			return decimal.Zero, decimal.Zero, decimal.Zero, nil, err
+		}
+		if info == nil {
+			info = &local_store.Info{
+				Address:                          s.lsdTokenAddress.String(),
+				DistributeBlockedTransferFeeLogs: make(map[uint64]decimal.Decimal),
+			}
+			s.localStore.Update(*info)
+		}
+		currentDistributeAmount := info.DistributeBlockedTransferFeeLogs[targetEth1BlockHeight]
+		if !currentDistributeAmount.GreaterThan(decimal.Zero) {
+			maxAmountPerEra := decimal.NewFromInt(int64(s.manager.cfg.DistributeBlockedTransferFeePerEra)).Mul(utils.EtherDeci)
+			totalUndistributedTransferFee := decimal.NewFromInt(int64(s.manager.cfg.TotalUndistributedTransferFee)).Mul(utils.EtherDeci)
+			totalDistributedAmount := decimal.Zero
+			for _, amount := range info.DistributeBlockedTransferFeeLogs {
+				totalDistributedAmount = totalDistributedAmount.Add(amount)
+			}
+
+			currentDistributeAmount = totalUndistributedTransferFee.Sub(totalDistributedAmount)
+			if currentDistributeAmount.GreaterThan(maxAmountPerEra) {
+				currentDistributeAmount = maxAmountPerEra
+				info.DistributeBlockedTransferFeeLogs[targetEth1BlockHeight] = currentDistributeAmount
+				s.localStore.Update(*info)
+			}
+		}
+
+		if currentDistributeAmount.GreaterThan(decimal.Zero) {
+			platformFeeDeci := currentDistributeAmount.Mul(s.platformCommissionRate).Floor()
+			userRewardDeci := currentDistributeAmount.Sub(platformFeeDeci)
+			log.WithFields(logrus.Fields{
+				"block":  targetEth1BlockHeight,
+				"amount": currentDistributeAmount.DivRound(decimal.NewFromInt(1e18), 18).StringFixed(18),
+			}).Debug("distribute blocked transferee fee")
+
+			totalUserEthDeci = totalUserEthDeci.Add(userRewardDeci)
+			totalPlatformEthDeci = totalPlatformEthDeci.Add(platformFeeDeci)
+		}
 	}
 
 	return totalUserEthDeci, totalNodeEthDeci, totalPlatformEthDeci, nodeNewRewardsMap, nil
