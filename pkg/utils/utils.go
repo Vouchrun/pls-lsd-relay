@@ -38,6 +38,15 @@ func init() {
 	}
 }
 
+func In[T comparable](slice []T, item T) bool {
+	for _, v := range slice {
+		if v == item {
+			return true
+		}
+	}
+	return false
+}
+
 func StrToFloat(str string) float64 {
 	v, err := strconv.ParseFloat(str, 64)
 	if err != nil {

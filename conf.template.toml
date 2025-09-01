@@ -10,6 +10,7 @@ batchRequestBlocksNumber = 16       # max=32
 eventFilterMaxSpanBlocks = 3000
 maxEjectedValPerCycle  = 0          # 0 for unlimited
 runForEntrustedLsdNetwork = false
+transferFeeAddresses    = []
 
 [pinata]
 apikey     = "YOUR_API_KEY"

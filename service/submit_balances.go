@@ -124,7 +124,10 @@ func (s *Service) submitBalances() error {
 	if latestDistributePriorityFeeHeight.Cmp(big.NewInt(0)) == 0 {
 		latestDistributePriorityFeeHeight = big.NewInt(int64(s.startAtBlock))
 	}
-	userEthFromPriorityFeeDeci, _, _, _, err := s.getUserNodePlatformFromPriorityFee(latestDistributePriorityFeeHeight.Uint64(), targetBlock)
+	log := s.log.WithFields(logrus.Fields{
+		"submitBalances": true,
+	})
+	userEthFromPriorityFeeDeci, _, _, _, err := s.getUserNodePlatformFromPriorityFee(log, latestDistributePriorityFeeHeight.Uint64(), targetBlock)
 	if err != nil {
 		return err
 	}

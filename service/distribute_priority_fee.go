@@ -26,7 +26,10 @@ func (s *Service) distributePriorityFee() error {
 	}).Debug("distributePriorityFee")
 
 	// ----1 cal eth(from withdrawals) of user/node/platform
-	totalUserEthDeci, totalNodeEthDeci, totalPlatformEthDeci, _, err := s.getUserNodePlatformFromPriorityFee(latestDistributeHeight, targetEth1BlockHeight)
+	log := s.log.WithFields(logrus.Fields{
+		"distributePriorityFee": true,
+	})
+	totalUserEthDeci, totalNodeEthDeci, totalPlatformEthDeci, _, err := s.getUserNodePlatformFromPriorityFee(log, latestDistributeHeight, targetEth1BlockHeight)
 	if err != nil {
 		return errors.Wrap(err, "getUserNodePlatformFromPriorityFee failed")
 	}
