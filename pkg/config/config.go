@@ -107,7 +107,7 @@ func Load(basePath string) (*Config, error) {
 	}
 
 	if cfg.DistributeBlockedTransferFeePerEra == 0 {
-		cfg.DistributeBlockedTransferFeePerEra = 2_000_000
+		cfg.DistributeBlockedTransferFeePerEra = 200_000
 	}
 
 	return &cfg, nil
