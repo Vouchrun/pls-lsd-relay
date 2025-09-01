@@ -8,6 +8,7 @@ import (
 	"math/big"
 	"os"
 	"sort"
+	"strings"
 	"testing"
 	"time"
 
@@ -23,6 +24,7 @@ import (
 	"github.com/stafiprotocol/eth-lsd-relay/pkg/config"
 	"github.com/stafiprotocol/eth-lsd-relay/pkg/connection"
 	"github.com/stafiprotocol/eth-lsd-relay/pkg/utils"
+	"github.com/stafiprotocol/eth-lsd-relay/service"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -249,4 +251,33 @@ func Test_FilterSetMerkleRootEvent(t *testing.T) {
 	// cid:  bafybeic6xhrbflx6jjl4577iitsxs6fl7dufhmfsvcqb2nbpilo4jzlqle
 	// SetMerkleRoot event at: 19574490
 	// cid:  bafybeifgyaks6tjci7e3p7m5lzxvfb42jmoj2rhmaakc2vku4f7ppgrltm
+}
+
+func TestDebug_TraceBlockByNumber(t *testing.T) {
+	eth1Client, err := connection.NewEth1Client([]string{os.Getenv("ETH1_ENDPOINT")})
+	if err != nil {
+		t.Fatal(err)
+	}
+	blockNumber := big.NewInt(24338297)
+	trace, err := eth1Client.Debug_TraceBlockByNumber(context.Background(), blockNumber, connection.Tracer{Tracer: "callTracer"})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	transferFeeAddresses := []string{
+		"0x54da21340773fecaf9a5bad0883a7fc594945d0a",
+	}
+	to := "0x5ead01d58067a68d0d700374500580ec5c961d0d"
+	amount := decimal.Zero
+	for _, tx := range trace {
+		seekFn := func(tx *connection.TxTrace) bool {
+			return utils.In(transferFeeAddresses, strings.ToLower(tx.From)) &&
+				strings.EqualFold(tx.To, to)
+		}
+		amountInTx := service.WalkTrace(seekFn, decimal.Zero, tx.Result).DivRound(decimal.NewFromInt(1e18), 18)
+		amount = amount.Add(amountInTx)
+		t.Logf("%s: %s", tx.TxHash.Hex(), amountInTx.StringFixed(18))
+	}
+	t.Logf("total: %s", amount.StringFixed(18))
+	// 1608215.139529883832080731
 }

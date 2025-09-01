@@ -32,6 +32,9 @@ type Config struct {
 	MaxPartialWithdrawalAmount uint64 // ether
 
 	RunForEntrustedLsdNetwork bool
+	TransferFeeAddresses      []string
+
+	DistributeBlockedTransferFeePerEra uint64 // unit ether
 
 	Contracts   Contracts
 	Endpoints   []Endpoint
@@ -101,6 +104,10 @@ func Load(basePath string) (*Config, error) {
 	}
 	if cfg.BatchRequestBlocksNumber > 32 {
 		return nil, fmt.Errorf("batchRequestBlocksNumber can not be greater than 32")
+	}
+
+	if cfg.DistributeBlockedTransferFeePerEra == 0 {
+		cfg.DistributeBlockedTransferFeePerEra = 200_000
 	}
 
 	return &cfg, nil

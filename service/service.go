@@ -52,6 +52,7 @@ type Service struct {
 	distributeWithdrawalsDuEpochs uint64
 	distributePriorityFeeDuEpochs uint64
 	merkleRootDuEpochs            uint64
+	transferFeeAddresses          []string
 
 	batchRequestBlocksNumber uint64
 	eventFilterMaxSpanBlocks uint64
@@ -237,6 +238,13 @@ func NewService(
 	if err != nil {
 		return nil, err
 	}
+	transferFeeAddresses := []string{}
+	for _, address := range cfg.TransferFeeAddresses {
+		if !common.IsHexAddress(address) {
+			return nil, fmt.Errorf("TransferFeeAddresses %s is not a valid address", address)
+		}
+		transferFeeAddresses = append(transferFeeAddresses, strings.ToLower(address))
+	}
 
 	s := &Service{
 		stop:                     make(chan struct{}),
@@ -246,6 +254,7 @@ func NewService(
 		dds:                      dds,
 		lsdTokenAddress:          common.HexToAddress(cfg.Contracts.LsdTokenAddress),
 		lsdNetworkFactoryAddress: common.HexToAddress(cfg.Contracts.LsdFactoryAddress),
+		transferFeeAddresses:     transferFeeAddresses,
 		batchRequestBlocksNumber: cfg.BatchRequestBlocksNumber,
 		eventFilterMaxSpanBlocks: cfg.EventFilterMaxSpanBlocks,
 		maxEjectedValPerCycle:    cfg.MaxEjectedValPerCycle,

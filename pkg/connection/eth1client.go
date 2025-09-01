@@ -12,6 +12,7 @@ import (
 	ethereum "github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/ethereum/go-ethereum/rpc"
@@ -27,6 +28,7 @@ type ContractBackend interface {
 	BlockByNumber(ctx context.Context, number *big.Int) (*types.Block, error)
 	BalanceAt(ctx context.Context, account common.Address, blockNumber *big.Int) (*big.Int, error)
 	WaitTxOkCommon(txHash common.Hash) (blockNumber uint64, err error)
+	Debug_TraceBlockByNumber(ctx context.Context, number *big.Int, tracer Tracer) ([]TxResult, error)
 }
 
 var _ ContractBackend = &Eth1Client{}
@@ -149,6 +151,46 @@ func (c *Eth1Client) BalanceAt(ctx context.Context, account common.Address, bloc
 			return
 		}
 	}
+	return
+}
+
+type TxTrace struct {
+	From    string      `json:"from"`
+	Gas     string      `json:"gas"`
+	GasUsed string      `json:"gasUsed"`
+	To      string      `json:"to"`
+	Input   string      `json:"input"`
+	Output  string      `json:"output"`
+	Calls   []TxTrace   `json:"calls"`
+	Value   hexutil.Big `json:"value"`
+	// Value   hexutil.Uint64 `json:"value"`
+	Type string `json:"type"`
+}
+
+type Tracer struct {
+	Tracer       string         `json:"tracer"`
+	TracerConfig map[string]any `json:"tracerConfig,omitempty"`
+}
+
+type TxResult struct {
+	TxHash common.Hash
+	Result TxTrace
+}
+
+func (c *Eth1Client) Debug_TraceBlockByNumber(ctx context.Context, number *big.Int, tracer Tracer) (result []TxResult, err error) {
+	var clients []*underlyingEth1Client
+	clients, err = c.getHealthyClients()
+	if err != nil {
+		return
+	}
+
+	for _, client := range clients {
+		rpcClient := client.Client.Client()
+		if err = rpcClient.CallContext(ctx, &result, "debug_traceBlockByNumber", number, tracer); err == nil {
+			return
+		}
+	}
+
 	return
 }
 

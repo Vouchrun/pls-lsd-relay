@@ -61,7 +61,8 @@ const (
 )
 
 var (
-	GweiDeci = decimal.NewFromInt(1e9)
+	GweiDeci  = decimal.NewFromInt(1e9)
+	EtherDeci = decimal.NewFromInt(1e18)
 
 	Percent5Deci  = decimal.NewFromFloat(0.05)
 	Percent90Deci = decimal.NewFromFloat(0.9)
