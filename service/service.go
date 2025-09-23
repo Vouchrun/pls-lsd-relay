@@ -120,7 +120,8 @@ type Service struct {
 	cacheEpochToBlockID      *lru.Cache[uint64, uint64]
 	cacheEpochToBlockIDMutex sync.RWMutex
 
-	exitElections map[uint64]*ExitElection // cycle -> exitElection
+	exitElections   map[uint64]*ExitElection // cycle -> exitElection
+	feePoolBalances sync.Map                 // blockNumber -> balance
 }
 
 type Node struct {
@@ -267,6 +268,7 @@ func NewService(
 		nodes:               make(map[common.Address]*Node),
 		stakerWithdrawals:   make(map[uint64]*StakerWithdrawal),
 		exitElections:       make(map[uint64]*ExitElection),
+		feePoolBalances:     sync.Map{},
 		cacheEpochToBlockID: cacheEpochToBlockID,
 	}
 

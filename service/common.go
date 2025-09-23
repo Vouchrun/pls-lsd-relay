@@ -204,6 +204,19 @@ func WalkTrace(seekFn func(tx *connection.TxTrace) bool, amount decimal.Decimal,
 	return amount
 }
 
+func (s *Service) getFeePoolBalance(blockNumber uint64) (*big.Int, error) {
+	balance, ok := s.feePoolBalances.Load(blockNumber)
+	if !ok {
+		feePoolBalance, err := s.connection.Eth1Client().BalanceAt(context.Background(), s.feePoolAddress, big.NewInt(int64(blockNumber)))
+		if err != nil {
+			return nil, err
+		}
+		s.feePoolBalances.Store(blockNumber, feePoolBalance)
+		return feePoolBalance, nil
+	}
+	return balance.(*big.Int), nil
+}
+
 // return (user reward, node reward, platform fee) decimals 18
 func (s *Service) getUserNodePlatformFromPriorityFee(log *logrus.Entry, latestDistributeHeight, targetEth1BlockHeight uint64) (decimal.Decimal, decimal.Decimal, decimal.Decimal, NodeNewRewardsMap, error) {
 	ctx := context.Background()
@@ -213,9 +226,15 @@ func (s *Service) getUserNodePlatformFromPriorityFee(log *logrus.Entry, latestDi
 	nodeNewRewardsMap := make(NodeNewRewardsMap)
 
 	log = log.WithFields(logrus.Fields{
+		"fromBlock":                          latestDistributeHeight + 1,
 		"targetBlock":                        targetEth1BlockHeight,
 		"getUserNodePlatformFromPriorityFee": true,
 	})
+
+	log.Debug("start getUserNodePlatformFromPriorityFee")
+	defer func() {
+		log.Debug("end getUserNodePlatformFromPriorityFee")
+	}()
 
 	for i := latestDistributeHeight + 1; i <= targetEth1BlockHeight; i++ {
 		block, err := s.getBeaconBlock(i)
@@ -224,19 +243,17 @@ func (s *Service) getUserNodePlatformFromPriorityFee(log *logrus.Entry, latestDi
 		}
 
 		// cal priority fee at this block
-		preBlockNumber := big.NewInt(int64(i - 1))
-		curBlockNumber := big.NewInt(int64(i))
-		feePoolPreBalance, err := s.connection.Eth1Client().BalanceAt(context.Background(), s.feePoolAddress, preBlockNumber)
+		feePoolPreBalance, err := s.getFeePoolBalance(i - 1)
 		if err != nil {
 			return decimal.Zero, decimal.Zero, decimal.Zero, nil, err
 		}
-		feePoolCurBalance, err := s.connection.Eth1Client().BalanceAt(context.Background(), s.feePoolAddress, curBlockNumber)
+		feePoolCurBalance, err := s.getFeePoolBalance(i)
 		if err != nil {
 			return decimal.Zero, decimal.Zero, decimal.Zero, nil, err
 		}
 
 		decreaseAmount := big.NewInt(0)
-		curBlockNumberUint := curBlockNumber.Uint64()
+		curBlockNumberUint := i
 		withdrawIter, err := s.feePoolContract.FilterEtherWithdrawn(&bind.FilterOpts{
 			Start:   curBlockNumberUint,
 			End:     &curBlockNumberUint,
@@ -268,7 +285,7 @@ func (s *Service) getUserNodePlatformFromPriorityFee(log *logrus.Entry, latestDi
 			}
 		} else {
 			// get transfered fee from trace call
-			trace, err := s.connection.Eth1Client().Debug_TraceBlockByNumber(ctx, curBlockNumber, connection.Tracer{Tracer: "callTracer"})
+			trace, err := s.connection.Eth1Client().Debug_TraceBlockByNumber(ctx, big.NewInt(int64(i)), connection.Tracer{Tracer: "callTracer"})
 			if err != nil {
 				return decimal.Zero, decimal.Zero, decimal.Zero, nil, err
 			}
@@ -327,8 +344,7 @@ func (s *Service) getUserNodePlatformFromPriorityFee(log *logrus.Entry, latestDi
 
 	{
 		// hotfix: distribute blocked transfer fee
-		targetBlockNumber := big.NewInt(int64(targetEth1BlockHeight))
-		feePoolBalance, err := s.connection.Eth1Client().BalanceAt(ctx, s.feePoolAddress, targetBlockNumber)
+		feePoolBalance, err := s.getFeePoolBalance(targetEth1BlockHeight)
 		if err != nil {
 			return decimal.Zero, decimal.Zero, decimal.Zero, nil, err
 		}
