@@ -204,15 +204,40 @@ func WalkTrace(seekFn func(tx *connection.TxTrace) bool, amount decimal.Decimal,
 	return amount
 }
 
+func (s *Service) cacheFeePoolBalances(log *logrus.Entry, fromBlock, toBlock uint64) error {
+	log.Debug("start cache fee pool balances")
+	defer func() {
+		log.Debug("end cache fee pool balances")
+	}()
+
+	for i := fromBlock; i <= toBlock; i += s.batchQueryBalanceBlockNumbers {
+		end := i + s.batchQueryBalanceBlockNumbers - 1
+		if end > toBlock {
+			end = toBlock
+		}
+		blocks := make([]uint64, 0, s.batchQueryBalanceBlockNumbers)
+		for j := i; j <= end; j++ {
+			if _, ok := s.feePoolBalances.Load(uint64(j)); !ok {
+				blocks = append(blocks, uint64(j))
+			}
+		}
+		if len(blocks) > 0 {
+			feePoolBalances, err := s.connection.Eth1Client().(*connection.Eth1Client).BatchBalancesAtBlocks(context.Background(), s.feePoolAddress, blocks)
+			if err != nil {
+				return fmt.Errorf("fail to batch query fee pool balances: %w", err)
+			}
+			for block, balance := range feePoolBalances {
+				s.feePoolBalances.Store(block, balance)
+			}
+		}
+	}
+	return nil
+}
+
 func (s *Service) getFeePoolBalance(blockNumber uint64) (*big.Int, error) {
 	balance, ok := s.feePoolBalances.Load(blockNumber)
 	if !ok {
-		feePoolBalance, err := s.connection.Eth1Client().BalanceAt(context.Background(), s.feePoolAddress, big.NewInt(int64(blockNumber)))
-		if err != nil {
-			return nil, err
-		}
-		s.feePoolBalances.Store(blockNumber, feePoolBalance)
-		return feePoolBalance, nil
+		return nil, fmt.Errorf("fee pool balance not found for block %d", blockNumber)
 	}
 	return balance.(*big.Int), nil
 }
@@ -235,6 +260,10 @@ func (s *Service) getUserNodePlatformFromPriorityFee(log *logrus.Entry, latestDi
 	defer func() {
 		log.Debug("end getUserNodePlatformFromPriorityFee")
 	}()
+
+	if err := s.cacheFeePoolBalances(log, latestDistributeHeight, targetEth1BlockHeight); err != nil {
+		return decimal.Zero, decimal.Zero, decimal.Zero, nil, err
+	}
 
 	log.Debug("start filter all withdrawn events")
 	// filter all withdrawn events
