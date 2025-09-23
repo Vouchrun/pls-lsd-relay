@@ -291,15 +291,9 @@ func (s *Service) getUserNodePlatformFromPriorityFee(log *logrus.Entry, latestDi
 	}
 	log.Debug("end filter all withdrawn events")
 
-	// report progress in every 1-30 blocks
-	reportFrequencyInBlocks := (targetEth1BlockHeight - latestDistributeHeight) / 100
-	if reportFrequencyInBlocks < 1 {
-		reportFrequencyInBlocks = 1
-	} else if reportFrequencyInBlocks > 30 {
-		reportFrequencyInBlocks = 30
-	}
 	for i := latestDistributeHeight + 1; i <= targetEth1BlockHeight; i++ {
-		if (i-latestDistributeHeight)%reportFrequencyInBlocks == 0 {
+		// report progress in every 30 blocks
+		if (i-latestDistributeHeight)%30 == 0 {
 			log.WithFields(logrus.Fields{
 				"block":    i,
 				"progress": float64(i-latestDistributeHeight) / float64(targetEth1BlockHeight-latestDistributeHeight),
