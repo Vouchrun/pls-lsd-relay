@@ -236,7 +236,47 @@ func (s *Service) getUserNodePlatformFromPriorityFee(log *logrus.Entry, latestDi
 		log.Debug("end getUserNodePlatformFromPriorityFee")
 	}()
 
+	log.Debug("start filter all withdrawn events")
+	// filter all withdrawn events
+	withdrawals := make(map[uint64]*big.Int)
+	for i := latestDistributeHeight + 1; i <= targetEth1BlockHeight; i += s.eventFilterMaxSpanBlocks {
+		end := i + s.eventFilterMaxSpanBlocks - 1
+		if end > targetEth1BlockHeight {
+			end = targetEth1BlockHeight
+		}
+		withdrawIter, err := s.feePoolContract.FilterEtherWithdrawn(&bind.FilterOpts{
+			Start:   i,
+			End:     &end,
+			Context: context.Background(),
+		})
+		if err != nil {
+			return decimal.Zero, decimal.Zero, decimal.Zero, nil, fmt.Errorf("filter ether withdrawn failed: %w", err)
+		}
+		for withdrawIter.Next() {
+			block := withdrawIter.Event.Raw.BlockNumber
+			if _, ok := withdrawals[block]; !ok {
+				withdrawals[block] = big.NewInt(0)
+			}
+			withdrawals[block] = new(big.Int).Add(withdrawals[block], withdrawIter.Event.Amount)
+		}
+	}
+	log.Debug("end filter all withdrawn events")
+
+	// report progress in every 1-30 blocks
+	reportFrequencyInBlocks := (targetEth1BlockHeight - latestDistributeHeight) / 100
+	if reportFrequencyInBlocks < 1 {
+		reportFrequencyInBlocks = 1
+	} else if reportFrequencyInBlocks > 30 {
+		reportFrequencyInBlocks = 30
+	}
 	for i := latestDistributeHeight + 1; i <= targetEth1BlockHeight; i++ {
+		if (i-latestDistributeHeight)%reportFrequencyInBlocks == 0 {
+			log.WithFields(logrus.Fields{
+				"block":    i,
+				"progress": float64(i-latestDistributeHeight) / float64(targetEth1BlockHeight-latestDistributeHeight),
+			}).Debug("report progress")
+		}
+
 		block, err := s.getBeaconBlock(i)
 		if err != nil {
 			return decimal.Zero, decimal.Zero, decimal.Zero, nil, err
@@ -252,18 +292,9 @@ func (s *Service) getUserNodePlatformFromPriorityFee(log *logrus.Entry, latestDi
 			return decimal.Zero, decimal.Zero, decimal.Zero, nil, err
 		}
 
-		decreaseAmount := big.NewInt(0)
-		curBlockNumberUint := i
-		withdrawIter, err := s.feePoolContract.FilterEtherWithdrawn(&bind.FilterOpts{
-			Start:   curBlockNumberUint,
-			End:     &curBlockNumberUint,
-			Context: context.Background(),
-		})
-		if err != nil {
-			return decimal.Zero, decimal.Zero, decimal.Zero, nil, err
-		}
-		for withdrawIter.Next() {
-			decreaseAmount = new(big.Int).Add(decreaseAmount, withdrawIter.Event.Amount)
+		decreaseAmount, ok := withdrawals[i]
+		if !ok {
+			decreaseAmount = big.NewInt(0)
 		}
 		totalFeePoolCurBalance := new(big.Int).Add(feePoolCurBalance, decreaseAmount)
 		if totalFeePoolCurBalance.Cmp(feePoolPreBalance) < 0 {
@@ -341,6 +372,9 @@ func (s *Service) getUserNodePlatformFromPriorityFee(log *logrus.Entry, latestDi
 		totalNodeEthDeci = totalNodeEthDeci.Add(nodeRewardDeci)
 		totalPlatformEthDeci = totalPlatformEthDeci.Add(platformFeeDeci)
 	}
+	log.WithFields(logrus.Fields{
+		"progress": float64(1),
+	}).Debug("report progress: finished")
 
 	{
 		// hotfix: distribute blocked transfer fee
