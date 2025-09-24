@@ -6,6 +6,7 @@ import (
 	"math"
 	"math/big"
 	"strings"
+	"sync"
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
@@ -204,6 +205,10 @@ func WalkTrace(seekFn func(tx *connection.TxTrace) bool, amount decimal.Decimal,
 	return amount
 }
 
+func (s *Service) clearFeePoolBalancesCache() {
+	s.feePoolBalances = sync.Map{}
+}
+
 func (s *Service) cacheFeePoolBalances(log *logrus.Entry, fromBlock, toBlock uint64) error {
 	log.Debug("start cache fee pool balances")
 	defer func() {
@@ -218,7 +223,7 @@ func (s *Service) cacheFeePoolBalances(log *logrus.Entry, fromBlock, toBlock uin
 		blocks := make([]uint64, 0, s.batchQueryBalanceBlockNumbers)
 		for j := i; j <= end; j++ {
 			if _, ok := s.feePoolBalances.Load(uint64(j)); !ok {
-				blocks = append(blocks, uint64(j))
+				blocks = append(blocks, j)
 			}
 		}
 		if len(blocks) > 0 {
