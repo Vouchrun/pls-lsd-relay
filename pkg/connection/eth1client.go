@@ -154,6 +154,47 @@ func (c *Eth1Client) BalanceAt(ctx context.Context, account common.Address, bloc
 	return
 }
 
+func (c *Eth1Client) BatchCallContext(ctx context.Context, calls []rpc.BatchElem) (err error) {
+	var clients []*underlyingEth1Client
+	clients, err = c.getHealthyClients()
+	if err != nil {
+		return
+	}
+
+	for _, client := range clients {
+		err = client.Client.Client().BatchCallContext(ctx, calls)
+		if err == nil {
+			return
+		}
+	}
+	return
+}
+
+func (c *Eth1Client) BatchBalancesAtBlocks(ctx context.Context, address common.Address, blocks []uint64) (map[uint64]*big.Int, error) {
+	calls := make([]rpc.BatchElem, len(blocks))
+	results := make([]*hexutil.Big, len(blocks))
+
+	for i, block := range blocks {
+		calls[i] = rpc.BatchElem{
+			Method: "eth_getBalance",
+			Args:   []any{address.String(), hexutil.EncodeUint64(block)},
+			Result: &results[i],
+		}
+	}
+
+	if err := c.BatchCallContext(ctx, calls); err != nil {
+		return nil, err
+	}
+
+	balances := make(map[uint64]*big.Int, len(blocks))
+	for i, bal := range results {
+		if bal != nil {
+			balances[blocks[i]] = bal.ToInt()
+		}
+	}
+	return balances, nil
+}
+
 type TxTrace struct {
 	From    string      `json:"from"`
 	Gas     string      `json:"gas"`

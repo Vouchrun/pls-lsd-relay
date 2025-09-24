@@ -54,9 +54,10 @@ type Service struct {
 	merkleRootDuEpochs            uint64
 	transferFeeAddresses          []string
 
-	batchRequestBlocksNumber uint64
-	eventFilterMaxSpanBlocks uint64
-	maxEjectedValPerCycle    int
+	batchRequestBlocksNumber      uint64
+	batchQueryBalanceBlockNumbers uint64
+	eventFilterMaxSpanBlocks      uint64
+	maxEjectedValPerCycle         int
 
 	connection          *connection.CachedConnection
 	dds                 destorage.DeStorage
@@ -120,7 +121,8 @@ type Service struct {
 	cacheEpochToBlockID      *lru.Cache[uint64, uint64]
 	cacheEpochToBlockIDMutex sync.RWMutex
 
-	exitElections map[uint64]*ExitElection // cycle -> exitElection
+	exitElections   map[uint64]*ExitElection // cycle -> exitElection
+	feePoolBalances sync.Map                 // blockNumber -> balance
 }
 
 type Node struct {
@@ -247,19 +249,20 @@ func NewService(
 	}
 
 	s := &Service{
-		stop:                     make(chan struct{}),
-		manager:                  manager,
-		connection:               conn,
-		log:                      log,
-		dds:                      dds,
-		lsdTokenAddress:          common.HexToAddress(cfg.Contracts.LsdTokenAddress),
-		lsdNetworkFactoryAddress: common.HexToAddress(cfg.Contracts.LsdFactoryAddress),
-		transferFeeAddresses:     transferFeeAddresses,
-		batchRequestBlocksNumber: cfg.BatchRequestBlocksNumber,
-		eventFilterMaxSpanBlocks: cfg.EventFilterMaxSpanBlocks,
-		maxEjectedValPerCycle:    cfg.MaxEjectedValPerCycle,
-		localSyncedBlockHeight:   localSyncedBlockHeight,
-		localStore:               localStore,
+		stop:                          make(chan struct{}),
+		manager:                       manager,
+		connection:                    conn,
+		log:                           log,
+		dds:                           dds,
+		lsdTokenAddress:               common.HexToAddress(cfg.Contracts.LsdTokenAddress),
+		lsdNetworkFactoryAddress:      common.HexToAddress(cfg.Contracts.LsdFactoryAddress),
+		transferFeeAddresses:          transferFeeAddresses,
+		batchRequestBlocksNumber:      cfg.BatchRequestBlocksNumber,
+		batchQueryBalanceBlockNumbers: cfg.BatchQueryBalanceBlockNumbers,
+		eventFilterMaxSpanBlocks:      cfg.EventFilterMaxSpanBlocks,
+		maxEjectedValPerCycle:         cfg.MaxEjectedValPerCycle,
+		localSyncedBlockHeight:        localSyncedBlockHeight,
+		localStore:                    localStore,
 
 		govDeposits:         make(map[string][][]byte),
 		validators:          make(map[string]*Validator),
@@ -267,6 +270,7 @@ func NewService(
 		nodes:               make(map[common.Address]*Node),
 		stakerWithdrawals:   make(map[uint64]*StakerWithdrawal),
 		exitElections:       make(map[uint64]*ExitElection),
+		feePoolBalances:     sync.Map{},
 		cacheEpochToBlockID: cacheEpochToBlockID,
 	}
 
