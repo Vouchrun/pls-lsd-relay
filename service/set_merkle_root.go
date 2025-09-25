@@ -211,7 +211,12 @@ func (s *Service) setMerkleRoot() error {
 	var merkleTreeRootHash [32]byte
 	copy(merkleTreeRootHash[:], rootHash)
 
-	return s.sendSetMerkleRootTx(int64(targetEpoch), merkleTreeRootHash, cid)
+	if err = s.sendSetMerkleRootTx(int64(targetEpoch), merkleTreeRootHash, cid); err != nil {
+		return err
+	}
+
+	s.clearFeePoolBalancesCache() // clear current round cache
+	return nil
 }
 
 func buildMerkleTree(nodelist NodeRewardsList) (*utils.MerkleTree, error) {
