@@ -342,9 +342,9 @@ func (s *Service) getUserNodePlatformFromPriorityFee(log *logrus.Entry, latestDi
 					"amount": feeAmountAtThisBlock.DivRound(decimal.NewFromInt(1e18), 18).StringFixed(18),
 				}).Debug("found transferFee")
 			}
-		} else {
-			// get transfered fee from trace call
-			trace, err := s.connection.Eth1Client().Debug_TraceBlockByNumber(ctx, big.NewInt(int64(i)), connection.Tracer{Tracer: "callTracer"})
+		} else if feeAmountAtThisBlock.GreaterThan(decimal.Zero) {
+			// get transfered fee from txs call
+			txs, err := s.connection.Eth1Client().Debug_TraceBlockByNumber(ctx, big.NewInt(int64(i)), connection.Tracer{Tracer: "callTracer"})
 			if err != nil {
 				return decimal.Zero, decimal.Zero, decimal.Zero, nil, err
 			}
@@ -353,7 +353,11 @@ func (s *Service) getUserNodePlatformFromPriorityFee(log *logrus.Entry, latestDi
 				return utils.In(s.transferFeeAddresses, strings.ToLower(tx.From)) &&
 					strings.EqualFold(tx.To, s.feePoolAddress.String())
 			}
-			for _, tx := range trace {
+			for _, tx := range txs {
+				if tx.Result.Error != "" {
+					continue // skip FAILED tx
+				}
+
 				amount := WalkTrace(seekFn, decimal.Zero, tx.Result)
 				if amount.GreaterThan(decimal.Zero) {
 					transferFee = transferFee.Add(amount)
@@ -393,6 +397,11 @@ func (s *Service) getUserNodePlatformFromPriorityFee(log *logrus.Entry, latestDi
 					nodeNewRewardsMap[val.NodeAddress] = &n
 				}
 			}
+
+			if feeAmountAtThisBlock.LessThan(transferFee.Add(tipFee)) {
+				return decimal.Zero, decimal.Zero, decimal.Zero, nil,
+					fmt.Errorf("fee amount at this block less than transfer fee and tip fee, block: %d; feeAmountAtThisBlock: %s; transferFee: %s; tipFee: %s", i, feeAmountAtThisBlock.String(), transferFee.String(), tipFee.String())
+			}
 		}
 
 		// cal total vals
@@ -405,29 +414,35 @@ func (s *Service) getUserNodePlatformFromPriorityFee(log *logrus.Entry, latestDi
 	}).Debug("report progress: finished")
 
 	{
-		// hotfix: distribute blocked transfer fee
+		// hotfix: substract overpaid amount
 		feePoolBalance, err := s.getFeePoolBalance(targetEth1BlockHeight)
 		if err != nil {
 			return decimal.Zero, decimal.Zero, decimal.Zero, nil, err
 		}
 		feePoolBalanceDeci := decimal.NewFromBigInt(feePoolBalance, 0)
-		blockedTransferFeeDeci := feePoolBalanceDeci.Sub(totalUserEthDeci.Add(totalNodeEthDeci).Add(totalPlatformEthDeci))
-		if blockedTransferFeeDeci.GreaterThan(decimal.Zero) {
-			maxAmountPerEra := decimal.NewFromInt(int64(s.manager.cfg.DistributeBlockedTransferFeePerEra)).Mul(utils.EtherDeci)
-			currentDistributeAmount := blockedTransferFeeDeci
-			if currentDistributeAmount.GreaterThan(maxAmountPerEra) {
-				currentDistributeAmount = maxAmountPerEra
-			}
-
-			platformFeeDeci := currentDistributeAmount.Mul(s.platformCommissionRate).Floor()
-			userRewardDeci := currentDistributeAmount.Sub(platformFeeDeci)
+		overpaidAmountDeci := totalUserEthDeci.Add(totalNodeEthDeci).Add(totalPlatformEthDeci).Sub(feePoolBalanceDeci)
+		if overpaidAmountDeci.GreaterThan(decimal.Zero) {
+			platformFeeDeci := overpaidAmountDeci.Mul(s.platformCommissionRate).Floor()
+			userRewardDeci := overpaidAmountDeci.Sub(platformFeeDeci)
 			log.WithFields(logrus.Fields{
 				"block":  targetEth1BlockHeight,
-				"amount": currentDistributeAmount.DivRound(decimal.NewFromInt(1e18), 18).StringFixed(18),
-			}).Debug("distribute blocked transferee fee")
+				"amount": overpaidAmountDeci.DivRound(decimal.NewFromInt(1e18), 18).StringFixed(18),
+			}).Debug("substract overpaid amount")
 
-			totalUserEthDeci = totalUserEthDeci.Add(userRewardDeci)
-			totalPlatformEthDeci = totalPlatformEthDeci.Add(platformFeeDeci)
+			totalUserEthDeci = totalUserEthDeci.Sub(userRewardDeci)
+			totalPlatformEthDeci = totalPlatformEthDeci.Sub(platformFeeDeci)
+			if totalUserEthDeci.LessThan(decimal.Zero) {
+				return decimal.Zero, decimal.Zero, decimal.Zero, nil,
+					fmt.Errorf("total user eth less than zero, from block: %d to block: %d", latestDistributeHeight+1, targetEth1BlockHeight)
+			}
+			if totalPlatformEthDeci.LessThan(decimal.Zero) {
+				return decimal.Zero, decimal.Zero, decimal.Zero, nil,
+					fmt.Errorf("total platform eth less than zero, from block: %d to block: %d", latestDistributeHeight+1, targetEth1BlockHeight)
+			}
+		}
+		if feePoolBalanceDeci.LessThan(totalUserEthDeci.Add(totalNodeEthDeci).Add(totalPlatformEthDeci)) {
+			return decimal.Zero, decimal.Zero, decimal.Zero, nil,
+				fmt.Errorf("fee pool balance less than total user eth, node eth, platform eth, from block: %d to block: %d", latestDistributeHeight+1, targetEth1BlockHeight)
 		}
 	}
 

@@ -205,7 +205,8 @@ type TxTrace struct {
 	Calls   []TxTrace   `json:"calls"`
 	Value   hexutil.Big `json:"value"`
 	// Value   hexutil.Uint64 `json:"value"`
-	Type string `json:"type"`
+	Error string `json:"error"`
+	Type  string `json:"type"`
 }
 
 type Tracer struct {
