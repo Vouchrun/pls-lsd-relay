@@ -368,6 +368,10 @@ func (s *Service) getUserNodePlatformFromPriorityFee(log *logrus.Entry, latestDi
 					}).Debug("found transferFee")
 				}
 			}
+			if feeAmountAtThisBlock.LessThan(transferFee) {
+				return decimal.Zero, decimal.Zero, decimal.Zero, nil,
+					fmt.Errorf("fee amount at this block less than transfer fee, block: %d; feeAmountAtThisBlock: %s; transferFee: %s", i, feeAmountAtThisBlock.String(), transferFee.String())
+			}
 			if transferFee.GreaterThan(decimal.Zero) {
 				_platformFeeDeci := transferFee.Mul(s.platformCommissionRate).Floor()
 				_userRewardDeci := transferFee.Sub(_platformFeeDeci)
@@ -396,11 +400,6 @@ func (s *Service) getUserNodePlatformFromPriorityFee(log *logrus.Entry, latestDi
 					}
 					nodeNewRewardsMap[val.NodeAddress] = &n
 				}
-			}
-
-			if feeAmountAtThisBlock.LessThan(transferFee.Add(tipFee)) {
-				return decimal.Zero, decimal.Zero, decimal.Zero, nil,
-					fmt.Errorf("fee amount at this block less than transfer fee and tip fee, block: %d; feeAmountAtThisBlock: %s; transferFee: %s; tipFee: %s", i, feeAmountAtThisBlock.String(), transferFee.String(), tipFee.String())
 			}
 		}
 
