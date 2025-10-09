@@ -44,20 +44,23 @@ fi
 
 mkdir -p "$CONFIG_PATH"
 
-echo "account = \"$ACCOUNT\"
+echo "account = \"$ACCOUNT\"          # Address in checksum format (i.e. case-sensitive) 
 trustNodeDepositAmount     = 1000000  # PLS
 eth2EffectiveBalance       = 32000000 # PLS
 maxPartialWithdrawalAmount = 8000000  # PLS
-gasLimit = \"3000000\"
-maxGasPrice = \"20000000\"            # Gwei
+gasLimit = "3000000"
+maxGasPrice = "40000000"              # Gwei
 gasPriceMultiplier = 2.5
 batchRequestBlocksNumber = 16
 eventFilterMaxSpanBlocks = 100000
+maxEjectedValPerCycle  = 100          # 0 for unlimited
 runForEntrustedLsdNetwork = false
+transferFeeAddresses = ["0x54da21340773FeCAF9A5bad0883a7fc594945d0A"] # whitelist DAO distributor address
+distributeBlockedTransferFeePerEra = 50000000 # for clearing excess fees at VOUCH launch
 
 [pinata]
 apikey = \"$PINATA\"
-pinDays = 180
+pinDays = 60
 " > "$CONFIG_PATH/config.toml"
 
 if [[ ${TESTNET:0:1} =~ ^[Yy]$ ]]
@@ -75,9 +78,20 @@ else
 lsdTokenAddress = \"0x79BB3A0Ee435f957ce4f54eE8c3CFADc7278da0C\"
 lsdFactoryAddress = \"0x4bf4df49f8bc72a4e484443a14b827cb8c47c716\"
 
+# Primary Local Endpoints
 [[endpoints]]
-eth1 = \"https://rpc-pulsechain.g4mm4.io\"
-eth2 = \"https://rpc-pulsechain.g4mm4.io/beacon-api/\"
+eth1 = "http://localhost:8545"
+eth2 = "http://localhost:5052"
+
+# Vouch RPC Enpoints
+[[endpoints]]
+eth1 = "https://eth1-rpc.vouch.run"
+eth2 = "https://eth2-rpc.vouch.run"
+
+# Fallback G4mm4.io public endpoints
+[[endpoints]]
+eth1 = "https://rpc-pulsechain.g4mm4.io"
+eth2 = "https://rpc-pulsechain.g4mm4.io/beacon-api"
 " >> "$CONFIG_PATH/config.toml"
 fi
 
@@ -114,31 +128,6 @@ else
 fi
 
 
-
-read -r -p "Enable automatic updates? [y/n] (press Enter to confirm): " AUTOMATIC_UPDATES
-
-if [[ ${AUTOMATIC_UPDATES:0:1} =~ ^[Yy]$ ]]; then
-    echo unattended-upgrades unattended-upgrades/enable_auto_updates boolean true | debconf-set-selections
-    dpkg-reconfigure -f noninteractive unattended-upgrades
-    cat > /etc/apt/apt.conf.d/50unattended-upgrades <<EOF
-APT::Periodic::Update-Package-Lists "1";
-APT::Periodic::Download-Upgradeable-Packages "1";
-APT::Periodic::AutocleanInterval "7";
-APT::Periodic::Unattended-Upgrade "1";
-Unattended-Upgrade::Automatic-Reboot "true";
-EOF
-    if ! docker ps -q -f name=watchtower | grep -q .; then
-        docker run --detach \
-            --name watchtower \
-            --volume /var/run/docker.sock:/var/run/docker.sock \
-            containrrr/watchtower
-    else
-        echo "Watchtower is already running, skipping setup..."
-    fi
-fi
-
-echo ""
-
 read -r -p "Would you like to import the Private Key for your selected Relay Account? [y/n] (press Enter to confirm): " IMPORT_KEY
 
 
@@ -165,5 +154,15 @@ else
     echo ""
     echo ""
     echo "To start the relay client, run: "
-    echo "docker run --name relay -d  --restart always -v \"$CONFIG_PATH\":/keys ghcr.io/vouchrun/pls-lsd-relay:main start --base-path /keys"
-fi
+#    echo "docker run --name relay -d  --restart always -v \"$CONFIG_PATH\":/keys ghcr.io/vouchrun/pls-lsd-relay:main start --base-path /keys"
+    echo "
+sudo docker run -it --pull always \
+--name relay \
+-e KEYSTORE_PASSWORD \
+--restart unless-stopped \
+--network=host \
+-v "/blockchain/relay":/blockchain/relay \
+ghcr.io/vouchrun/pls-lsd-relay:main \
+start --base-path /blockchain/relay \
+--log-level info
+fi"
