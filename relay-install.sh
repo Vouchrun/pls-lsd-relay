@@ -44,18 +44,18 @@ fi
 
 mkdir -p "$CONFIG_PATH"
 
-echo "account = \"$ACCOUNT\"          # Address in checksum format (i.e. case-sensitive) 
+echo "account = \"$ACCOUNT\"          # Address in checksum format (i.e. case-sensitive)
 trustNodeDepositAmount     = 1000000  # PLS
 eth2EffectiveBalance       = 32000000 # PLS
 maxPartialWithdrawalAmount = 8000000  # PLS
-gasLimit = "3000000"
-maxGasPrice = "40000000"              # Gwei
+gasLimit = \"3000000\"
+maxGasPrice = \"40000000\"              # Gwei
 gasPriceMultiplier = 2.5
 batchRequestBlocksNumber = 16
 eventFilterMaxSpanBlocks = 100000
 maxEjectedValPerCycle  = 100          # 0 for unlimited
 runForEntrustedLsdNetwork = false
-transferFeeAddresses = ["0x54da21340773FeCAF9A5bad0883a7fc594945d0A"] # whitelist DAO distributor address
+transferFeeAddresses = [\"0x54da21340773FeCAF9A5bad0883a7fc594945d0A\"] # whitelist DAO distributor address
 distributeBlockedTransferFeePerEra = 50000000 # for clearing excess fees at VOUCH launch
 
 [pinata]
@@ -80,21 +80,20 @@ lsdFactoryAddress = \"0x4bf4df49f8bc72a4e484443a14b827cb8c47c716\"
 
 # Primary Local Endpoints
 [[endpoints]]
-eth1 = "http://localhost:8545"
-eth2 = "http://localhost:5052"
+eth1 = \"http://localhost:8545\"
+eth2 = \"http://localhost:5052\"
 
 # Vouch RPC Enpoints
 [[endpoints]]
-eth1 = "https://eth1-rpc.vouch.run"
-eth2 = "https://eth2-rpc.vouch.run"
+eth1 = \"https://eth1-rpc.vouch.run\"
+eth2 = \"https://eth2-rpc.vouch.run\"
 
 # Fallback G4mm4.io public endpoints
 [[endpoints]]
-eth1 = "https://rpc-pulsechain.g4mm4.io"
-eth2 = "https://rpc-pulsechain.g4mm4.io/beacon-api"
+eth1 = \"https://rpc-pulsechain.g4mm4.io\"
+eth2 = \"https://rpc-pulsechain.g4mm4.io/beacon-api\"
 " >> "$CONFIG_PATH/config.toml"
 fi
-
 
 echo ""
 echo "Created default config.toml"
@@ -139,30 +138,44 @@ if [[ $IMPORT_KEY =~ ^[Yy]$ ]]; then
 fi
 
 echo ""
-read -r -p "Start relay service? (starting now will pass through your key password) [y/n] (press Enter to confirm): " START_SERVICE
+echo " Creating Startup Script"
+echo ""
+echo -n "Enter a customised container name for the relay service (default)[relay]: "
+read -r RELAY_CONTAINER_NAME
+
+if [ -z "${RELAY_CONTAINER_NAME}" ]; then
+    RELAY_CONTAINER_NAME="relay"
+fi
+
+echo "#!/bin/bash
+
+sudo docker stop $RELAY_CONTAINER_NAME
+sudo docker rm $RELAY_CONTAINER_NAME
+sudo docker run -it --pull always \
+--name $RELAY_CONTAINER_NAME \
+-e KEYSTORE_PASSWORD \
+--restart unless-stopped \
+--network=host \
+-v \"$CONFIG_PATH\":/keys \
+ghcr.io/vouchrun/pls-lsd-relay:main \
+start --base-path /keys \
+--log-level info" > "$CONFIG_PATH/start_relay.sh"
+
+chmod +x "$CONFIG_PATH/start_relay.sh"
+
+echo ""
+echo " Startup Script Creation Successful"
+echo ""
+
+
+echo ""
+read -r -p "Start relay service? [y/n] (press Enter to confirm): " START_SERVICE
 
 if [[ ${START_SERVICE:0:1} =~ ^[Yy]$ ]]; then
-    echo -n "Enter a customised container name for the relay service (default)[relay]: "
-    read -r RELAY_CONTAINER_NAME
-
-    if [ -z "${RELAY_CONTAINER_NAME}" ]; then
-        RELAY_CONTAINER_NAME="relay"
-    fi
-
-    docker run --name "$RELAY_CONTAINER_NAME" -d -e KEYSTORE_PASSWORD="$KEYSTORE_PASSWORD" --restart always -v "$CONFIG_PATH":/keys ghcr.io/vouchrun/pls-lsd-relay:main start --base-path /keys
+    "$CONFIG_PATH/start_relay.sh"
 else
     echo ""
     echo ""
     echo "To start the relay client, run: "
-#    echo "docker run --name relay -d  --restart always -v \"$CONFIG_PATH\":/keys ghcr.io/vouchrun/pls-lsd-relay:main start --base-path /keys"
-    echo "
-sudo docker run -it --pull always \
---name relay \
--e KEYSTORE_PASSWORD \
---restart unless-stopped \
---network=host \
--v "/blockchain/relay":/blockchain/relay \
-ghcr.io/vouchrun/pls-lsd-relay:main \
-start --base-path /blockchain/relay \
---log-level info
-fi"
+    echo "$CONFIG_PATH/start_relay.sh"
+fi
