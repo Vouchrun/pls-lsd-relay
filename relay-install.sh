@@ -85,8 +85,8 @@ eth2 = \"http://localhost:5052\"
 
 # Vouch RPC Enpoints
 [[endpoints]]
-eth1 = \"https://eth1-rpc.vouch.run\"
-eth2 = \"https://eth2-rpc.vouch.run\"
+eth1 = \"https://rpc.vouch.run\"
+eth2 = \"https://rpc-beacon.vouch.run\"
 
 # Fallback G4mm4.io public endpoints
 [[endpoints]]
