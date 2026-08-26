@@ -228,7 +228,10 @@ func (c *Eth1Client) Debug_TraceBlockByNumber(ctx context.Context, number *big.I
 
 	for _, client := range clients {
 		rpcClient := client.Client.Client()
-		if err = rpcClient.CallContext(ctx, &result, "debug_traceBlockByNumber", number, tracer); err == nil {
+		// the block number must be hex-encoded: a raw *big.Int marshals to a bare
+		// decimal number, which every geth-compatible server rejects with
+		// "invalid argument 0: hex string without 0x prefix"
+		if err = rpcClient.CallContext(ctx, &result, "debug_traceBlockByNumber", hexutil.EncodeBig(number), tracer); err == nil {
 			return
 		}
 	}
