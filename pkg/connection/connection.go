@@ -17,6 +17,7 @@ import (
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 	"github.com/forta-network/go-multicall"
 	"github.com/samber/lo"
+	"github.com/sirupsen/logrus"
 	"github.com/stafiprotocol/chainbridge/utils/crypto/secp256k1"
 	"github.com/stafiprotocol/eth-lsd-relay/pkg/config"
 	"github.com/stafiprotocol/eth-lsd-relay/pkg/connection/beacon"
@@ -137,15 +138,28 @@ func (c *Connection) connectEth1() (err error) {
 
 func (c *Connection) connectEth2(chainId *big.Int) error {
 	c.eth2Clients = make([]*eth2Client, 0, len(c.endpoints))
+	errMsgs := make([]string, 0, len(c.endpoints))
 	for _, e := range c.endpoints {
+		// a single offline endpoint must not prevent startup while others are
+		// usable; the runtime health checks already tolerate dead endpoints
 		stdClient, err := client.NewStandardHttpClient(e.Eth2, chainId)
 		if err != nil {
-			return err
+			logrus.WithFields(logrus.Fields{
+				"endpoint": e.Eth2,
+				"err":      err,
+			}).Warn("skip unreachable eth2 endpoint at startup")
+			errMsgs = append(errMsgs, fmt.Sprintf("endpoint: %s err: %s", e.Eth2, err))
+			continue
 		}
 
 		config, err := stdClient.GetEth2Config()
 		if err != nil {
-			return err
+			logrus.WithFields(logrus.Fields{
+				"endpoint": e.Eth2,
+				"err":      err,
+			}).Warn("skip eth2 endpoint with unreadable config at startup")
+			errMsgs = append(errMsgs, fmt.Sprintf("endpoint: %s err: %s", e.Eth2, err))
+			continue
 		}
 		client := eth2Client{
 			StandardHttpClient: stdClient,
@@ -154,6 +168,10 @@ func (c *Connection) connectEth2(chainId *big.Int) error {
 		}
 		checkEth2Health(&client)
 		c.eth2Clients = append(c.eth2Clients, &client)
+	}
+
+	if len(c.eth2Clients) == 0 {
+		return fmt.Errorf("no usable eth2 endpoint at startup: %s", strings.Join(errMsgs, "; "))
 	}
 
 	utils.SafeGoWithRestart(func() {
