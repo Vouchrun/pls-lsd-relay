@@ -10,8 +10,11 @@ import (
 	"log/slog"
 	"mime/multipart"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/stafiprotocol/eth-lsd-relay/pkg/destorage"
@@ -21,23 +24,50 @@ import (
 var _ destorage.DeStorage = &Client{}
 
 type Client struct {
-	endpoint string
-	apikey   string
+	endpoint     string
+	apikey       string
+	gateways     []string
+	gatewayToken string
+	httpClient   *http.Client
+}
+
+type Config struct {
+	Endpoint         string
+	Apikey           string
+	Gateway          string   // download URL template, two %s (cid, filename)
+	FallbackGateways []string // ordered fallback templates, same format
+	GatewayToken     string   // optional token for a dedicated/private gateway
 }
 
 const (
-	defaultEndpoint  = "https://api.pinata.cloud"
-	fileUrlFormatter = "https://%s.ipfs.dweb.link/%s"
+	defaultEndpoint = "https://api.pinata.cloud"
+	DefaultGateway  = "https://gateway.pinata.cloud/ipfs/%s/%s"
 )
 
-func NewClient(endpoint, apikey string) (*Client, error) {
+func NewClient(cfg Config) (*Client, error) {
+	endpoint := cfg.Endpoint
 	if endpoint == "" {
 		endpoint = defaultEndpoint
 	}
 
+	gateways := make([]string, 0, 1+len(cfg.FallbackGateways))
+	if cfg.Gateway != "" {
+		gateways = append(gateways, cfg.Gateway)
+	} else {
+		gateways = append(gateways, DefaultGateway)
+	}
+	for _, gateway := range cfg.FallbackGateways {
+		if gateway != "" {
+			gateways = append(gateways, gateway)
+		}
+	}
+
 	c := &Client{
-		endpoint,
-		apikey,
+		endpoint:     endpoint,
+		apikey:       cfg.Apikey,
+		gateways:     gateways,
+		gatewayToken: cfg.GatewayToken,
+		httpClient:   &http.Client{Timeout: 30 * time.Second},
 	}
 
 	return c, nil
@@ -63,25 +93,89 @@ func (c *Client) StartUnpinFiles(pinDur time.Duration) {
 }
 
 func (c *Client) DownloadFile(cid, fileName string) (content []byte, err error) {
-	url := fmt.Sprintf(fileUrlFormatter, cid, fileName)
-	rsp, err := http.Get(url)
-	if err != nil {
-		return nil, err
-	}
-	defer rsp.Body.Close()
+	outcomes := make([]string, 0, len(c.gateways))
+	var primaryStatus int
+	var primaryErr error
+	allNotFound := true
 
-	if rsp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("rsp status err %d", rsp.StatusCode)
+	for i, tmpl := range c.gateways {
+		bodyBytes, statusCode, gatewayErr := c.downloadFromGateway(tmpl, cid, fileName)
+		if gatewayErr == nil {
+			return bodyBytes, nil
+		}
+
+		outcomes = append(outcomes, fmt.Sprintf("%s: %v", tmpl, gatewayErr))
+
+		if i == 0 {
+			if statusCode == 0 {
+				primaryErr = gatewayErr
+			} else {
+				primaryStatus = statusCode
+			}
+		}
+		if statusCode != http.StatusNotFound {
+			allNotFound = false
+		}
 	}
 
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	if err != nil {
-		return nil, err
+	// primary gateway failed at transport level: preserve the verbatim error as before
+	if primaryErr != nil {
+		return nil, primaryErr
 	}
-	if len(bodyBytes) == 0 {
-		return nil, fmt.Errorf("bodyBytes zero err")
+
+	statusCode := primaryStatus
+	if allNotFound {
+		statusCode = http.StatusNotFound
 	}
-	return bodyBytes, nil
+
+	return nil, fmt.Errorf("rsp status err %d (%s)", statusCode, strings.Join(outcomes, "; "))
+}
+
+func (c *Client) downloadFromGateway(tmpl, cid, fileName string) (content []byte, statusCode int, err error) {
+	downloadURL := fmt.Sprintf(tmpl, cid, fileName)
+	if c.gatewayToken != "" {
+		parsed, err := url.Parse(downloadURL)
+		if err != nil {
+			return nil, 0, err
+		}
+		query := parsed.Query()
+		query.Set("pinataGatewayToken", c.gatewayToken)
+		parsed.RawQuery = query.Encode()
+		downloadURL = parsed.String()
+	}
+
+	for attempt := 0; ; attempt++ {
+		rsp, err := c.httpClient.Get(downloadURL)
+		if err != nil {
+			return nil, 0, err
+		}
+
+		if rsp.StatusCode == http.StatusOK {
+			bodyBytes, err := io.ReadAll(rsp.Body)
+			rsp.Body.Close()
+			if err != nil {
+				return nil, rsp.StatusCode, err
+			}
+			if len(bodyBytes) == 0 {
+				return nil, rsp.StatusCode, fmt.Errorf("bodyBytes zero err")
+			}
+			return bodyBytes, rsp.StatusCode, nil
+		}
+
+		retryable := rsp.StatusCode == http.StatusTooManyRequests && attempt == 0
+		retryAfter := 0
+		if retryable {
+			retryAfter, _ = strconv.Atoi(strings.TrimSpace(rsp.Header.Get("Retry-After")))
+		}
+		rsp.Body.Close()
+
+		if retryable && retryAfter > 0 && retryAfter <= 5 {
+			time.Sleep(time.Duration(retryAfter) * time.Second)
+			continue
+		}
+
+		return nil, rsp.StatusCode, fmt.Errorf("rsp status err %d", rsp.StatusCode)
+	}
 }
 
 func (c *Client) UploadFile(content []byte, path string) (cid string, err error) {

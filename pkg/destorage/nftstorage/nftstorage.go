@@ -15,7 +15,7 @@ import (
 )
 
 var _ destorage.DeStorage = &NftStorage{}
-var fileUrlFormatter string = "https://%s.ipfs.dweb.link/%s"
+var fileUrlFormatter string = "https://gateway.pinata.cloud/ipfs/%s/%s"
 
 type NftStorage struct {
 	apikey string
