@@ -35,7 +35,7 @@ import (
 )
 
 var _ destorage.DeStorage = &Storage{}
-var fileUrlFormatter string = "https://w3s.link/ipfs/%s/%s"
+var fileUrlFormatter string = "https://gateway.pinata.cloud/ipfs/%s/%s"
 
 type Storage struct {
 	proofs []ucanto_delegation.Delegation
