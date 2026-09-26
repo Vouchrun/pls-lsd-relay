@@ -15,6 +15,9 @@ transferFeeAddresses    = []
 [pinata]
 apikey     = "YOUR_API_KEY"
 pinDays = 180
+gateway = "https://gateway.pinata.cloud/ipfs/%s/%s"   # download gateway (two %s: CID, filename)
+# fallbackGateways = ["https://ipfs.io/ipfs/%s/%s"]   # optional ordered fallbacks
+# gatewayToken = ""                                   # optional Pinata dedicated-gateway token
 
 [contracts]
 lsdTokenAddress = "0x61135C59A4Eb452b89963188eD6B6a7487049764" # Testnet Contract

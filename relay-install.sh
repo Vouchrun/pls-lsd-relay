@@ -61,6 +61,7 @@ distributeBlockedTransferFeePerEra = 50000000 # for clearing excess fees at VOUC
 [pinata]
 apikey = \"$PINATA\"
 pinDays = 60
+gateway = \"https://gateway.pinata.cloud/ipfs/%s/%s\"
 " > "$CONFIG_PATH/config.toml"
 
 if [[ ${TESTNET:0:1} =~ ^[Yy]$ ]]

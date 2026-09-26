@@ -227,10 +227,13 @@ func NewService(
 		"lsdToken": cfg.Contracts.LsdTokenAddress,
 	})
 
-	dds, err := pinata.NewClient(
-		cfg.Pinata.Endpoint,
-		cfg.Pinata.Apikey,
-	)
+	dds, err := pinata.NewClient(pinata.Config{
+		Endpoint:         cfg.Pinata.Endpoint,
+		Apikey:           cfg.Pinata.Apikey,
+		Gateway:          cfg.Pinata.Gateway,
+		FallbackGateways: cfg.Pinata.FallbackGateways,
+		GatewayToken:     cfg.Pinata.GatewayToken,
+	})
 	if err != nil {
 		return nil, fmt.Errorf("fail to new pinata client: %w", err)
 	}

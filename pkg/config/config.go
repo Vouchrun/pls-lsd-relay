@@ -50,9 +50,12 @@ type Web3Storage struct {
 }
 
 type Pinata struct {
-	Apikey   string
-	Endpoint string
-	PinDays  uint
+	Apikey           string
+	Endpoint         string
+	PinDays          uint
+	Gateway          string
+	FallbackGateways []string
+	GatewayToken     string
 }
 
 type Contracts struct {
