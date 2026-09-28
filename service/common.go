@@ -248,7 +248,7 @@ func (s *Service) getFeePoolBalance(blockNumber uint64) (*big.Int, error) {
 }
 
 // return (user reward, node reward, platform fee) decimals 18
-func (s *Service) getUserNodePlatformFromPriorityFee(log *logrus.Entry, latestDistributeHeight, targetEth1BlockHeight uint64) (decimal.Decimal, decimal.Decimal, decimal.Decimal, NodeNewRewardsMap, error) {
+func (s *Service) getUserNodePlatformFromPriorityFee(log *logrus.Entry, latestDistributeHeight, targetEth1BlockHeight uint64, withReconciliation bool) (decimal.Decimal, decimal.Decimal, decimal.Decimal, NodeNewRewardsMap, error) {
 	ctx := context.Background()
 	totalUserEthDeci := decimal.Zero
 	totalNodeEthDeci := decimal.Zero
@@ -412,40 +412,50 @@ func (s *Service) getUserNodePlatformFromPriorityFee(log *logrus.Entry, latestDi
 		"progress": float64(1),
 	}).Debug("report progress: finished")
 
-	{
+	if withReconciliation {
 		// hotfix: substract overpaid amount
 		feePoolBalance, err := s.getFeePoolBalance(targetEth1BlockHeight)
 		if err != nil {
 			return decimal.Zero, decimal.Zero, decimal.Zero, nil, err
 		}
-		feePoolBalanceDeci := decimal.NewFromBigInt(feePoolBalance, 0)
-		overpaidAmountDeci := totalUserEthDeci.Add(totalNodeEthDeci).Add(totalPlatformEthDeci).Sub(feePoolBalanceDeci)
-		if overpaidAmountDeci.GreaterThan(decimal.Zero) {
-			platformFeeDeci := overpaidAmountDeci.Mul(s.platformCommissionRate).Floor()
-			userRewardDeci := overpaidAmountDeci.Sub(platformFeeDeci)
-			log.WithFields(logrus.Fields{
-				"block":  targetEth1BlockHeight,
-				"amount": overpaidAmountDeci.DivRound(decimal.NewFromInt(1e18), 18).StringFixed(18),
-			}).Debug("substract overpaid amount")
-
-			totalUserEthDeci = totalUserEthDeci.Sub(userRewardDeci)
-			totalPlatformEthDeci = totalPlatformEthDeci.Sub(platformFeeDeci)
-			if totalUserEthDeci.LessThan(decimal.Zero) {
-				return decimal.Zero, decimal.Zero, decimal.Zero, nil,
-					fmt.Errorf("total user eth less than zero, from block: %d to block: %d", latestDistributeHeight+1, targetEth1BlockHeight)
-			}
-			if totalPlatformEthDeci.LessThan(decimal.Zero) {
-				return decimal.Zero, decimal.Zero, decimal.Zero, nil,
-					fmt.Errorf("total platform eth less than zero, from block: %d to block: %d", latestDistributeHeight+1, targetEth1BlockHeight)
-			}
-		}
-		if feePoolBalanceDeci.LessThan(totalUserEthDeci.Add(totalNodeEthDeci).Add(totalPlatformEthDeci)) {
-			return decimal.Zero, decimal.Zero, decimal.Zero, nil,
-				fmt.Errorf("fee pool balance less than total user eth, node eth, platform eth, from block: %d to block: %d", latestDistributeHeight+1, targetEth1BlockHeight)
+		totalUserEthDeci, totalPlatformEthDeci, err = applyOverpaidCorrection(
+			totalUserEthDeci, totalNodeEthDeci, totalPlatformEthDeci,
+			decimal.NewFromBigInt(feePoolBalance, 0), s.platformCommissionRate,
+			latestDistributeHeight+1, targetEth1BlockHeight)
+		if err != nil {
+			return decimal.Zero, decimal.Zero, decimal.Zero, nil, err
 		}
 	}
 
 	return totalUserEthDeci, totalNodeEthDeci, totalPlatformEthDeci, nodeNewRewardsMap, nil
+}
+
+// applyOverpaidCorrection implements the priority-fee subtract-overpaid
+// reconciliation. Returns the corrected totalUser/totalPlatform (totalNode is
+// unchanged) or an error when the reconciliation fails. Pure; no I/O.
+func applyOverpaidCorrection(totalUser, totalNode, totalPlatform, feePoolBalance, platformRate decimal.Decimal, fromBlock, toBlock uint64) (decimal.Decimal, decimal.Decimal, error) {
+	overpaidAmountDeci := totalUser.Add(totalNode).Add(totalPlatform).Sub(feePoolBalance)
+	if overpaidAmountDeci.GreaterThan(decimal.Zero) {
+		platformFeeDeci := overpaidAmountDeci.Mul(platformRate).Floor()
+		userRewardDeci := overpaidAmountDeci.Sub(platformFeeDeci)
+
+		totalUser = totalUser.Sub(userRewardDeci)
+		totalPlatform = totalPlatform.Sub(platformFeeDeci)
+		if totalUser.LessThan(decimal.Zero) {
+			return totalUser, totalPlatform,
+				fmt.Errorf("total user eth less than zero, from block: %d to block: %d", fromBlock, toBlock)
+		}
+		if totalPlatform.LessThan(decimal.Zero) {
+			return totalUser, totalPlatform,
+				fmt.Errorf("total platform eth less than zero, from block: %d to block: %d", fromBlock, toBlock)
+		}
+	}
+	if feePoolBalance.LessThan(totalUser.Add(totalNode).Add(totalPlatform)) {
+		return totalUser, totalPlatform,
+			fmt.Errorf("fee pool balance less than total user eth, node eth, platform eth, from block: %d to block: %d", fromBlock, toBlock)
+	}
+
+	return totalUser, totalPlatform, nil
 }
 
 // include withdrawals fee
@@ -457,7 +467,7 @@ func (s *Service) getNodeNewRewardsBetween(latestDistributeHeight, targetEth1Blo
 	log := s.log.WithFields(logrus.Fields{
 		"getNodeNewRewardsBetween": true,
 	})
-	_, _, _, nodeNewRewardsMapFromPriorityFee, err := s.getUserNodePlatformFromPriorityFee(log, latestDistributeHeight, targetEth1BlockHeight)
+	_, _, _, nodeNewRewardsMapFromPriorityFee, err := s.getUserNodePlatformFromPriorityFee(log, latestDistributeHeight, targetEth1BlockHeight, false)
 	if err != nil {
 		return nil, err
 	}
