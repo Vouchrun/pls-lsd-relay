@@ -29,7 +29,7 @@ func (s *Service) distributePriorityFee() error {
 	log := s.log.WithFields(logrus.Fields{
 		"distributePriorityFee": true,
 	})
-	totalUserEthDeci, totalNodeEthDeci, totalPlatformEthDeci, _, err := s.getUserNodePlatformFromPriorityFee(log, latestDistributeHeight, targetEth1BlockHeight)
+	totalUserEthDeci, totalNodeEthDeci, totalPlatformEthDeci, _, err := s.getUserNodePlatformFromPriorityFee(log, latestDistributeHeight, targetEth1BlockHeight, true)
 	if err != nil {
 		return errors.Wrap(err, "getUserNodePlatformFromPriorityFee failed")
 	}

@@ -127,7 +127,7 @@ func (s *Service) submitBalances() error {
 	log := s.log.WithFields(logrus.Fields{
 		"submitBalances": true,
 	})
-	userEthFromPriorityFeeDeci, _, _, _, err := s.getUserNodePlatformFromPriorityFee(log, latestDistributePriorityFeeHeight.Uint64(), targetBlock)
+	userEthFromPriorityFeeDeci, _, _, _, err := s.getUserNodePlatformFromPriorityFee(log, latestDistributePriorityFeeHeight.Uint64(), targetBlock, true)
 	if err != nil {
 		return err
 	}
